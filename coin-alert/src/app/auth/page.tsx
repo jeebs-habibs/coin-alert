@@ -1,22 +1,26 @@
 'use client'
 
-import { signIn } from "next-auth/react";
+import { signInWithGoogle, signOut } from "../lib/firebase/auth";
+import { useAuth } from "../providers/auth-provider";
 
-export default async function Auth(){
+export default function Auth(){
   console.log("Inside auth page")
+  const auth = useAuth()
   //const session = await getServerAuthSession();
 
-  const handleSignIn = async () => {
-    await signIn('google');
-  };
 
-  if (true) {
+  if (!auth.user) {
     return (
       <div>
         <h1>Please sign in</h1>
-        <button onClick={handleSignIn}>Sign In with Google</button>
+        <button onClick={signInWithGoogle}>Sign In with Google</button>
       </div>
     );
   }
+  return (
+    <div>
+      <button onClick={signOut}>Sign Out</button>
+    </div>
+  )
 
 }
