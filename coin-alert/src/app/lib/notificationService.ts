@@ -9,7 +9,7 @@ export interface Message {
 interface Notification {
     title: string;
     body: string;
-    icon: string;
+    icon?: string;
 }
 
 // Fetch all FCM tokens from your database
@@ -36,7 +36,6 @@ export async function sendNormalNotification() {
       notification: {
         title: "Normal Notification",
         body: "This is a normal notification sent from the server.",
-        icon: "/icon.png",
       },
     };
 
@@ -58,7 +57,6 @@ export async function sendEmergencyNotification() {
       notification: {
         title: "🚨 Emergency Notification",
         body: "This is an emergency notification requiring immediate attention!",
-        icon: "/icon.png",
         vibrate: [200, 100, 200, 100, 200], // Vibrate pattern for attention
         requireInteraction: true, // Keep the notification until the user interacts
       },
