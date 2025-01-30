@@ -3,6 +3,13 @@ import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
 import { collection, deleteDoc, doc, getDocs, orderBy, query, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 
+async function getTokenPrice(token: string) {
+  // Get latest transaction from token pool 
+  // Parse if its a raydium or pump token
+  // Get sol amount from latest swap
+  // Return sol amount, pool, and timestamp
+}
+
 // 🔹 Function to Store Token Price in Firestore
 export async function storeTokenPrice(token: string, price: number) {
   try {
