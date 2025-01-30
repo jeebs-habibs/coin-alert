@@ -1,5 +1,6 @@
 "use client";
 
+import { PublicKey } from "@solana/web3.js";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { getToken, onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
@@ -12,7 +13,18 @@ export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
   const {user, loading, userData} = useAuth();
+  const [error, setError] = useState("");
 
+    // 🔹 Function to Validate Solana Address
+    const isValidSolanaAddress = (address: string): boolean => {
+      try {
+        new PublicKey(address);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    };
+  
   useEffect(() => {
     if (userData) {
       // Fetch user data
@@ -24,7 +36,11 @@ export default function Dashboard() {
   }, [userData]);
 
   const handleAddWallet = async () => {
-    if (!newWallet) return;
+    if (!newWallet || !isValidSolanaAddress(newWallet) || wallets.includes(newWallet)) {
+      setError("Error saving Solana wallet address")
+      console.error("Error saving Solana wallet address")
+      return;
+    }
 
     const updatedWallets = [...wallets, newWallet];
     setWallets(updatedWallets);
@@ -118,13 +134,13 @@ export default function Dashboard() {
   if (!user) {
     return <p>You must be signed in to view this page.</p>;
   }
-  
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
       <p>Sending notis every 10 secs</p>
       <p className="mb-6">Manage your wallets below:</p>
-
+      <p className="red-text">{error}</p>
       <div className="w-full max-w-md">
         <div className="mb-4">
           <input
