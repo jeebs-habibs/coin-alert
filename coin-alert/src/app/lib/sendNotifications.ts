@@ -1,4 +1,4 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
 
@@ -44,5 +44,35 @@ export async function sendNotificationsToAllUsers() {
     } catch (error) {
       console.error(`❌ Error sending notification to token ${token}:`, error);
     }
+  }
+}
+
+// 🔹 Send Push Notification to User
+export async function sendNotification(userId: string, token: string, priceChange: number, alertType: "normal" | "critical") {
+  try {
+    const userDocRef = doc(db, "users", userId);
+    const userDocSnap = await getDoc(userDocRef);
+    if (!userDocSnap.exists()) return;
+
+    const userData = userDocSnap.data();
+    if (!userData.tokens || userData.tokens.length === 0) return; // No FCM tokens
+
+    const notificationTitle = alertType === "critical" ? "🚨 Critical Price Alert!" : "📈 Price Alert!";
+    const notificationBody = alertType === "critical"
+      ? `🚨 ${token} price moved ${priceChange.toFixed(2)}%! Take action now!`
+      : `📈 ${token} price changed ${priceChange.toFixed(2)}%! Check the app for details.`;
+
+    for (const fcmToken of userData.tokens) {
+      await messaging.send({
+        token: fcmToken,
+        notification: { title: notificationTitle, body: notificationBody },
+        android: { priority: alertType === "critical" ? "high" : "normal" },
+        apns: { payload: { aps: { sound: alertType === "critical" ? "emergency" : "default" } } },
+      });
+    }
+
+    console.log(`✅ Sent ${alertType} alert for ${token} to ${userId}`);
+  } catch (error) {
+    console.error("❌ Error sending notification:", error);
   }
 }

@@ -20,7 +20,7 @@ export default function Dashboard() {
       try {
         new PublicKey(address);
         return true;
-      } catch (error) {
+      } catch {
         return false;
       }
     };
@@ -127,7 +127,7 @@ export default function Dashboard() {
     };
 
     requestPermissionAndSaveToken();
-  }, []);
+  });
 
   if (loading) return <p>Loading...</p>;
 
