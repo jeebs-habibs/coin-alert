@@ -1,10 +1,9 @@
-import { web3 } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
 import { collection, deleteDoc, doc, getDocs, orderBy, query, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
-import { getTokenPriceRaydium } from './utils/raydiumUtils';
 import { getTokenPricePump } from './utils/pumpUtils';
+import { getTokenPriceRaydium } from './utils/raydiumUtils';
 
 const connection = new Connection(process.env.RPC_ENDPOINT || "")
 
@@ -15,7 +14,12 @@ async function getTokenPrice(token: string) {
     if(!raydiumTokenPrice){
       console.log("Getting pump price")
       const pumpPrice = await getTokenPricePump(token, connection)
-      return {price: pumpPrice, pool:"pump"}
+      if(pumpPrice){
+        return {price: pumpPrice, pool:"pump"}
+      } else {
+        console.log("Failed to update price data for token: " + token)
+      }
+      
     } else {
       console.log("Returning raydium price")
       return {price: raydiumTokenPrice, pool: "raydium"}

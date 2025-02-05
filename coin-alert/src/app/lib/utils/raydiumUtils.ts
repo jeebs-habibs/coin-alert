@@ -3,7 +3,7 @@ import {
     LIQUIDITY_STATE_LAYOUT_V4
 } from "@raydium-io/raydium-sdk";
 
-import { Connection, ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
+import { Connection, ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
@@ -41,10 +41,10 @@ const connection = new Connection("https://frequent-bitter-dream.solana-mainnet.
 
 function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null){
     let relevantIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = []
-
+    // TODO: Update this to only pick out the two transfer instructions. Since Jup instructions are structured different than photon ones
     transaction?.meta?.innerInstructions?.forEach((ii: web3.ParsedInnerInstruction) => {
         ii.instructions.forEach((iii) => {
-            if(transaction?.transaction?.message?.instructions[ii.index].programId.equals(RAYDIUM_SWAP_PROGRAM)){
+            if(transaction?.transaction?.message?.instructions[ii.index].programId.equals(RAYDIUM_SWAP_PROGRAM) || iii.programId.equals(RAYDIUM_SWAP_PROGRAM)){
                 relevantIxs.push(iii)
             }
         })
@@ -120,7 +120,9 @@ export async function getTokenPriceRaydium(token: string) {
             let tokenAmount = 0
             
             const raydiumIx1Parsed = transactionRaydiumIxs[0] as ParsedInstruction
+            console.log("Raydium ix 1: " + JSON.stringify(raydiumIx1Parsed))
             const raydiumIx2Parsed = transactionRaydiumIxs[1] as ParsedInstruction
+            console.log("Raydium ix 2: " + JSON.stringify(raydiumIx2Parsed))
             const parsedIx1Data: ParsedRaydiumTransfer = raydiumIx1Parsed.parsed
             const parsedIx2Data: ParsedRaydiumTransfer = raydiumIx2Parsed.parsed
 
