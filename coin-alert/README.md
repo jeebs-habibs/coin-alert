@@ -2,6 +2,11 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## TODO
 - Store pool ids, recent signatures, and any other useful info in the database. It seems like blockchain is slower lol
+- Get data from Firestore for the token
+    If pool ids are available from DB, skip the step of fetching pool accounts
+    If signature was already parsed, skip setting the price
+
+- Eventually add code to remove 'dead coins'. These are coins that haven't had activty for > 30 days?
 
 ## Getting Started
 
