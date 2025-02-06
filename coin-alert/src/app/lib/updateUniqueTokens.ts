@@ -1,6 +1,6 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
-import { collection, deleteDoc, doc, getDocs, orderBy, query, setDoc } from "firebase/firestore";
+import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
@@ -10,6 +10,7 @@ const connection = new Connection(process.env.RPC_ENDPOINT || "")
 async function getTokenPrice(token: string) {
   try {
     const raydiumTokenPrice = await getTokenPriceRaydium(token)
+    console.log("received raydium price of " + raydiumTokenPrice)
 
     if(!raydiumTokenPrice){
       console.log("Getting pump price")
@@ -31,18 +32,18 @@ async function getTokenPrice(token: string) {
 }
 
 // 🔹 Function to Store Token Price in Firestore
-export async function storeTokenPrice(token: string, price: number) {
+export async function storeTokenPrice(token: string, price: number, pool: string) {
   try {
     const tokenDocRef = doc(db, "uniqueTokens", token);
-    const pricesCollectionRef = collection(tokenDocRef, "prices"); // Subcollection for price history
+    const timestamp = Date.now();
 
-    const timestamp = Date.now(); // Store timestamp in milliseconds
-
-    // 🔹 Store price data
-    await setDoc(doc(pricesCollectionRef, timestamp.toString()), {
-      price,
-      timestamp,
+    // 🔹 Append New Price Data to Prices Array
+    await updateDoc(tokenDocRef, {
+      lastUpdated: new Date(),
+      pool,
+      prices: arrayUnion({ timestamp, price }),
     });
+
 
     console.log(`✅ Price stored for ${token}: $${price}`);
 
@@ -73,7 +74,6 @@ async function deleteOldPrices(token: string) {
     console.error(`❌ Error deleting old prices for ${token}:`, error);
   }
 }
-
 
 interface TokenAccountData {
     info: TokenAccountInfo
@@ -121,9 +121,9 @@ export async function updateUniqueTokens() {
     // 🔹 2️⃣ Store Unique Tokens in Firestore
     for (const token of uniqueTokensSet) {
       const data = await getTokenPrice(token)
-      const tokenDocRef = doc(db, "uniqueTokens", token);
-      const tokenData = data?.price ? { lastUpdated: new Date(), price: data.price, pool: data.pool } : { lastUpdated: new Date() }
-      await setDoc(tokenDocRef, tokenData, { merge: true }); // Merge ensures we don’t overwrite
+      if (data?.price) {
+        await storeTokenPrice(token, data.price, data.pool);
+      }
     }
 
     console.log("✅ Unique tokens updated in Firestore.");

@@ -33,20 +33,37 @@ interface ParsedRaydiumTransfer {
     type: string;
 }
 
+interface RaydiumPoolData {
+    quoteVault: web3.PublicKey;
+    baseVault: web3.PublicKey;
+    baseMint: web3.PublicKey;
+    quoteMint: web3.PublicKey;
+    pubKey: web3.PublicKey;
+}
+
 
 const LAMPORTS_IN_SOL = 1000000000
 const MILLION = 1000000
 
 const connection = new Connection("https://frequent-bitter-dream.solana-mainnet.quiknode.pro/32c1136a100703f5645e948f6a0ed5a0b9435361");
 
-function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null){
+function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null, poolAccount: RaydiumPoolData){
     let relevantIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = []
-    // TODO: Update this to only pick out the two transfer instructions. Since Jup instructions are structured different than photon ones
     transaction?.meta?.innerInstructions?.forEach((ii: web3.ParsedInnerInstruction) => {
         ii.instructions.forEach((iii) => {
-            if(transaction?.transaction?.message?.instructions[ii.index].programId.equals(RAYDIUM_SWAP_PROGRAM) || iii.programId.equals(RAYDIUM_SWAP_PROGRAM)){
-                relevantIxs.push(iii)
+            if(iii.programId.equals(TOKEN_PROGRAM)){
+                const parsedIx = iii as ParsedInstruction
+                const parsedRaydiumTransfer: ParsedRaydiumTransfer = parsedIx.parsed
+                // console.log("parsedRaydiumTransfer.info.source: " + parsedRaydiumTransfer.info.source)
+                // console.log("parsedRaydiumTransfer.info.destination: " + parsedRaydiumTransfer.info.destination)
+                // console.log("poolAccount: " + poolAccount.toString())
+                if(parsedRaydiumTransfer.info.source == poolAccount.baseVault.toString() || parsedRaydiumTransfer.info.destination == poolAccount.baseVault.toString() 
+                     || parsedRaydiumTransfer.info.source == poolAccount.quoteVault.toString() || parsedRaydiumTransfer.info.destination == poolAccount.quoteVault.toString() ){
+                    console.log("YAHTZEE")
+                    relevantIxs.push(iii)
+                }
             }
+
         })
     })
     return relevantIxs
@@ -67,7 +84,7 @@ function getWrappedSolAccount(transaction: ParsedTransactionWithMeta | null): st
 }
 
   // Define a function to fetch and decode OpenBook accounts
-async function fetchPoolAccountsFromToken(quoteMint: PublicKey) {
+async function fetchPoolAccountsFromToken(quoteMint: PublicKey): Promise<RaydiumPoolData[]> {
     const accounts = await connection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
         {
@@ -83,9 +100,16 @@ async function fetchPoolAccountsFromToken(quoteMint: PublicKey) {
         }
     );
 
+    console.log("found " + accounts.length + " pool accounts for token: " + quoteMint.toString())
+
+    
     return accounts.map((account) => {
+        const data = LIQUIDITY_STATE_LAYOUT_V4.decode(account.account.data)
         return {
-            data: LIQUIDITY_STATE_LAYOUT_V4.decode(account.account.data), 
+            quoteVault: data.quoteVault,
+            baseVault: data.baseVault,
+            baseMint: data.baseMint,
+            quoteMint: data.quoteMint,
             pubKey: account.pubkey
         }
     });
@@ -111,8 +135,9 @@ export async function getTokenPriceRaydium(token: string) {
     console.log("Got transactions")
 
     for (const transaction of transactions){
+        console.log(JSON.stringify(transaction))
         console.log("Looking at transaction: " + transaction?.transaction.signatures.join(","))
-        const transactionRaydiumIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = getRelevantRaydiumInnerInstructions(transaction)
+        const transactionRaydiumIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = getRelevantRaydiumInnerInstructions(transaction, poolAccounts[0])
         const wrappedSolAccount = getWrappedSolAccount(transaction)
         if(transactionRaydiumIxs?.length){
             console.log("Found a raydium transaction")
@@ -136,6 +161,8 @@ export async function getTokenPriceRaydium(token: string) {
             const price = tokenAmount != 0 ? amountInSol/tokenAmount: 0  
             console.log("Returning price from raydium function")
             return price
+        } else {
+            console.error("No raydium instructions found")
         }
     }
     return undefined

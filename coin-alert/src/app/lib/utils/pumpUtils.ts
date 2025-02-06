@@ -36,6 +36,7 @@ export async function getTokenPricePump(token: string, connection: Connection){
     const transactions = await connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0 });
 
     for (const transaction of transactions){
+        console.log("Reviewing pump transaction: " + transaction?.transaction.signatures.join(","))
         const transactionPumpIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = getRelevantPumpInnerInstructions(transaction)
 
         const buyDiscrimator = Buffer.from(sha256('global:buy').slice(0, 8));
