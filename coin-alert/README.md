@@ -1,7 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## TODO
-- Update Raydium transaction finder to look at inner instructions as well. [This](https://solscan.io/tx/inspector?txhash=5jhDUeXYTijyKYr4fWtzSHx4FdjB7y3gsAUXk6vhLdaVz4HQTpp4SWG1j42QDpEmicLGoptzLj6sof8BmYQhTzQa) is an example of a transaction that has the raydium swap as an inner instruction. 
+- Store pool ids, recent signatures, and any other useful info in the database. It seems like blockchain is slower lol
 
 ## Getting Started
 

@@ -118,16 +118,22 @@ async function fetchPoolAccountsFromToken(quoteMint: PublicKey): Promise<Raydium
 
 export async function getTokenPriceRaydium(token: string) {
     console.log("In raydium function")
+    const timeBeforeFetchPoolAccounts = new Date().getTime()
     const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
-    console.log("got pool accounts")
+    const timeAfterFetchPoolAccounts = new Date().getTime()
+    const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
+    console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
     
     if(!poolAccounts?.length){
         console.log("ERROR: No Raydium pool found for token: " + token)
         return undefined
     }
 
+    const timeBeforeGetSignatures = new Date().getTime()
     const result = await connection.getSignaturesForAddress(poolAccounts[0].pubKey, {limit: 1})
-    console.log("Got sigs")
+    const timeAfterGetSignatures = new Date().getTime()
+    const timeTakenToGetSigs = timeAfterGetSignatures - timeBeforeGetSignatures
+    console.log("Got sigs in " + timeTakenToGetSigs + " ms")
 
     const signatures = result.map((sig) => sig.signature)
 
