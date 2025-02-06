@@ -1,6 +1,6 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
-import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
+import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
@@ -32,23 +32,33 @@ async function getTokenPrice(token: string) {
 }
 
 // 🔹 Function to Store Token Price in Firestore
-export async function storeTokenPrice(token: string, price: number, pool: string) {
+export async function storeTokenPrice(token: string, price: number, pool: string, timesToUpdateFirestore: number[], timesToDeleteFirestore: number[]) {
   try {
     const tokenDocRef = doc(db, "uniqueTokens", token);
     const timestamp = Date.now();
 
     // 🔹 Append New Price Data to Prices Array
+    const updatePerformance = new Date().getTime()
     await updateDoc(tokenDocRef, {
       lastUpdated: new Date(),
       pool,
       prices: arrayUnion({ timestamp, price }),
     });
+    const afterUpdatePerformance = new Date().getTime()
 
+    const timeToUpdateFirestore = (afterUpdatePerformance - updatePerformance)
+    timesToUpdateFirestore.push(timeToUpdateFirestore)
+    //console.log("Took " + timeToUpdateFirestore + " to update Firestore.")
 
     console.log(`✅ Price stored for ${token}: $${price}`);
 
     // 🔹 Clean up old prices (Keep only last 60 minutes)
+    const deletePerformance = new Date().getTime()
     await deleteOldPrices(token);
+    const afterDeletePerformance = new Date().getTime()
+    const timeToDeleteFirestore = (afterDeletePerformance - deletePerformance) 
+    timesToDeleteFirestore.push(timeToDeleteFirestore)
+    //console.log("Took " + timeToDeleteFirestore + " to delete old data from Firestore.")
   } catch (error) {
     console.error(`❌ Error storing price for ${token}:`, error);
   }
@@ -92,6 +102,10 @@ interface TokenAccountInfo {
 export async function updateUniqueTokens() {
   try {
     console.log("🔄 Updating unique tokens...");
+    let timesToUpdateFirestore: number[] = []
+    let timesToDeleteFirestore: number[] = []
+    let timesToGetTokenPrice: number[] = []
+
     // 🔹 1️⃣ Fetch All Users' Wallets
     const usersSnapshot = await getDocs(collection(db, "users"));
     const uniqueTokensSet = new Set<string>(); // Use a Set to avoid duplicates
@@ -119,12 +133,36 @@ export async function updateUniqueTokens() {
     }
 
     // 🔹 2️⃣ Store Unique Tokens in Firestore
+    let tokensFailedToGetPrice = []
     for (const token of uniqueTokensSet) {
+      const performancePrice = new Date().getTime()
       const data = await getTokenPrice(token)
+      const afterPerformancePrice = new Date().getTime()
+      const timeTakenToGetPrice = (afterPerformancePrice - performancePrice)
+      timesToGetTokenPrice.push(timeTakenToGetPrice)
+      //console.log("Took " + timeTakenToGetPrice + " to get token price for token: " + token)
       if (data?.price) {
-        await storeTokenPrice(token, data.price, data.pool);
+        await storeTokenPrice(token, data.price, data.pool, timesToUpdateFirestore, timesToDeleteFirestore);
+      } else {
+        tokensFailedToGetPrice.push(token)
       }
     }
+
+    if(tokensFailedToGetPrice.length){
+      console.error("Failed to get price for " + tokensFailedToGetPrice.length + " tokens: " + tokensFailedToGetPrice.join(","))
+    }
+
+    const avgTimeToUpdateFirestore = timesToUpdateFirestore.reduce((acc, num) => acc + num, 0) / timesToUpdateFirestore.length
+    const avgTimeToDeleteFirestore = timesToDeleteFirestore.reduce((acc, num) => acc + num, 0) / timesToDeleteFirestore.length
+    const avgTimeToGetTokenPrice = timesToGetTokenPrice.reduce((acc, num) => acc + num, 0) / timesToGetTokenPrice.length
+    const maxTimeToUpdateFirestore = Math.max(...timesToUpdateFirestore)
+    const maxTimeToDeleteFirestore = Math.max(...timesToDeleteFirestore)
+    const maxTimeToGetTokenPrice = Math.max(...timesToGetTokenPrice)
+
+    console.log("=====API METRICS=====")
+    console.log("Update firestore: " + avgTimeToUpdateFirestore + " ms (avg) " + maxTimeToUpdateFirestore + " ms (max)")
+    console.log("Delete firestore: " + avgTimeToDeleteFirestore + " ms (avg) " + maxTimeToDeleteFirestore + " ms (max)")
+    console.log("Get token price: " + avgTimeToGetTokenPrice + " ms (avg) " + maxTimeToGetTokenPrice + " ms (max)")
 
     console.log("✅ Unique tokens updated in Firestore.");
   } catch (error) {
