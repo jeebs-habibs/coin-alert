@@ -166,7 +166,13 @@ export async function getTokenPriceRaydium(token: string) {
             }
             const price = tokenAmount != 0 ? amountInSol/tokenAmount: 0  
             console.log("Returning price from raydium function")
-            return price
+            return {
+                price, 
+                baseVault: poolAccounts[0].baseVault,
+                baseMint: poolAccounts[0].baseMint, 
+                quoteVault: poolAccounts[0].quoteVault,
+                quoteMint: poolAccounts[0].quoteMint
+            }
         } else {
             console.error("No raydium instructions found")
         }

@@ -12,7 +12,7 @@ async function getTokenPrice(token: string) {
     const raydiumTokenPrice = await getTokenPriceRaydium(token)
     console.log("received raydium price of " + raydiumTokenPrice)
 
-    if(!raydiumTokenPrice){
+    if(!raydiumTokenPrice?.price){
       console.log("Getting pump price")
       const pumpPrice = await getTokenPricePump(token, connection)
       if(pumpPrice){
@@ -23,7 +23,7 @@ async function getTokenPrice(token: string) {
       
     } else {
       console.log("Returning raydium price")
-      return {price: raydiumTokenPrice, pool: "raydium"}
+      return {...raydiumTokenPrice, pool: "raydium"}
     }
     
   } catch(e) {
@@ -114,6 +114,7 @@ export async function updateUniqueTokens() {
 
     usersSnapshot.forEach((userDoc) => {
       const userData = userDoc.data();
+      userData.abs
       if (userData.wallets && Array.isArray(userData.wallets)) {
         userData.wallets.forEach((wallet) => uniqueWallets.add(wallet));
       }
