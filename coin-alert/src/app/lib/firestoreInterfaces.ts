@@ -7,7 +7,7 @@ export interface SirenUser {
     tokens?: string[];     // Optional FCM tokens for notifications
 }
 
-interface PriceData {
+export interface PriceData {
     price: number;
     timestamp: number;
     signatures?: string[];

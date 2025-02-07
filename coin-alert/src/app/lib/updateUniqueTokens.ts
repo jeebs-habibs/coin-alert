@@ -4,7 +4,7 @@ import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, update
 import { db } from "../lib/firebase/firebase";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
-import { GetPriceResponse, Token, TokenData } from "./firestoreInterfaces";
+import { GetPriceResponse, PriceData, Token, TokenData } from "./firestoreInterfaces";
 import { getToken } from "./firebase/tokenUtils";
 
 const connection = new Connection(process.env.RPC_ENDPOINT || "")
@@ -34,7 +34,7 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
 }
 
 // 🔹 Function to Store Token Price in Firestore
-export async function storeTokenPrice(token: string, price: number, tokenData: TokenData, timesToUpdateFirestore: number[], timesToDeleteFirestore: number[]) {
+export async function storeTokenPrice(token: string, price: PriceData, tokenData: TokenData, timesToUpdateFirestore: number[], timesToDeleteFirestore: number[]) {
   try {
     const tokenDocRef = doc(db, "uniqueTokens", token);
     const timestamp = Date.now();
@@ -44,7 +44,7 @@ export async function storeTokenPrice(token: string, price: number, tokenData: T
     await updateDoc(tokenDocRef, {
       lastUpdated: new Date(),
       tokenData: tokenData,
-      prices: arrayUnion({ timestamp, price }),
+      prices: arrayUnion(price),
     });
     const afterUpdatePerformance = new Date().getTime()
 
@@ -146,7 +146,7 @@ export async function updateUniqueTokens() {
       timesToGetTokenPrice.push(timeTakenToGetPrice)
       //console.log("Took " + timeTakenToGetPrice + " to get token price for token: " + token)
       if (data?.price) {
-        storeTokenPrice(token, data.price.price, data.tokenData, timesToUpdateFirestore, timesToDeleteFirestore);
+        storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore, timesToDeleteFirestore);
       } else {
         tokensFailedToGetPrice.push(token)
       }
