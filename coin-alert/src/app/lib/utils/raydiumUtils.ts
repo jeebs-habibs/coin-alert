@@ -4,6 +4,7 @@ import {
 } from "@raydium-io/raydium-sdk";
 
 import { Connection, ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
+import { GetPriceResponse, Token, TokenData } from "../firestoreInterfaces";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
@@ -47,7 +48,7 @@ const MILLION = 1000000
 
 const connection = new Connection("https://frequent-bitter-dream.solana-mainnet.quiknode.pro/32c1136a100703f5645e948f6a0ed5a0b9435361");
 
-function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null, poolAccount: RaydiumPoolData){
+function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null, baseVault: string, quoteVault: string){
     let relevantIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = []
     transaction?.meta?.innerInstructions?.forEach((ii: web3.ParsedInnerInstruction) => {
         ii.instructions.forEach((iii) => {
@@ -57,8 +58,8 @@ function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithM
                 // console.log("parsedRaydiumTransfer.info.source: " + parsedRaydiumTransfer.info.source)
                 // console.log("parsedRaydiumTransfer.info.destination: " + parsedRaydiumTransfer.info.destination)
                 // console.log("poolAccount: " + poolAccount.toString())
-                if(parsedRaydiumTransfer.info.source == poolAccount.baseVault.toString() || parsedRaydiumTransfer.info.destination == poolAccount.baseVault.toString() 
-                     || parsedRaydiumTransfer.info.source == poolAccount.quoteVault.toString() || parsedRaydiumTransfer.info.destination == poolAccount.quoteVault.toString() ){
+                if(parsedRaydiumTransfer.info.source == baseVault || parsedRaydiumTransfer.info.destination == baseVault
+                     || parsedRaydiumTransfer.info.source == quoteVault || parsedRaydiumTransfer.info.destination == quoteVault ){
                     console.log("YAHTZEE")
                     relevantIxs.push(iii)
                 }
@@ -115,22 +116,37 @@ async function fetchPoolAccountsFromToken(quoteMint: PublicKey): Promise<Raydium
     });
 }
 
+function containsList(nestedLists: string[][], targetList: string[]): boolean {
+    const targetSet = new Set(targetList);
+  
+    return nestedLists.some((list) => {
+      return list.length === targetList.length && new Set(list).size === targetSet.size && [...targetSet].every((item) => new Set(list).has(item));
+    });
+  }
 
-export async function getTokenPriceRaydium(token: string) {
+
+export async function getTokenPriceRaydium(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
     console.log("In raydium function")
-    const timeBeforeFetchPoolAccounts = new Date().getTime()
-    const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
-    const timeAfterFetchPoolAccounts = new Date().getTime()
-    const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
-    console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
-    
-    if(!poolAccounts?.length){
+    let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
+    if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId){
+        const timeBeforeFetchPoolAccounts = new Date().getTime()
+        const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
+        const timeAfterFetchPoolAccounts = new Date().getTime()
+        const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
+        console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
+        finalTokenData = {...finalTokenData, baseVault: poolAccounts[0]?.baseVault?.toString()}
+        finalTokenData = {...finalTokenData, quoteVault: poolAccounts[0]?.quoteVault?.toString()}
+        finalTokenData = {...finalTokenData, marketPoolId: poolAccounts[0]?.pubKey?.toString()}
+    }
+
+
+    if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId){
         console.log("ERROR: No Raydium pool found for token: " + token)
         return undefined
     }
 
     const timeBeforeGetSignatures = new Date().getTime()
-    const result = await connection.getSignaturesForAddress(poolAccounts[0].pubKey, {limit: 1})
+    const result = await connection.getSignaturesForAddress(new PublicKey(finalTokenData?.marketPoolId), {limit: 1})
     const timeAfterGetSignatures = new Date().getTime()
     const timeTakenToGetSigs = timeAfterGetSignatures - timeBeforeGetSignatures
     console.log("Got sigs in " + timeTakenToGetSigs + " ms")
@@ -141,41 +157,44 @@ export async function getTokenPriceRaydium(token: string) {
     console.log("Got transactions")
 
     for (const transaction of transactions){
-        console.log(JSON.stringify(transaction))
-        console.log("Looking at transaction: " + transaction?.transaction.signatures.join(","))
-        const transactionRaydiumIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = getRelevantRaydiumInnerInstructions(transaction, poolAccounts[0])
-        const wrappedSolAccount = getWrappedSolAccount(transaction)
-        if(transactionRaydiumIxs?.length){
-            console.log("Found a raydium transaction")
-            let amountInSol = 0
-            let tokenAmount = 0
-            
-            const raydiumIx1Parsed = transactionRaydiumIxs[0] as ParsedInstruction
-            console.log("Raydium ix 1: " + JSON.stringify(raydiumIx1Parsed))
-            const raydiumIx2Parsed = transactionRaydiumIxs[1] as ParsedInstruction
-            console.log("Raydium ix 2: " + JSON.stringify(raydiumIx2Parsed))
-            const parsedIx1Data: ParsedRaydiumTransfer = raydiumIx1Parsed.parsed
-            const parsedIx2Data: ParsedRaydiumTransfer = raydiumIx2Parsed.parsed
-
-            if(parsedIx1Data.info.source == wrappedSolAccount){
-                amountInSol = parseInt(parsedIx1Data.info.amount)/LAMPORTS_IN_SOL
-                tokenAmount = parseInt(parsedIx2Data.info.amount)/MILLION
+        //console.log(JSON.stringify(transaction))
+        const previouslyParsedSigs = tokenFromFirestore?.prices?.map((sig) => sig.signatures || []) || []
+        if(!containsList(previouslyParsedSigs, transaction?.transaction.signatures || [])){
+            console.log("Looking at transaction: " + transaction?.transaction.signatures.join(","))
+            const transactionRaydiumIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = getRelevantRaydiumInnerInstructions(transaction, finalTokenData?.baseVault, finalTokenData?.quoteVault)
+            const wrappedSolAccount = getWrappedSolAccount(transaction)
+            if(transactionRaydiumIxs?.length){
+                console.log("Found a raydium transaction")
+                let amountInSol = 0
+                let tokenAmount = 0
+                
+                const raydiumIx1Parsed = transactionRaydiumIxs[0] as ParsedInstruction
+                console.log("Raydium ix 1: " + JSON.stringify(raydiumIx1Parsed))
+                const raydiumIx2Parsed = transactionRaydiumIxs[1] as ParsedInstruction
+                console.log("Raydium ix 2: " + JSON.stringify(raydiumIx2Parsed))
+                const parsedIx1Data: ParsedRaydiumTransfer = raydiumIx1Parsed.parsed
+                const parsedIx2Data: ParsedRaydiumTransfer = raydiumIx2Parsed.parsed
+    
+                if(parsedIx1Data.info.source == wrappedSolAccount){
+                    amountInSol = parseInt(parsedIx1Data.info.amount)/LAMPORTS_IN_SOL
+                    tokenAmount = parseInt(parsedIx2Data.info.amount)/MILLION
+                } else {
+                    amountInSol = parseInt(parsedIx2Data.info.amount)/LAMPORTS_IN_SOL
+                    tokenAmount = parseInt(parsedIx1Data.info.amount)/MILLION
+                }
+                const price = tokenAmount != 0 ? amountInSol/tokenAmount: 0  
+                console.log("Returning price from raydium function")
+                return {
+                    price: {price, timestamp: transaction?.blockTime || new Date().getTime(), signatures: transaction?.transaction.signatures}, 
+                    tokenData: {...finalTokenData, pool: "raydium"}
+                }
             } else {
-                amountInSol = parseInt(parsedIx2Data.info.amount)/LAMPORTS_IN_SOL
-                tokenAmount = parseInt(parsedIx1Data.info.amount)/MILLION
-            }
-            const price = tokenAmount != 0 ? amountInSol/tokenAmount: 0  
-            console.log("Returning price from raydium function")
-            return {
-                price, 
-                baseVault: poolAccounts[0].baseVault,
-                baseMint: poolAccounts[0].baseMint, 
-                quoteVault: poolAccounts[0].quoteVault,
-                quoteMint: poolAccounts[0].quoteMint
+                console.error("No raydium instructions found")
             }
         } else {
-            console.error("No raydium instructions found")
+            console.log("Skipping transaction because it already has been parsed")
         }
+ 
     }
     return undefined
 }

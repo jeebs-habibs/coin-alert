@@ -13,18 +13,26 @@ interface PriceData {
     signatures?: string[];
 }
 
-
 export type PoolType = "pump" | "raydium"
 
+export interface TokenData {
+  pool?: PoolType
+  baseVault?: string;
+  baseMint?: string;
+  quoteVault?: string;
+  quoteMint?: string;
+  marketPoolId?: string;
+}
+
+export interface GetPriceResponse {
+  price: PriceData;
+  tokenData: TokenData;
+}
 
 export interface Token {
-    lastUpdated: Date;
-    pool: PoolType;
-    prices: PriceData[];
-    baseVault: string;
-    baseMint: string;
-    quoteVault: string;
-    quoteMint: string;
+    lastUpdated?: Date;
+    prices?: PriceData[];
+    tokenData?: TokenData;
 }
 
 export const userConverter: FirestoreDataConverter<SirenUser> = {
@@ -52,26 +60,22 @@ export const userConverter: FirestoreDataConverter<SirenUser> = {
     toFirestore(token: Token) {
       return {
         lastUpdated: token.lastUpdated instanceof Date ? token.lastUpdated.getTime() : token.lastUpdated,
-        pool: token.pool,
-        prices: token.prices.map((price) => ({
+        prices: token?.prices?.map((price) => ({
           timestamp: price.timestamp,
           price: price.price,
-        })),
-        baseVault: token.baseVault,
-        quoteVault: token.quoteVault,
+        })) || [],
+        tokenData: token?.tokenData
       };
     },
     fromFirestore(snapshot, options) {
       const data = snapshot.data(options);
       return {
         lastUpdated: typeof data.lastUpdated === "number" ? new Date(data.lastUpdated) : (data.lastUpdated as Timestamp).toDate(),
-        pool: data.pool as PoolType,
-        prices: data.prices.map((price: any) => ({
+        prices: data?.prices?.map((price: PriceData) => ({
           timestamp: typeof price.timestamp === "number" ? price.timestamp : (price.timestamp as Timestamp).toMillis(),
           price: price.price,
-        })) as PriceData[],
-        baseVault: data.baseVault,
-        quoteVault: data.quoteVault,
+        })) || [] as PriceData[],
+        tokenData: data?.tokenData
       };
     },
   };

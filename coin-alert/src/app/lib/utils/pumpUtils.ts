@@ -5,6 +5,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import { getAccount, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
 import { StringLiteral } from 'typescript';
+import { GetPriceResponse } from "../firestoreInterfaces";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
 const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
@@ -28,7 +29,7 @@ function getRelevantPumpInnerInstructions(transaction: ParsedTransactionWithMeta
   }
   
 
-export async function getTokenPricePump(token: string, connection: Connection){
+export async function getTokenPricePump(token: string, connection: Connection): Promise<GetPriceResponse | undefined>{
     console.log("In pump function")
     const signatures = await connection.getSignaturesForAddress(new PublicKey(token), {limit: 1})
     const signatureList = signatures.map((a) => a.signature)
@@ -66,7 +67,7 @@ export async function getTokenPricePump(token: string, connection: Connection){
             const solAmount = Math.abs(preBalances[index!] - postBalances[index!]) / LAMPORTS_IN_SOL;
             const price = tokenAmount != 0 ? solAmount/tokenAmount : 0
             console.log("returning price from pump function")
-            return price
+            return {price: {price, timestamp: transaction?.blockTime || new Date().getTime(), signatures: transaction?.transaction.signatures || []}, tokenData: { pool: "pump"}}
         }
     }
     return undefined
