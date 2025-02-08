@@ -4,7 +4,7 @@ import {
 } from "@raydium-io/raydium-sdk";
 
 import { ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
-import { GetPriceResponse, Token, TokenData } from "../firestoreInterfaces";
+import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { connection } from "../connection";
 import { blockchainTaskQueue } from "../taskQueue";
 
@@ -165,7 +165,7 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     }
 
     const timeBeforeGetSignatures = new Date().getTime()
-    const result = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(finalTokenData.marketPoolId!), {limit: 1}), "Adding task to get raydium sigs")
+    const result = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(finalTokenData.marketPoolId!), {limit: 1}, "finalized"), "Adding task to get raydium sigs")
     console.log("GOT RESULT FROM GET SIGS IN RAYDIUM for token: " + token)
     const timeAfterGetSignatures = new Date().getTime()
     const timeTakenToGetSigs = timeAfterGetSignatures - timeBeforeGetSignatures

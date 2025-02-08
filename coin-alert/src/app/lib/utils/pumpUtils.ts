@@ -3,7 +3,7 @@ import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 import * as borsh from "@coral-xyz/borsh";
 import { sha256 } from '@noble/hashes/sha256';
 import { ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
-import { GetPriceResponse } from "../firestoreInterfaces";
+import { GetPriceResponse } from "../firebase/tokenUtils";
 import { connection } from "../connection";
 import { blockchainTaskQueue } from "../taskQueue";
 
@@ -38,7 +38,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
     console.log("In pump function")
     const bondingCurveAccount = await getBondingCurveAddress(token)
     console.log("Got bonding curve account: " + bondingCurveAccount.toString())
-    const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1}), "Adding task to get pump fun sigs") 
+    const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1}, "finalized"), "Adding task to get pump fun sigs") 
     const signatureList = signatures.map((a) => a.signature)
 
     const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0 })) 

@@ -1,6 +1,12 @@
 import { collection, doc, getDocs, orderBy, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+import { PublicKey } from "@solana/web3.js";
+import { blockchainTaskQueue } from "@/app/lib/taskQueue";
+import { connection } from "@/app/lib/connection";
+import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAllUsers } from "@/app/lib/firebase/userUtils";
 
 async function getLastHourPrices(token: string) {
     try {
@@ -27,8 +33,20 @@ async function getLastHourPrices(token: string) {
 
 // 🔹 Placeholder: Fetch Tokens Owned by User (Implement This Later)
 async function getTokensFromBlockchain(walletAddress: string): Promise<string[]> {
-  // TODO: Implement logic to fetch tokens owned by a given wallet address
-  return [];
+  const publicKey = new PublicKey(walletAddress);
+  const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })) 
+  const tokensHeldByAddress = tokenAccountsForAddress.value.filter((val) => {
+    const tokenAccountData: TokenAccountData = val.account.data.parsed
+    if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 0) {
+      return true
+    } else {
+      return false
+    }
+  }).map((val) => {
+    const tokenAccountData: TokenAccountData = val.account.data.parsed
+    return tokenAccountData.info.mint
+  })
+  return tokensHeldByAddress
 }
 
 // 🔹 Check Price Change Percentage
@@ -41,27 +59,30 @@ export async function GET() {
   try {
     console.log("🔄 Checking price alerts for users...");
 
-    const usersSnapshot = await getDocs(collection(db, "users"));
+    const usersSnapshot = await getAllUsers();
     const notificationsToSend: any[] = [];
 
-    // 🔹 1️⃣ Loop Through Users
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      if (!userData.wallets || !Array.isArray(userData.wallets)) continue; // Skip users with no wallets
+    // 🔹 1️⃣ Process All Users in Parallel
+    const userPromises = usersSnapshot.map(async (user) => {
+      if (!user.wallets || !Array.isArray(user.wallets)) return; // Skip users with no wallets
 
-      console.log(`👤 Checking tokens for user: ${userDoc.id}`);
+      console.log(`👤 Checking tokens for user: ${user.uid} (${user.wallets.join(",")})`);
 
-      // 🔹 2️⃣ Get All Tokens Owned by User (via Blockchain)
-      let allTokens = new Set<string>(); // Avoid duplicates
-      for (const wallet of userData.wallets) {
+      // 🔹 2️⃣ Get All Tokens Owned by User (via Blockchain) in Parallel
+      const allTokensSet = new Set<string>();
+      const tokenPromises = user.wallets.map(async (wallet) => {
         const tokens = await getTokensFromBlockchain(wallet);
-        tokens.forEach((token) => allTokens.add(token));
-      }
+        console.log("Address " + wallet + " has " + tokens.length + " unique tokens held")
+        tokens.forEach((token) => allTokensSet.add(token));
+      });
 
-      // 🔹 3️⃣ Check Price Changes for Each Token
-      for (const token of allTokens) {
+      await Promise.all(tokenPromises);
+      const allTokens = Array.from(allTokensSet);
+
+      // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
+      const tokenPricePromises = allTokens.map(async (token) => {
         const priceHistory = await getLastHourPrices(token);
-        if (priceHistory.length < 10) continue; // Skip if not enough data
+        if (priceHistory.length < 10) return null; // Skip if not enough data
 
         const latestPrice = priceHistory[0].price;
         const checkIntervals = [5, 15, 30, 45]; // Minutes
@@ -78,32 +99,44 @@ export async function GET() {
 
           // 🔹 4️⃣ If Change > 10%, Send Normal Alert
           if (priceChange > 10 || priceChange < -10) {
+            console.log("Normal alert")
             alertType = "normal";
           }
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
           if (priceChange > 50 || priceChange < -50) {
+            console.log("Critical alert")
             alertType = "critical";
             break; // Critical alert takes priority
           }
         }
 
-        // 🔹 6️⃣ Send Notification if Needed
+        // 🔹 6️⃣ Queue Notification if Needed
         if (alertType) {
-          notificationsToSend.push({
-            userId: userDoc.id,
+          return {
+            userId: user.uid,
             token,
             priceChange: latestPrice,
             alertType,
-          });
+          };
         }
-      }
-    }
+        return null;
+      });
 
-    // 🔹 7️⃣ Send Notifications in Bulk
-    for (const notification of notificationsToSend) {
-      await sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType);
-    }
+      // Collect valid notifications
+      const userNotifications = (await Promise.all(tokenPricePromises)).filter(Boolean);
+      notificationsToSend.push(...userNotifications);
+    });
+
+    // 🔹 7️⃣ Wait for all users to be processed
+    await Promise.all(userPromises);
+
+    // 🔹 8️⃣ Send Notifications in Bulk
+    await Promise.all(
+      notificationsToSend.map((notification) =>
+        sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType)
+      )
+    );
 
     console.log("✅ Price alerts processed.");
     return new Response(JSON.stringify({ message: "Alerts checked successfully" }), { status: 200 });

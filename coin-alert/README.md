@@ -23,6 +23,7 @@ should take 42 seconds max.
 tokens to investigate:
 - AuVGPGcofcPTiH7ne6e3VvRgBYFDFFHVQWM1HfLGrwrj
 - Sig: 2SepAG32mecn8sEGjHNHT5RQYscSxZzjTQdsdp5ruRvaTtnpfZExodQsYnYyNJyhZiVgeUG8SZ86fW3xUdWQcoPK
+- 27VSrng15AzufqA4SaB2aHRVjmBDT6XxE9PZHC9cpump: Most recent transaction was a failed one, will need logic to retry here.
 
 
 ## TODO

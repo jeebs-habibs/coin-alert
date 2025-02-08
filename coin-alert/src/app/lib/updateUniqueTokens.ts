@@ -3,12 +3,13 @@ import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
 import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { getToken } from "./firebase/tokenUtils";
-import { GetPriceResponse, PriceData, Token, TokenData } from "./firestoreInterfaces";
+import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
 import chalk from "chalk";
 import { connection } from "./connection";
 import { blockchainTaskQueue } from "./taskQueue";
+import { TokenAccountData } from "./utils/solanaUtils";
 
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
@@ -88,19 +89,6 @@ async function deleteOldPrices(token: string) {
   } catch (error) {
     console.error(`❌ Error deleting old prices for ${token}:`, error);
   }
-}
-
-interface TokenAccountData {
-    info: TokenAccountInfo
-    "type": string;
-}
-
-interface TokenAccountInfo {
-    isNative: boolean;
-    mint: string;
-    owner: string;
-    state: string;
-    tokenAmount: TokenAmount;
 }
 
 // 🔹 Function to Fetch All Unique Tokens and Store in Firestore
