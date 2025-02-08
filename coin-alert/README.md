@@ -9,6 +9,12 @@ Get token price: 923.6666666666666 ms (avg) 3459 ms (max)
  GET /api/updateTokens 200 in 97579ms
 
 
+## Reasons we cant get price
+- There are multiple pools for the token (PENGU)
+- The most recent transcation we parsed was not a buy or sell (we should fix this by only scanning pump pools like we are doing for raydium)
+    - We can probably get the transaction that created the pump pool to get the pool data if it doesnt exist
+
+
 ## TODO
 - Eventually add code to remove 'dead coins'. These are coins that haven't had activty for > 30 days?
 
