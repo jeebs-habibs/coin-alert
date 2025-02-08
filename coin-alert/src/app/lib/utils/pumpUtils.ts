@@ -1,10 +1,8 @@
-import { web3 } from "@coral-xyz/anchor"
+import { web3 } from "@coral-xyz/anchor";
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 import * as borsh from "@coral-xyz/borsh";
 import { sha256 } from '@noble/hashes/sha256';
-import { getAccount, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Connection, ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
-import { StringLiteral } from 'typescript';
+import { Connection, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
 import { GetPriceResponse } from "../firestoreInterfaces";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
@@ -29,9 +27,16 @@ function getRelevantPumpInnerInstructions(transaction: ParsedTransactionWithMeta
   }
   
 
+async function getBondingCurveAddress(token: string){
+    const [bondingCurve] = PublicKey.findProgramAddressSync([Buffer.from("bonding-curve"), new PublicKey(token).toBytes()], PUMP_FUN_PROGRAM);
+    return bondingCurve
+}
+
 export async function getTokenPricePump(token: string, connection: Connection): Promise<GetPriceResponse | undefined>{
     console.log("In pump function")
-    const signatures = await connection.getSignaturesForAddress(new PublicKey(token), {limit: 1})
+    const bondingCurveAccount = await getBondingCurveAddress(token)
+    console.log("Got bonding curve account: " + bondingCurveAccount.toString())
+    const signatures = await connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1})
     const signatureList = signatures.map((a) => a.signature)
 
     const transactions = await connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0 });

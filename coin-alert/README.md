@@ -11,8 +11,10 @@ Get token price: 923.6666666666666 ms (avg) 3459 ms (max)
 
 ## Reasons we cant get price
 - There are multiple pools for the token (PENGU)
-- The most recent transcation we parsed was not a buy or sell (we should fix this by only scanning pump pools like we are doing for raydium)
-    - We can probably get the transaction that created the pump pool to get the pool data if it doesnt exist
+
+tokens to investigate:
+- AuVGPGcofcPTiH7ne6e3VvRgBYFDFFHVQWM1HfLGrwrj
+- Sig: 2SepAG32mecn8sEGjHNHT5RQYscSxZzjTQdsdp5ruRvaTtnpfZExodQsYnYyNJyhZiVgeUG8SZ86fW3xUdWQcoPK
 
 
 ## TODO

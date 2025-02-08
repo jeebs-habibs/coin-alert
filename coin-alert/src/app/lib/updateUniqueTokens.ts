@@ -2,10 +2,10 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
 import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
+import { getToken } from "./firebase/tokenUtils";
+import { GetPriceResponse, PriceData, Token, TokenData } from "./firestoreInterfaces";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
-import { GetPriceResponse, PriceData, Token, TokenData } from "./firestoreInterfaces";
-import { getToken } from "./firebase/tokenUtils";
 
 const connection = new Connection(process.env.RPC_ENDPOINT || "")
 
@@ -52,7 +52,7 @@ export async function storeTokenPrice(token: string, price: PriceData, tokenData
     timesToUpdateFirestore.push(timeToUpdateFirestore)
     //console.log("Took " + timeToUpdateFirestore + " to update Firestore.")
 
-    console.log(`✅ Price stored for ${token}: $${price}`);
+    console.log(`✅ Price stored for ${token}: $${price.price}`);
 
     // 🔹 Clean up old prices (Keep only last 60 minutes)
     const deletePerformance = new Date().getTime()
@@ -138,6 +138,7 @@ export async function updateUniqueTokens() {
     // 🔹 2️⃣ Store Unique Tokens in Firestore
     let tokensFailedToGetPrice = []
     for (const token of uniqueTokensSet) {
+      console.log("===========Getting price for token: " + token + "============")
       const performancePrice = new Date().getTime()
       const tokenFromFirestore: Token | undefined = await getToken(token)
       const data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore)
@@ -153,7 +154,7 @@ export async function updateUniqueTokens() {
     }
 
     if(tokensFailedToGetPrice.length){
-      console.error("Failed to get price for " + tokensFailedToGetPrice.length + " tokens: " + tokensFailedToGetPrice.join(","))
+      console.error(`Failed to get price for ${tokensFailedToGetPrice.length}/${uniqueTokensSet.size} (${(tokensFailedToGetPrice.length / uniqueTokensSet.size) * 100}%) tokens: ${tokensFailedToGetPrice.join(",")}`)
     }
 
     const avgTimeToUpdateFirestore = timesToUpdateFirestore.reduce((acc, num) => acc + num, 0) / timesToUpdateFirestore.length

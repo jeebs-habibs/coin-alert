@@ -60,7 +60,7 @@ function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithM
                 // console.log("poolAccount: " + poolAccount.toString())
                 if(parsedRaydiumTransfer.info.source == baseVault || parsedRaydiumTransfer.info.destination == baseVault
                      || parsedRaydiumTransfer.info.source == quoteVault || parsedRaydiumTransfer.info.destination == quoteVault ){
-                    console.log("YAHTZEE")
+                    // console.log("YAHTZEE")
                     relevantIxs.push(iii)
                 }
             }
@@ -85,15 +85,15 @@ function getWrappedSolAccount(transaction: ParsedTransactionWithMeta | null): st
 }
 
   // Define a function to fetch and decode OpenBook accounts
-async function fetchPoolAccountsFromToken(quoteMint: PublicKey): Promise<RaydiumPoolData[]> {
-    const accounts = await connection.getProgramAccounts(
+async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolData[]> {
+    let accounts = await connection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
         {
         filters: [
             {
             memcmp: {
                 offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf("quoteMint"),
-                bytes: quoteMint.toBase58(),
+                bytes: mint.toBase58(),
                 encoding: "base58"
             },
             },
@@ -101,7 +101,24 @@ async function fetchPoolAccountsFromToken(quoteMint: PublicKey): Promise<Raydium
         }
     );
 
-    console.log("found " + accounts.length + " pool accounts for token: " + quoteMint.toString())
+    if(!accounts?.length){
+        accounts = await connection.getProgramAccounts(
+            new PublicKey(RAYDIUM_SWAP_PROGRAM),
+            {
+            filters: [
+                {
+                memcmp: {
+                    offset: LIQUIDITY_STATE_LAYOUT_V4.offsetOf("baseMint"),
+                    bytes: mint.toBase58(),
+                    encoding: "base58"
+                },
+                },
+            ],
+            }
+        );
+    }
+
+    console.log("found " + accounts.length + " pool accounts for token: " + mint.toString())
 
     
     return accounts.map((account) => {
@@ -137,6 +154,8 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
         finalTokenData = {...finalTokenData, baseVault: poolAccounts[0]?.baseVault?.toString()}
         finalTokenData = {...finalTokenData, quoteVault: poolAccounts[0]?.quoteVault?.toString()}
         finalTokenData = {...finalTokenData, marketPoolId: poolAccounts[0]?.pubKey?.toString()}
+    } else {
+        console.log("Using Raydium pool data from databse")
     }
 
 
@@ -169,9 +188,9 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
                 let tokenAmount = 0
                 
                 const raydiumIx1Parsed = transactionRaydiumIxs[0] as ParsedInstruction
-                console.log("Raydium ix 1: " + JSON.stringify(raydiumIx1Parsed))
+                // console.log("Raydium ix 1: " + JSON.stringify(raydiumIx1Parsed))
                 const raydiumIx2Parsed = transactionRaydiumIxs[1] as ParsedInstruction
-                console.log("Raydium ix 2: " + JSON.stringify(raydiumIx2Parsed))
+                // console.log("Raydium ix 2: " + JSON.stringify(raydiumIx2Parsed))
                 const parsedIx1Data: ParsedRaydiumTransfer = raydiumIx1Parsed.parsed
                 const parsedIx2Data: ParsedRaydiumTransfer = raydiumIx2Parsed.parsed
     
