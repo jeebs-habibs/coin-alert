@@ -8,6 +8,14 @@ Get token price: 923.6666666666666 ms (avg) 3459 ms (max)
 ✅ Unique tokens updated in Firestore.
  GET /api/updateTokens 200 in 97579ms
 
+## Backoff vs Pace control
+- Backoff finished in 27-ish seconds but with some errors that we were calling too much
+- Pace control took 171 seconds with no errors. 
+
+6 calls max per coin
+105 coins * 6 calls = 630 total calls
+should take 42 seconds max.
+
 
 ## Reasons we cant get price
 - There are multiple pools for the token (PENGU)

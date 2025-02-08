@@ -3,8 +3,10 @@ import {
     LIQUIDITY_STATE_LAYOUT_V4
 } from "@raydium-io/raydium-sdk";
 
-import { Connection, ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
+import { ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
 import { GetPriceResponse, Token, TokenData } from "../firestoreInterfaces";
+import { connection } from "../connection";
+import { blockchainTaskQueue } from "../taskQueue";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
@@ -46,8 +48,6 @@ interface RaydiumPoolData {
 const LAMPORTS_IN_SOL = 1000000000
 const MILLION = 1000000
 
-const connection = new Connection("https://frequent-bitter-dream.solana-mainnet.quiknode.pro/32c1136a100703f5645e948f6a0ed5a0b9435361");
-
 function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null, baseVault: string, quoteVault: string){
     let relevantIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = []
     transaction?.meta?.innerInstructions?.forEach((ii: web3.ParsedInnerInstruction) => {
@@ -86,7 +86,7 @@ function getWrappedSolAccount(transaction: ParsedTransactionWithMeta | null): st
 
   // Define a function to fetch and decode OpenBook accounts
 async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolData[]> {
-    let accounts = await connection.getProgramAccounts(
+    let accounts = await blockchainTaskQueue.addTask(() => connection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
         {
         filters: [
@@ -99,10 +99,10 @@ async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolD
             },
         ],
         }
-    );
+    ));
 
     if(!accounts?.length){
-        accounts = await connection.getProgramAccounts(
+        accounts = await blockchainTaskQueue.addTask(() => connection.getProgramAccounts(
             new PublicKey(RAYDIUM_SWAP_PROGRAM),
             {
             filters: [
@@ -115,7 +115,7 @@ async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolD
                 },
             ],
             }
-        );
+        )) 
     }
 
     console.log("found " + accounts.length + " pool accounts for token: " + mint.toString())
@@ -165,14 +165,15 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     }
 
     const timeBeforeGetSignatures = new Date().getTime()
-    const result = await connection.getSignaturesForAddress(new PublicKey(finalTokenData?.marketPoolId), {limit: 1})
+    const result = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(finalTokenData.marketPoolId!), {limit: 1}), "Adding task to get raydium sigs")
+    console.log("GOT RESULT FROM GET SIGS IN RAYDIUM for token: " + token)
     const timeAfterGetSignatures = new Date().getTime()
     const timeTakenToGetSigs = timeAfterGetSignatures - timeBeforeGetSignatures
     console.log("Got sigs in " + timeTakenToGetSigs + " ms")
 
     const signatures = result.map((sig) => sig.signature)
 
-    const transactions = await connection.getParsedTransactions(signatures, { maxSupportedTransactionVersion: 0 });
+    const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatures, { maxSupportedTransactionVersion: 0 })) 
     console.log("Got transactions")
 
     for (const transaction of transactions){

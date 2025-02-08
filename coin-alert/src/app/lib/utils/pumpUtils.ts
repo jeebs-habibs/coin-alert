@@ -2,8 +2,10 @@ import { web3 } from "@coral-xyz/anchor";
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 import * as borsh from "@coral-xyz/borsh";
 import { sha256 } from '@noble/hashes/sha256';
-import { Connection, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
+import { ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
 import { GetPriceResponse } from "../firestoreInterfaces";
+import { connection } from "../connection";
+import { blockchainTaskQueue } from "../taskQueue";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
 const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
@@ -32,14 +34,14 @@ async function getBondingCurveAddress(token: string){
     return bondingCurve
 }
 
-export async function getTokenPricePump(token: string, connection: Connection): Promise<GetPriceResponse | undefined>{
+export async function getTokenPricePump(token: string): Promise<GetPriceResponse | undefined>{
     console.log("In pump function")
     const bondingCurveAccount = await getBondingCurveAddress(token)
     console.log("Got bonding curve account: " + bondingCurveAccount.toString())
-    const signatures = await connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1})
+    const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1}), "Adding task to get pump fun sigs") 
     const signatureList = signatures.map((a) => a.signature)
 
-    const transactions = await connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0 });
+    const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0 })) 
 
     for (const transaction of transactions){
         console.log("Reviewing pump transaction: " + transaction?.transaction.signatures.join(","))
@@ -51,7 +53,7 @@ export async function getTokenPricePump(token: string, connection: Connection): 
             const discriminator =  bs58.decode((ix as PartiallyDecodedInstruction).data).subarray(0, 8);
             return discriminator.equals(buyDiscrimator) || discriminator.equals(sellDiscriminator)
         })
-        //console.log("Number of buySellIxs: " + pumpFunBuySellxs?.length)
+        console.log("Number of buySellIxs: " + pumpFunBuySellxs?.length)
         const tradeSchema = borsh.struct([
             borsh.u64("discriminator"),
             borsh.u64("amount"),
@@ -70,6 +72,8 @@ export async function getTokenPricePump(token: string, connection: Connection): 
             const preBalances = transaction?.meta?.preBalances || [];
             const postBalances = transaction?.meta?.postBalances || [];
             const solAmount = Math.abs(preBalances[index!] - postBalances[index!]) / LAMPORTS_IN_SOL;
+            console.log("pump sol amount: " + solAmount)
+            console.log("pump token amount: " + tokenAmount)
             const price = tokenAmount != 0 ? solAmount/tokenAmount : 0
             console.log("returning price from pump function")
             return {price: {price, timestamp: transaction?.blockTime || new Date().getTime(), signatures: transaction?.transaction.signatures || []}, tokenData: { pool: "pump"}}

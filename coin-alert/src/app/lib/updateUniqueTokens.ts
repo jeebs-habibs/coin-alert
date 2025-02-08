@@ -6,17 +6,19 @@ import { getToken } from "./firebase/tokenUtils";
 import { GetPriceResponse, PriceData, Token, TokenData } from "./firestoreInterfaces";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
-
-const connection = new Connection(process.env.RPC_ENDPOINT || "")
+import chalk from "chalk";
+import { connection } from "./connection";
+import { blockchainTaskQueue } from "./taskQueue";
 
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
+    console.log("Getting token price for token " + token)
     const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore)
     console.log("received raydium price of " + raydiumTokenPrice)
 
     if(!raydiumTokenPrice?.price){
       console.log("Getting pump price")
-      const pumpPrice = await getTokenPricePump(token, connection)
+      const pumpPrice = await getTokenPricePump(token)
       if(pumpPrice?.price){
         return pumpPrice
       } else {
@@ -30,6 +32,7 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
     
   } catch(e) {
     console.error("Error getting price data for token " + token + ": " + e)
+    throw e
   }
 }
 
@@ -123,35 +126,45 @@ export async function updateUniqueTokens() {
     });
 
 
-    for (const wallet of uniqueWallets){
-        const publicKey = new PublicKey(wallet)
-        const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, {programId: TOKEN_PROGRAM_ID})  
+    const walletPromises = Array.from(uniqueWallets).map((wallet) => 
+      blockchainTaskQueue.addTask(async () => {
+        const publicKey = new PublicKey(wallet);
+        const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
         tokenAccountsForAddress.value.forEach((value) => {
-            const tokenAccountData: TokenAccountData = value.account.data.parsed
-            if(tokenAccountData.info.tokenAmount.uiAmount || 0 > 0){
-                uniqueTokensSet.add(tokenAccountData.info.mint)
-            }
+          const tokenAccountData: TokenAccountData = value.account.data.parsed;
+          if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 0) {
+            uniqueTokensSet.add(tokenAccountData.info.mint);
+          }
+        });
+      }, "Adding task to get all unique tokens across all wallets")
+    );
 
-        })  
-    }
+    await Promise.all(walletPromises);
+    console.log("Finished getting " + uniqueTokensSet.size + " unique tokens")
 
-    // 🔹 2️⃣ Store Unique Tokens in Firestore
-    let tokensFailedToGetPrice = []
-    for (const token of uniqueTokensSet) {
-      console.log("===========Getting price for token: " + token + "============")
-      const performancePrice = new Date().getTime()
-      const tokenFromFirestore: Token | undefined = await getToken(token)
-      const data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore)
-      const afterPerformancePrice = new Date().getTime()
-      const timeTakenToGetPrice = (afterPerformancePrice - performancePrice)
-      timesToGetTokenPrice.push(timeTakenToGetPrice)
-      //console.log("Took " + timeTakenToGetPrice + " to get token price for token: " + token)
-      if (data?.price) {
-        storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore, timesToDeleteFirestore);
-      } else {
-        tokensFailedToGetPrice.push(token)
+    // 🔹 3️⃣ Fetch Token Prices Using the Queue
+    let tokensFailedToGetPrice: string[] = [];
+    const tokenPricePromises = Array.from(uniqueTokensSet).map(async (token) => {
+        console.log("===========Getting price for token: " + token + "============");
+        const performancePrice = Date.now();
+        const tokenFromFirestore: Token | undefined = await getToken(token);
+        const data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore);
+        const afterPerformancePrice = Date.now();
+        const timeTakenToGetPrice = afterPerformancePrice - performancePrice;
+
+        timesToGetTokenPrice.push(timeTakenToGetPrice);
+
+        if (data?.price) {
+          await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore, timesToDeleteFirestore);
+        } else {
+          tokensFailedToGetPrice.push(token);
+        }
       }
-    }
+    );
+
+    console.log("About to get all token prices with queue")
+    await Promise.all(tokenPricePromises);
+    console.log(chalk.green("SUCCESSFULLY GOT ALL TOKEN PRICES"))
 
     if(tokensFailedToGetPrice.length){
       console.error(`Failed to get price for ${tokensFailedToGetPrice.length}/${uniqueTokensSet.size} (${(tokensFailedToGetPrice.length / uniqueTokensSet.size) * 100}%) tokens: ${tokensFailedToGetPrice.join(",")}`)
@@ -174,3 +187,25 @@ export async function updateUniqueTokens() {
     console.error("❌ Error updating unique tokens:", error);
   }
 }
+
+// 🔹 Utility: Exponential Backoff with Jitter. Not in use but leaving here
+// async function getTokenPriceWithBackoff(token: string, tokenFromFirestore: Token | undefined, maxRetries = 5): Promise<GetPriceResponse | undefined> {
+//   const baseDelay = 100; // Initial delay in ms
+//   console.log(chalk.green("In backoff function"))
+//   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+//     try {
+//       // 🔹 Calculate exponential delay with random jitter
+//       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 10000;
+//       console.log(`⏳ Retrying ${token} in ${Math.round(delay)}ms...`);
+//       await new Promise((resolve) => setTimeout(resolve, delay));
+//       return await getTokenPrice(token, tokenFromFirestore);
+//     } catch (error) {
+//       console.error(`⚠️ Error fetching ${token} (Attempt ${attempt + 1}):`, error);
+
+//       if (attempt === maxRetries) {
+//         console.error(`❌ Max retries reached for ${token}, skipping.`);
+//         return undefined;
+//       }
+//     }
+//   }
+// }
