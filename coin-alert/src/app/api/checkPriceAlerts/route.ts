@@ -1,18 +1,29 @@
+import { connection } from "@/app/lib/connection";
+import { PriceData, tokenConverter } from "@/app/lib/firebase/tokenUtils";
+import { getAllUsers } from "@/app/lib/firebase/userUtils";
+import { blockchainTaskQueue } from "@/app/lib/taskQueue";
+import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 import { collection, doc, getDocs, orderBy, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-import { PublicKey } from "@solana/web3.js";
-import { blockchainTaskQueue } from "@/app/lib/taskQueue";
-import { connection } from "@/app/lib/connection";
-import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { getAllUsers } from "@/app/lib/firebase/userUtils";
+
+interface AlarmCriteria {
+  percentChange: number;
+  minutes: number;
+}
+
+interface AlarmConfig {
+  standardAlarm: AlarmCriteria;
+  criticalAlarm: AlarmCriteria;
+}
 
 async function getLastHourPrices(token: string) {
     try {
       const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
   
-      const tokenDocRef = doc(db, "uniqueTokens", token);
+      const tokenDocRef = doc(db, "uniqueTokens", token).withConverter(tokenConverter);
       const pricesCollectionRef = collection(tokenDocRef, "prices"); // Fetch from subcollection
   
       const pricesQuery = query(
@@ -22,8 +33,14 @@ async function getLastHourPrices(token: string) {
       );
   
       const querySnapshot = await getDocs(pricesQuery);
-      const prices = querySnapshot.docs.map((doc) => doc.data());
-  
+      const prices = querySnapshot.docs.map((doc) => {
+        const docData = doc.data()
+        const priceObj: PriceData = {
+          price: docData.price,
+          timestamp: docData.timestamp,
+        }
+        return priceObj
+      });  
       return prices;
     } catch (error) {
       console.error(`❌ Error fetching prices for ${token}:`, error);
@@ -81,10 +98,20 @@ export async function GET() {
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises = allTokens.map(async (token) => {
+        console.log("Getting price history for token: " + token)
         const priceHistory = await getLastHourPrices(token);
-        if (priceHistory.length < 10) return null; // Skip if not enough data
+        console.log("Price history: ")
+        priceHistory.forEach((p) => {
+          console.log("Price: " + p.price)
+          console.log("Timestamp: " + p.timestamp)
+          console.log("Sigs: " + p.signatures?.join(','))
+        })
+        // if (priceHistory.length < 10){
+        //   console.error("Not enough price history to send notifications.")
+        //   return null; // Skip if not enough data
+        // } 
 
-        const latestPrice = priceHistory[0].price;
+        const latestPrice = priceHistory[0]?.price;
         const checkIntervals = [5, 15, 30, 45]; // Minutes
         let alertType: "normal" | "critical" | null = null;
 

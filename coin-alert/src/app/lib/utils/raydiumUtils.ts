@@ -4,8 +4,8 @@ import {
 } from "@raydium-io/raydium-sdk";
 
 import { ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
-import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { connection } from "../connection";
+import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
@@ -172,6 +172,7 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     console.log("Got sigs in " + timeTakenToGetSigs + " ms")
 
     const signatures = result.map((sig) => sig.signature)
+    console.log("sigs for token: " + token + signatures.join(','))
 
     const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatures, { maxSupportedTransactionVersion: 0 })) 
     console.log("Got transactions")

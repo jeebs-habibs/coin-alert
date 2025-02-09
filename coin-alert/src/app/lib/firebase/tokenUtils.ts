@@ -1,6 +1,5 @@
+import { doc, FirestoreDataConverter, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { FirestoreDataConverter, Timestamp } from "firebase/firestore";
 
 export interface PriceData {
     price: number;
@@ -30,7 +29,7 @@ export interface Token {
     tokenData?: TokenData;
 }
 
-const tokenConverter: FirestoreDataConverter<Token> = {
+export const tokenConverter: FirestoreDataConverter<Token> = {
     toFirestore(token: Token) {
       return {
         lastUpdated: token.lastUpdated instanceof Date ? token.lastUpdated.getTime() : token.lastUpdated,
