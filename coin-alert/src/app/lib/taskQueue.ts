@@ -6,11 +6,13 @@ class TaskQueue {
   private isProcessing = false;
 
   addTask<T>(task: () => Promise<T>, message?: string): Promise<T> {
-    console.log(message)
+    if(message){
+      console.log(message)
+    }
     return new Promise((resolve, reject) => {
       console.log(`🔹 Task added to queue. Queue length: ${this.queue.length + 1}`);
 
-      // 🔥 Store the task reference without calling it
+      // � Store the task reference without calling it
       this.queue.push(() => task().then(resolve).catch(reject));
 
       // 🔥 Ensure the queue starts processing if it’s not already

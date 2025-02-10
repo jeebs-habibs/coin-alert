@@ -21,6 +21,7 @@ export interface TokenData {
 export interface GetPriceResponse {
   price: PriceData;
   tokenData: TokenData;
+  err?: string;
 }
 
 export interface Token {

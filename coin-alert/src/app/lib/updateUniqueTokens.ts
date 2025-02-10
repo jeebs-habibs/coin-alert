@@ -1,6 +1,6 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
-import { arrayUnion, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
+import { arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { getToken } from "./firebase/tokenUtils";
 import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
@@ -37,34 +37,50 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
   }
 }
 
-// 🔹 Function to Store Token Price in Firestore
-export async function storeTokenPrice(token: string, price: PriceData, tokenData: TokenData, timesToUpdateFirestore: number[], timesToDeleteFirestore: number[]) {
+async function storeTokenPrice(
+  token: string,
+  price: PriceData,
+  tokenData: TokenData,
+  timesToUpdateFirestore: number[],
+  timesToDeleteFirestore: number[]
+) {
   try {
     const tokenDocRef = doc(db, "uniqueTokens", token);
     const timestamp = Date.now();
 
-    // 🔹 Append New Price Data to Prices Array
-    const updatePerformance = new Date().getTime()
-    await updateDoc(tokenDocRef, {
-      lastUpdated: new Date(),
-      tokenData: tokenData,
-      prices: arrayUnion(price),
-    });
-    const afterUpdatePerformance = new Date().getTime()
+    // 🔹 Check if the document exists
+    const docSnapshot = await getDoc(tokenDocRef);
 
-    const timeToUpdateFirestore = (afterUpdatePerformance - updatePerformance)
-    timesToUpdateFirestore.push(timeToUpdateFirestore)
-    //console.log("Took " + timeToUpdateFirestore + " to update Firestore.")
+    if (!docSnapshot.exists()) {
+      console.log(`📄 Token ${token} does not exist. Creating document...`);
+      await setDoc(tokenDocRef, {
+        lastUpdated: new Date(),
+        tokenData: tokenData,
+        prices: [price], // Initialize with the first price
+      });
+      console.log(`✅ Created new Firestore document for token: ${token}`);
+    } else {
+      // 🔹 Append New Price Data to Prices Array
+      console.log(`✏️ Updating existing document for token: ${token}`);
+      const updatePerformance = new Date().getTime();
+      await updateDoc(tokenDocRef, {
+        lastUpdated: new Date(),
+        tokenData: tokenData,
+        prices: arrayUnion(price),
+      });
+      const afterUpdatePerformance = new Date().getTime();
+      const timeToUpdateFirestore = afterUpdatePerformance - updatePerformance;
+      timesToUpdateFirestore.push(timeToUpdateFirestore);
+    }
 
     console.log(`✅ Price stored for ${token}: $${price.price}`);
 
     // 🔹 Clean up old prices (Keep only last 60 minutes)
-    const deletePerformance = new Date().getTime()
+    const deletePerformance = new Date().getTime();
     await deleteOldPrices(token);
-    const afterDeletePerformance = new Date().getTime()
-    const timeToDeleteFirestore = (afterDeletePerformance - deletePerformance) 
-    timesToDeleteFirestore.push(timeToDeleteFirestore)
-    //console.log("Took " + timeToDeleteFirestore + " to delete old data from Firestore.")
+    const afterDeletePerformance = new Date().getTime();
+    const timeToDeleteFirestore = afterDeletePerformance - deletePerformance;
+    timesToDeleteFirestore.push(timeToDeleteFirestore);
   } catch (error) {
     console.error(`❌ Error storing price for ${token}:`, error);
   }
@@ -129,6 +145,9 @@ export async function updateUniqueTokens() {
 
     await Promise.all(walletPromises);
     console.log("Finished getting " + uniqueTokensSet.size + " unique tokens")
+
+    const tokenSetTest = new Set<string>()
+    tokenSetTest.add("2RuDRx9RAcXrSoLupeMLGuBay6w5Q1nUrdPySjA3pump")
 
     // 🔹 3️⃣ Fetch Token Prices Using the Queue
     let tokensFailedToGetPrice: string[] = [];

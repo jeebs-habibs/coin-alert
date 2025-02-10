@@ -38,10 +38,10 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
     console.log("In pump function")
     const bondingCurveAccount = await getBondingCurveAddress(token)
     console.log("Got bonding curve account: " + bondingCurveAccount.toString())
-    const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1}, "finalized"), "Adding task to get pump fun sigs") 
+    const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(bondingCurveAccount, {limit: 1}, "confirmed"), "Adding task to get pump fun sigs") 
     const signatureList = signatures.map((a) => a.signature)
 
-    const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0 })) 
+    const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatureList, { maxSupportedTransactionVersion: 0, commitment: "confirmed" })) 
 
     for (const transaction of transactions){
         console.log("Reviewing pump transaction: " + transaction?.transaction.signatures.join(","))

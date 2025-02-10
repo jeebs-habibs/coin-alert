@@ -7,22 +7,11 @@ import { ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana
 import { connection } from "../connection";
 import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getMintTokenAccount, getWrappedSolAccount } from "./transactionUtils";
+import { wrap } from "module";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
-const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-const WSOL_ADDRESS = "So11111111111111111111111111111111111111112"
-
-interface InitializeAccountIxData {
-    type: string;
-    info: InitializeAccountInfo;
-}
-
-interface InitializeAccountInfo {
-    account: string;
-    mint: string;
-    owner: string;
-    rentSysvar: string;
-}
 
 interface RaydiumTransferInfo {
     amount: string;
@@ -48,40 +37,46 @@ interface RaydiumPoolData {
 const LAMPORTS_IN_SOL = 1000000000
 const MILLION = 1000000
 
-function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null, baseVault: string, quoteVault: string){
-    let relevantIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = []
+function getRelevantRaydiumInnerInstructions(transaction: ParsedTransactionWithMeta | null, baseVault: string, quoteVault: string, mint: string){
+    let tokenAmount = 0
+    let solAmount = 0
+
+    const wrappedSolAccount = getWrappedSolAccount(transaction)
+    if(wrappedSolAccount == null){
+        console.error("Error: Unable to find WSOL account")
+    }
+    const tokenAccount = getMintTokenAccount(transaction, mint)
+    if(tokenAccount == null){
+        console.error("Error: Unable to find account for mint: " + mint)
+    }
     transaction?.meta?.innerInstructions?.forEach((ii: web3.ParsedInnerInstruction) => {
         ii.instructions.forEach((iii) => {
-            if(iii.programId.equals(TOKEN_PROGRAM)){
+            if(iii.programId.equals(TOKEN_PROGRAM_ID)){
                 const parsedIx = iii as ParsedInstruction
                 const parsedRaydiumTransfer: ParsedRaydiumTransfer = parsedIx.parsed
-                // console.log("parsedRaydiumTransfer.info.source: " + parsedRaydiumTransfer.info.source)
-                // console.log("parsedRaydiumTransfer.info.destination: " + parsedRaydiumTransfer.info.destination)
+                console.log("parsedRaydiumTransfer.info.source: " + parsedRaydiumTransfer.info.source)
+                console.log("parsedRaydiumTransfer.info.destination: " + parsedRaydiumTransfer.info.destination)
+                console.log("wrapped sol account: " + wrappedSolAccount)
                 // console.log("poolAccount: " + poolAccount.toString())
-                if(parsedRaydiumTransfer.info.source == baseVault || parsedRaydiumTransfer.info.destination == baseVault
-                     || parsedRaydiumTransfer.info.source == quoteVault || parsedRaydiumTransfer.info.destination == quoteVault ){
-                    // console.log("YAHTZEE")
-                    relevantIxs.push(iii)
+                if((parsedRaydiumTransfer.info.source == wrappedSolAccount && (parsedRaydiumTransfer.info.destination == baseVault || parsedRaydiumTransfer.info.destination == quoteVault))    
+                    || (parsedRaydiumTransfer.info.destination == wrappedSolAccount && (parsedRaydiumTransfer.info.source == baseVault || parsedRaydiumTransfer.info.source == quoteVault))){  
+                    solAmount = parseInt(parsedRaydiumTransfer.info.amount)/LAMPORTS_IN_SOL
+                    console.log("Setting sol amount to: " + solAmount)
+
+                } else if((parsedRaydiumTransfer.info.source == tokenAccount && (parsedRaydiumTransfer.info.destination == baseVault || parsedRaydiumTransfer.info.destination == quoteVault)) 
+                    || (parsedRaydiumTransfer.info.destination == tokenAccount && (parsedRaydiumTransfer.info.source == baseVault || parsedRaydiumTransfer.info.source == quoteVault))) {
+                    tokenAmount = parseInt(parsedRaydiumTransfer.info.amount)/MILLION
+                    console.log("Setting token amount to: " + tokenAmount)
+                }
+
+                if(solAmount != 0 && tokenAmount != 0){
+                    return tokenAmount != 0 ? solAmount/tokenAmount: 0  
                 }
             }
 
         })
     })
-    return relevantIxs
-}
-
-function getWrappedSolAccount(transaction: ParsedTransactionWithMeta | null): string | null{
-    const instructions = transaction?.transaction.message.instructions || []
-    for (const ix of instructions){
-        if(ix.programId.equals(TOKEN_PROGRAM)){
-            const parsedIx = ix as ParsedInstruction
-            const parsedIxData: InitializeAccountIxData = parsedIx?.parsed
-            if(parsedIxData?.info?.mint == WSOL_ADDRESS){
-                return parsedIxData.info.account
-            }
-        }
-    }
-    return null
+    return null;
 }
 
   // Define a function to fetch and decode OpenBook accounts
@@ -165,57 +160,69 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     }
 
     const timeBeforeGetSignatures = new Date().getTime()
-    const result = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(finalTokenData.marketPoolId!), {limit: 1}, "finalized"), "Adding task to get raydium sigs")
-    console.log("GOT RESULT FROM GET SIGS IN RAYDIUM for token: " + token)
+    const result = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(finalTokenData.marketPoolId!), {limit: 1}, "confirmed")) 
     const timeAfterGetSignatures = new Date().getTime()
     const timeTakenToGetSigs = timeAfterGetSignatures - timeBeforeGetSignatures
-    console.log("Got sigs in " + timeTakenToGetSigs + " ms")
 
-    const signatures = result.map((sig) => sig.signature)
-    console.log("sigs for token: " + token + signatures.join(','))
+    const signature: string = result[0].signature
+    console.log("Raydium signature for token: " + token)
+    console.log("Got signature: " + signature + " in " + timeTakenToGetSigs + " ms")
 
-    const transactions = await blockchainTaskQueue.addTask(() => connection.getParsedTransactions(signatures, { maxSupportedTransactionVersion: 0 })) 
-    console.log("Got transactions")
-
-    for (const transaction of transactions){
-        //console.log(JSON.stringify(transaction))
-        const previouslyParsedSigs = tokenFromFirestore?.prices?.map((sig) => sig.signatures || []) || []
-        if(!containsList(previouslyParsedSigs, transaction?.transaction.signatures || [])){
-            console.log("Looking at transaction: " + transaction?.transaction.signatures.join(","))
-            const transactionRaydiumIxs: (web3.ParsedInstruction | web3.PartiallyDecodedInstruction)[] = getRelevantRaydiumInnerInstructions(transaction, finalTokenData?.baseVault, finalTokenData?.quoteVault)
-            const wrappedSolAccount = getWrappedSolAccount(transaction)
-            if(transactionRaydiumIxs?.length){
-                console.log("Found a raydium transaction")
-                let amountInSol = 0
-                let tokenAmount = 0
-                
-                const raydiumIx1Parsed = transactionRaydiumIxs[0] as ParsedInstruction
-                // console.log("Raydium ix 1: " + JSON.stringify(raydiumIx1Parsed))
-                const raydiumIx2Parsed = transactionRaydiumIxs[1] as ParsedInstruction
-                // console.log("Raydium ix 2: " + JSON.stringify(raydiumIx2Parsed))
-                const parsedIx1Data: ParsedRaydiumTransfer = raydiumIx1Parsed.parsed
-                const parsedIx2Data: ParsedRaydiumTransfer = raydiumIx2Parsed.parsed
+    const transaction = await blockchainTaskQueue.addTask(() => connection.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0, commitment: "confirmed" })) 
+    console.log("Got transactions for token: " + token)
     
-                if(parsedIx1Data.info.source == wrappedSolAccount){
-                    amountInSol = parseInt(parsedIx1Data.info.amount)/LAMPORTS_IN_SOL
-                    tokenAmount = parseInt(parsedIx2Data.info.amount)/MILLION
-                } else {
-                    amountInSol = parseInt(parsedIx2Data.info.amount)/LAMPORTS_IN_SOL
-                    tokenAmount = parseInt(parsedIx1Data.info.amount)/MILLION
-                }
-                const price = tokenAmount != 0 ? amountInSol/tokenAmount: 0  
-                console.log("Returning price from raydium function")
-                return {
-                    price: {price, timestamp: transaction?.blockTime || new Date().getTime(), signatures: transaction?.transaction.signatures}, 
-                    tokenData: {...finalTokenData, pool: "raydium"}
-                }
-            } else {
-                console.error("No raydium instructions found")
+    if(transaction == null){
+        console.error("ERROR: TRANSACTION IS NULL FOR TOKEN: " + token)
+    }
+    if(transaction?.meta?.err){
+        console.error("ERROR: " + transaction?.meta?.err.toString())
+    }
+    //console.log(JSON.stringify(transaction))
+    
+    const previouslyParsedSigs = tokenFromFirestore?.prices?.map((sig) => sig.signatures || []) || []
+    if(!containsList(previouslyParsedSigs, transaction?.transaction.signatures || [])){
+        console.log("Looking at transaction: " + transaction?.transaction.signatures.join(",") + " for token: " + token)
+        const price: number | null = getRelevantRaydiumInnerInstructions(transaction, finalTokenData?.baseVault, finalTokenData?.quoteVault, token)
+
+        if(price){
+            return {
+                price: {price, timestamp: transaction?.blockTime || new Date().getTime(), signatures: transaction?.transaction.signatures}, 
+                tokenData: {...finalTokenData, pool: "raydium"}
             }
         } else {
-            console.log("Skipping transaction because it already has been parsed")
+            console.error("No raydium instructions found")
         }
- 
+    } else {
+        console.log("Skipping transaction because it already has been parsed")
     }
+ 
+    
     return undefined
 }
+
+async function fetchTransactionsWithRetries(signatures: string[], retries = 3): Promise<any | null> {
+    return blockchainTaskQueue.addTask(async () => {
+      console.log(`🔄 Fetching transactions. Retries left: ${retries}`);
+  
+      try {
+        const transactions = await connection.getParsedTransactions(signatures, { maxSupportedTransactionVersion: 0 });
+  
+        if (!transactions || transactions.some(tx => tx === null)) {
+          throw new Error("Received null transactions");
+        }
+  
+        console.log(`✅ Successfully fetched transactions.`);
+        return transactions; // ✅ Success: Return transactions
+      } catch (error) {
+        console.error(`❌ Error fetching transactions:`, error);
+  
+        if (retries > 0) {
+          console.warn(`⚠️ Retrying in queue (${retries} retries left)...`);
+          return fetchTransactionsWithRetries(signatures, retries - 1);
+        }
+  
+        console.error(`❌ Failed after 3 attempts.`);
+        return null; // ❌ Final failure
+      }
+    }, `Fetching transactions for ${signatures.length} signatures`);
+  }
