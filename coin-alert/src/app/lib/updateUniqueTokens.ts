@@ -13,17 +13,17 @@ import { TokenAccountData } from "./utils/solanaUtils";
 
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
-    console.log("Getting token price for token " + token)
+    //console.log("Getting token price for token " + token)
     const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore)
-    console.log("received raydium price of " + raydiumTokenPrice)
+    //console.log("received raydium price of " + raydiumTokenPrice)
 
     if(!raydiumTokenPrice?.price){
-      console.log("Getting pump price")
+      //console.log("Getting pump price")
       const pumpPrice = await getTokenPricePump(token)
       if(pumpPrice?.price){
         return pumpPrice
       } else {
-        console.log("Failed to update price data for token: " + token)
+        console.error("Failed to update price data for token: " + token)
       }
       
     } else {

@@ -1,18 +1,8 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Issues
-- Getting null transactions often when calling getParsedTransactions, seems to be happening mainly for certain mints like 2RuDRx9RAcXrSoLupeMLGuBay6w5Q1nUrdPySjA3pump
-- When testing in a separate file, not as many nulls. When testing only the logic and the API still seeing null transactions. Maybe RPC thing or quicknode?
-- When removing queue, still seeing the issue. When retrying the request still seeing issues.
-- Could it be related to the connection not being fully ready? Maybe issue is only happening for mints that do not have pool data stored in firestore. Something with the request coming from next js API?
-
-
-Got transactions for token: 2BpyGYsUL1RYtGpVtdeQKqmYNaf5D57Q5N6QP2C3pump
-Looking at transaction: 4XJ6vLafMnSz8FuVekmkSeYqU8FrqtMCVmjdtQpBchfvDRsNZUd5vBaGXdhR14wz7EHDZVbZ8Dqnpnb9xBRAEhu1 for token: 2BpyGYsUL1RYtGpVtdeQKqmYNaf5D57Q5N6QP2C3pump
-Found a raydium transaction for token: 2BpyGYsUL1RYtGpVtdeQKqmYNaf5D57Q5N6QP2C3pump
-Returning price from raydium function: 35.513885751626546
-
-THAT AINT RIGHT
+- Still failures getting some prices. example https://solscan.io/tx/inspector?txhash=2SepAG32mecn8sEGjHNHT5RQYscSxZzjTQdsdp5ruRvaTtnpfZExodQsYnYyNJyhZiVgeUG8SZ86fW3xUdWQcoPK pump sell
+- 2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv: Failed transaction 
 
 ## Latest Metrics
 Failed to get price for 22 tokens: 2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv,36mE6cvruVKF4tsnTf4BRAS32ErVR5cm3dVvjGdHpump,HsRR67PuNMernSZPMjLxZ6DWdJKMFK1qAB2NvucQ8ZXH,956ou1nJek6dCSQo4hN6pUkgw2oL2zHcfLcfnYNxpump,E3P5w17LjgLchvRC7gsAnmG84yVQLccC8K4re6xSpump,3Cnf7LVqTbLGYuGFwy2ua6nR5vn2PEbEzgfwsYUspump,9DHe3pycTuymFk4H4bbPoAJ4hQrr2kaLDF6J6aAKpump,8hRiwqXceFL12paSiVRYFNh7eS58NpJQYzV9aN1mC7W5,d5t1qzobqenc5r3ownXKefeRysL1qFBLAv4cU1Apump,AuVGPGcofcPTiH7ne6e3VvRgBYFDFFHVQWM1HfLGrwrj,J99YdKkGKY2yZJY6mEdQG19ac2Fa4U9YGodcDtATpump,B6U9KKAttXcc6HDKZviA9o9BUDXSqVus82gCAe3Apump,Umur6zd51qnixSBk7XfEvVLHXdoZjTiBysam64PDf83,q45iT3JuSDgrPhjcfUBToSAo58r9mEYPSQgWTW2CqeY,7bMQQSYmrJjgDcqxYEpyMdPVp65k1VKAe5ZhjAWwAT2j,GS3ZRVhQS5EqwHkzUenBcEEQAYH3C9Fs2PmEFN37p4pw,2hSf1yGRhJsmN8dFrRaeFr3LbDnVCWCPgrsMQGHcpump,8dHWG9GZ1HqYqFpB6GXLdtopwFKxbMibLom2FaMqpump,3Z5kGSYy634tuCbN2GQzu2fecEysyEnWMbfYboimpump,FCHyom1R7aNEEkT67hM1CVkLba4whvAkWY9Lzjk7pump,APABrboSovPNHHPEJMDGM8c1eA1EfjYZSvBSgDAQpump,27VSrng15AzufqA4SaB2aHRVjmBDT6XxE9PZHC9cpump
