@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
+import { AlarmConfig } from "../api/checkPriceAlerts/route";
 
 // Function to fetch all FCM tokens from Firestore
 async function getAllFCMTokens(): Promise<string[]> {
@@ -48,21 +49,29 @@ export async function sendNotificationsToAllUsers() {
 }
 
 // 🔹 Send Push Notification to User
-export async function sendNotification(userId: string, token: string, priceChange: number, alertType: "normal" | "critical") {
+export async function sendNotification(userId: string, token: string, priceChange: number, alertType: "normal" | "critical", minutes: number, alarmedConfig: AlarmConfig) {
   try {
     const userDocRef = doc(db, "users", userId);
     const userDocSnap = await getDoc(userDocRef);
-    if (!userDocSnap.exists()) return;
+    if (!userDocSnap.exists()){
+      console.error("ERROR: Unable to find user in DB to notify")
+      return 
+    } 
 
     const userData = userDocSnap.data();
-    if (!userData.tokens || userData.tokens.length === 0) return; // No FCM tokens
+    if (!userData.tokens || userData.tokens.length === 0){
+      console.error("ERROR: User has no devices detected to notify.")
+      return
+    } 
 
-    const notificationTitle = alertType === "critical" ? "🚨 Critical Price Alert!" : "📈 Price Alert!";
-    const notificationBody = alertType === "critical"
-      ? `🚨 ${token} price moved ${priceChange.toFixed(2)}%! Take action now!`
-      : `📈 ${token} price changed ${priceChange.toFixed(2)}%! Check the app for details.`;
+    const increaseOrDecrease = priceChange > 0 ? "increased" : "decrease"
+    const stonkEmoji = priceChange > 0 ? "📈" : "📉"
+
+    const notificationTitle = alertType === "critical" ? "🚨 Critical Price Alert! " : "Standard Price Alert";
+    const notificationBody = `${stonkEmoji} ${token} price ${increaseOrDecrease} by ${priceChange.toFixed(2)}% within ${minutes} minutes.`;
 
     for (const fcmToken of userData.tokens) {
+      console.log(`Sending ${userId} a notification: ${notificationTitle}`)
       await messaging.send({
         token: fcmToken,
         notification: { title: notificationTitle, body: notificationBody },

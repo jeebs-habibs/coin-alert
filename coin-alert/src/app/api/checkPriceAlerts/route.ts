@@ -1,52 +1,92 @@
 import { connection } from "@/app/lib/connection";
 import { PriceData, tokenConverter } from "@/app/lib/firebase/tokenUtils";
-import { getAllUsers } from "@/app/lib/firebase/userUtils";
+import { getAllUsers, SirenUser } from "@/app/lib/firebase/userUtils";
 import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { collection, doc, getDocs, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 
-interface AlarmCriteria {
-  percentChange: number;
-  minutes: number;
+
+export interface AlarmConfig {
+  standardAlarmPercentage: number;
+  criticalAlarmPercentage: number;
 }
 
-interface AlarmConfig {
-  standardAlarm: AlarmCriteria;
-  criticalAlarm: AlarmCriteria;
-}
+const ALARM_CONFIGS = new Map<number, AlarmConfig>([
+  [1, { standardAlarmPercentage: 50, criticalAlarmPercentage: 80}],
+  [7, { standardAlarmPercentage: 60, criticalAlarmPercentage: 90}],
+  [15, {standardAlarmPercentage: 70, criticalAlarmPercentage: 100}],
+  [30, {standardAlarmPercentage: 80, criticalAlarmPercentage: 120}],
+  [60, {standardAlarmPercentage: 90, criticalAlarmPercentage: 175}]
+])
 
-async function getLastHourPrices(token: string) {
-    try {
-      const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
-  
-      const tokenDocRef = doc(db, "uniqueTokens", token).withConverter(tokenConverter);
-      const pricesCollectionRef = collection(tokenDocRef, "prices"); // Fetch from subcollection
-  
-      const pricesQuery = query(
-        pricesCollectionRef,
-        where("timestamp", ">", oneHourAgo), // Only last 60 mins
-        orderBy("timestamp", "desc") // Most recent first
-      );
-  
-      const querySnapshot = await getDocs(pricesQuery);
-      const prices = querySnapshot.docs.map((doc) => {
-        const docData = doc.data()
-        const priceObj: PriceData = {
-          price: docData.price,
-          timestamp: docData.timestamp,
-        }
-        return priceObj
-      });  
-      return prices;
-    } catch (error) {
-      console.error(`❌ Error fetching prices for ${token}:`, error);
+const QUIETER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
+const NOISIER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
+
+ALARM_CONFIGS.forEach((config, key) => {
+  QUIETER_ALARM_CONFIGS.set(key, {
+    standardAlarmPercentage: config.standardAlarmPercentage * 2,
+    criticalAlarmPercentage: config.criticalAlarmPercentage * 2
+  });
+});
+
+
+ALARM_CONFIGS.forEach((config, key) => {
+  NOISIER_ALARM_CONFIGS.set(key, {
+    standardAlarmPercentage: config.standardAlarmPercentage / 4,
+    criticalAlarmPercentage: config.criticalAlarmPercentage / 4
+  });
+});
+
+console.log("Noisey configs: " + NOISIER_ALARM_CONFIGS)
+
+
+
+async function getLastHourPrices(token: string): Promise<PriceData[]> {
+  try {
+    console.log("Getting last hour prices for token: " + token);
+
+    const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
+    console.log("One hour ago (ms): " + oneHourAgo);
+
+    const tokenDocRef = doc(db, "uniqueTokens", token).withConverter(tokenConverter);
+    const tokenSnapshot = await getDoc(tokenDocRef);
+
+    if (!tokenSnapshot.exists()) {
+      console.warn(`⚠️ No document found for token: ${token}`);
       return [];
     }
+
+    const tokenData = tokenSnapshot.data();
+
+    if (!tokenData?.prices || !Array.isArray(tokenData.prices)) {
+      console.warn(`⚠️ No price history found for token: ${token}`);
+      return [];
+    }
+
+    // 🔹 Filter prices to only include last 60 minutes
+    const lastHourPrices = tokenData.prices
+      .filter((entry: PriceData) => entry.timestamp > oneHourAgo)
+      .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
+
+    console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${token}`);
+    return lastHourPrices;
+  } catch (error) {
+    console.error(`❌ Error fetching prices for ${token}:`, error);
+    return [];
   }
+}
+
+
+function getAlarmConfig(){
+  // console.log("Using alarm config: ")
+  // console.log(NOISIER_ALARM_CONFIGS)
+  return NOISIER_ALARM_CONFIGS
+}
+
 
 // 🔹 Placeholder: Fetch Tokens Owned by User (Implement This Later)
 async function getTokensFromBlockchain(walletAddress: string): Promise<string[]> {
@@ -80,7 +120,7 @@ export async function GET() {
     const notificationsToSend: any[] = [];
 
     // 🔹 1️⃣ Process All Users in Parallel
-    const userPromises = usersSnapshot.map(async (user) => {
+    const userPromises = usersSnapshot.map(async (user: SirenUser) => {
       if (!user.wallets || !Array.isArray(user.wallets)) return; // Skip users with no wallets
 
       console.log(`👤 Checking tokens for user: ${user.uid} (${user.wallets.join(",")})`);
@@ -100,42 +140,53 @@ export async function GET() {
       const tokenPricePromises = allTokens.map(async (token) => {
         console.log("Getting price history for token: " + token)
         const priceHistory = await getLastHourPrices(token);
-        console.log("Price history: ")
-        priceHistory.forEach((p) => {
-          console.log("Price: " + p.price)
-          console.log("Timestamp: " + p.timestamp)
-          console.log("Sigs: " + p.signatures?.join(','))
-        })
+        // console.log("Price history: ")
+        // priceHistory.forEach((p) => {
+        //   console.log("Price: " + p.price)
+        //   console.log("Timestamp: " + p.timestamp)
+        // })
         // if (priceHistory.length < 10){
         //   console.error("Not enough price history to send notifications.")
         //   return null; // Skip if not enough data
         // } 
 
         const latestPrice = priceHistory[0]?.price;
-        const checkIntervals = [5, 15, 30, 45]; // Minutes
         let alertType: "normal" | "critical" | null = null;
+        let alarmedConfig: AlarmConfig | null = null
+        const minuteToAlarmConfig = getAlarmConfig()
+        let percentChange = 0
+        let minutes = 0
 
-        for (const minutes of checkIntervals) {
+        for (const config of minuteToAlarmConfig) {
           const oldPriceEntry = priceHistory.find(
-            (entry) => entry.timestamp <= Date.now() - minutes * 60 * 1000
+            (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
           );
           if (!oldPriceEntry) continue;
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
-          console.log(`📊 ${token} change over ${minutes} mins: ${priceChange.toFixed(2)}%`);
-
-          // 🔹 4️⃣ If Change > 10%, Send Normal Alert
-          if (priceChange > 10 || priceChange < -10) {
-            console.log("Normal alert")
-            alertType = "normal";
-          }
+          console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
-          if (priceChange > 50 || priceChange < -50) {
-            console.log("Critical alert")
+          if (priceChange > config[1].criticalAlarmPercentage || priceChange < (config[1].criticalAlarmPercentage * -1)) {
+            console.log("Critical alert. Price changed "  + priceChange + " %, which is over/under threshold of " + config[1].criticalAlarmPercentage)
             alertType = "critical";
-            break; // Critical alert takes priority
+            alarmedConfig = config[1]
+            percentChange = priceChange
+            minutes = config[0]
+            break;
           }
+
+          // 🔹 4️⃣ If Change > 10%, Send Normal Alert
+          if (priceChange > config[1].standardAlarmPercentage || priceChange < (config[1].standardAlarmPercentage * -1)) {
+            console.log("Normal alert. Price changed "  + priceChange + " %, which is over/under threshold of " + config[1].standardAlarmPercentage)
+            alertType = "normal";
+            alarmedConfig = config[1]
+            percentChange = priceChange
+            minutes = config[0]
+            break;
+          }
+
+ 
         }
 
         // 🔹 6️⃣ Queue Notification if Needed
@@ -143,8 +194,10 @@ export async function GET() {
           return {
             userId: user.uid,
             token,
-            priceChange: latestPrice,
+            priceChange: percentChange,
             alertType,
+            minutes,
+            alarmedConfig
           };
         }
         return null;
@@ -161,7 +214,7 @@ export async function GET() {
     // 🔹 8️⃣ Send Notifications in Bulk
     await Promise.all(
       notificationsToSend.map((notification) =>
-        sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType)
+        sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.alarmedConfig)
       )
     );
 
