@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { AlarmType } from "../api/checkPriceAlerts/route";
 import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
+import { AlarmType } from "./utils/priceAlertHelper";
 
 // Function to fetch all FCM tokens from Firestore
 async function getAllFCMTokens(): Promise<string[]> {
