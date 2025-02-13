@@ -26,7 +26,7 @@ self.addEventListener('activate', (event) => {
 
 
 
-// // Handle background notifications
+// Handle background notifications
 // messaging.onBackgroundMessage((payload) => {
 //   try{
 //     console.log("📩 Background notification received:", payload);
@@ -73,37 +73,37 @@ self.addEventListener('activate', (event) => {
  * Overrides push notification data, to avoid having 'notification' key and firebase blocking
  * the message handler from being called
  */
-self.addEventListener('push', (e) => {
-  // Skip if event is our own custom event
-  if (e.custom) return;
+// self.addEventListener('push', (e) => {
+//   // Skip if event is our own custom event
+//   if (e.custom) return;
 
-  // Kep old event data to override
-  const oldData = e.data;
+//   // Kep old event data to override
+//   const oldData = e.data;
 
-  // Create a new event to dispatch, pull values from notification key and put it in data key,
-  // and then remove notification key
-  const newEvent = new CustomPushEvent({
-    data: {
-      ehheh: oldData.json(),
-      json() {
-        const newData = oldData.json();
-        newData.data = {
-          ...newData.data,
-          ...newData.notification,
-        };
-        delete newData.notification;
-        return newData;
-      },
-    },
-    waitUntil: e.waitUntil.bind(e),
-  });
+//   // Create a new event to dispatch, pull values from notification key and put it in data key,
+//   // and then remove notification key
+//   const newEvent = new CustomPushEvent({
+//     data: {
+//       ehheh: oldData.json(),
+//       json() {
+//         const newData = oldData.json();
+//         newData.data = {
+//           ...newData.data,
+//           ...newData.notification,
+//         };
+//         delete newData.notification;
+//         return newData;
+//       },
+//     },
+//     waitUntil: e.waitUntil.bind(e),
+//   });
 
-  // Stop event propagation
-  e.stopImmediatePropagation();
+//   // Stop event propagation
+//   e.stopImmediatePropagation();
 
-  // Dispatch the new wrapped event
-  dispatchEvent(newEvent);
-});
+//   // Dispatch the new wrapped event
+//   dispatchEvent(newEvent);
+// });
 
 self.addEventListener('notificationclick', (event) => {
   // console.log('[firebase-messaging-sw.js] notificationclick ', event);
