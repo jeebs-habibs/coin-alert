@@ -18,7 +18,7 @@ export default function Dashboard() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('../../../public/firebase-messaging-sw.js')
+            navigator.serviceWorker.register('../../../public/firebase-messaging-sw.js', {type: "module"})
                 .then((registration) => {
                     console.log('Service Worker registered:', registration);
                 })
