@@ -32,6 +32,15 @@ const ALARM_CONFIGS = new Map<number, AlarmConfig>([
     [60, {standardAlarmPercentage: 90, criticalAlarmPercentage: 175}]
 ])
 
+const ALARM_CONFIGS_MAX = new Map<number, AlarmConfig>([
+    [1, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+    [7, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+    [15, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+    [30, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+    [60, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}]
+])
+
+
 const QUIETER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
 const NOISIER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
 
@@ -90,7 +99,7 @@ try {
 export function getAlarmConfig(){
     // console.log("Using alarm config: ")
     // console.log(NOISIER_ALARM_CONFIGS)
-    return NOISIER_ALARM_CONFIGS
+    return ALARM_CONFIGS_MAX
 }
 
 

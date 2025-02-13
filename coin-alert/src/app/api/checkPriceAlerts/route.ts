@@ -6,7 +6,6 @@ import { sendNotification } from "../../lib/sendNotifications"; // Push notifica
 // 🔹 Main API Function
 export async function GET(req: Request) {
   const apiKey = req.headers.get("Authorization");
-  console.log("API KEY:" + apiKey)
 
   if (apiKey !== process.env.API_SECRET_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
