@@ -1,0 +1,16 @@
+{
+    "name": "Siren",
+    "short_name": "Siren",
+    "description": "An app to alert you on changes in your Solana memecoins",
+    "theme_color": "#FFFFFF",
+    "background_color": "#FFFFFF",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "icons": [
+      {
+        "src": "sirenLogo.png",
+        "sizes": "500x500"
+      }
+    ]
+}
