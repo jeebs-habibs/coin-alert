@@ -11,6 +11,8 @@ import { useAuth } from "../providers/auth-provider";
 
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
+  const [fcmToken, setFcmToken] = useState<string>("")
+  const [isFcmTokenLoaded, setIsFcmTokenLoaded] = useState<boolean>(false)
   const [newWallet, setNewWallet] = useState<string>("");
   const {user, loading, userData} = useAuth();
   const [error, setError] = useState("");
@@ -118,7 +120,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const requestPermissionAndSaveToken = async () => {
-      if(messaging){
+      if(messaging && !isFcmTokenLoaded){
         try {
           const permission = await Notification.requestPermission();
           if (permission !== "granted") {
@@ -134,6 +136,8 @@ export default function Dashboard() {
   
           if (fcmToken) {
             console.log("FCM Token:", fcmToken);
+            setFcmToken(fcmToken)
+            setIsFcmTokenLoaded(true)
             await saveTokenToFirestore(fcmToken)
           }
         } catch (error) {
@@ -187,6 +191,8 @@ export default function Dashboard() {
             </li>
           ))}
         </ul>
+        <p>FCM Token {fcmToken}</p>
+        <button onClick={(e) => console.log("User wants notis lfg")}>Allow notifications</button>
       </div>
     </div>
   );
