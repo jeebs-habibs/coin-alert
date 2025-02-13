@@ -192,7 +192,7 @@ export default function Dashboard() {
           ))}
         </ul>
         <p>FCM Token {fcmToken}</p>
-        <button onClick={(e) => console.log("User wants notis lfg")}>Allow notifications</button>
+        <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button>
       </div>
     </div>
   );
