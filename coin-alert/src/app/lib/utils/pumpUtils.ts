@@ -63,9 +63,7 @@ async function getBondingCurveAddress(token: string){
 }
 
 export async function getTokenPricePump(token: string): Promise<GetPriceResponse | undefined>{
-    console.log("In pump function")
     const bondingCurveAccount = await getBondingCurveAddress(token)
-    console.log("Got bonding curve account: " + bondingCurveAccount.toString())
 
     const accountInfo = await connection.getParsedAccountInfo(bondingCurveAccount)
 

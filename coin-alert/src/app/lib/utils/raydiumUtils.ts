@@ -93,7 +93,6 @@ function containsList(nestedLists: string[][], targetList: string[]): boolean {
 
 
 export async function getTokenPriceRaydium(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
-    console.log("In raydium function")
     let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
     if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){
         const timeBeforeFetchPoolAccounts = new Date().getTime()
@@ -126,8 +125,8 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     const convertedTokenAmount = parseFloat(tokenVaultAmount.value.amount)/MILLION
     const convertedSolAmount = parseFloat(solVaultAmount.value.amount)/LAMPORTS_IN_SOL
 
-    console.log("Token Vault: " + convertedTokenAmount)
-    console.log("Sol vault amount: " + convertedSolAmount)
+    // console.log("Token Vault: " + convertedTokenAmount)
+    // console.log("Sol vault amount: " + convertedSolAmount)
 
     const price = convertedTokenAmount == 0 ? 0 : convertedSolAmount/convertedTokenAmount
     if(price){

@@ -1,10 +1,15 @@
+import chalk from "chalk";
 import { NextResponse } from "next/server";
 import { updateUniqueTokens } from "../../lib/updateUniqueTokens";
-import chalk from "chalk";
-import { connection } from "@/app/lib/connection";
-import { PublicKey } from "@solana/web3.js";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const apiKey = req.headers.get("Authorization");
+  console.log("API KEY:" + apiKey)
+
+  if (apiKey !== process.env.API_SECRET_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+  }
+  
   try {
     const apiStartTime = new Date().getTime()
     await updateUniqueTokens();

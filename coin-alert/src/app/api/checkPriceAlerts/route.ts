@@ -5,7 +5,7 @@ import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 
@@ -112,7 +112,14 @@ function calculatePriceChange(oldPrice: number, newPrice: number): number {
 }
 
 // 🔹 Main API Function
-export async function GET() {
+export async function GET(req: Request) {
+  const apiKey = req.headers.get("Authorization");
+  console.log("API KEY:" + apiKey)
+
+  if (apiKey !== process.env.API_SECRET_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+  }
+
   try {
     console.log("🔄 Checking price alerts for users...");
 
