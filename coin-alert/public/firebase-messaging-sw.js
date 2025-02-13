@@ -1,7 +1,20 @@
 importScripts("https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js");
 
-import { messaging } from "../src/app/lib/firebase/firebase"
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
+  authDomain: "coinalert-1872e.firebaseapp.com",
+  projectId: "coinalert-1872e",
+  storageBucket: "coinalert-1872e.firebasestorage.app",
+  messagingSenderId: "738018911031",
+  appId: "1:738018911031:web:a5ea56051bd5a2423630b2",
+  measurementId: "G-L5X3EPT8GM"
+});
+
+const messaging = firebase.messaging();
+
+
 
 self.addEventListener('install', (event) => {
   console.log('Service worker installed');
@@ -12,7 +25,7 @@ self.addEventListener('activate', (event) => {
     console.log('Service worker activated');
 });
 
-const {user} = useAuth();
+
 
 
 // Handle background notifications
@@ -32,29 +45,29 @@ messaging.onBackgroundMessage((payload) => {
 });
 
 
-  console.log("About to get token")
-  getToken(messaging, { vapidKey: process.env.VAPID_KEY }) // Replace with your vapid key
-  .then(async (currentToken) => {
-    if (currentToken && user) {
-      console.log('FCM token:', currentToken);
-      const userDocRef = doc(db, "users", user.uid);
+  // console.log("About to get token")
+  // getToken(messaging, { vapidKey: process.env.VAPID_KEY }) // Replace with your vapid key
+  // .then(async (currentToken) => {
+  //   if (currentToken && user) {
+  //     console.log('FCM token:', currentToken);
+  //     const userDocRef = doc(db, "users", user.uid);
 
-      await updateDoc(userDocRef, {
-        tokens: arrayUnion(currentToken), // Adds the token only if it doesn’t already exist
-      });
-      // Send the token to your server, storing it against the user's data.
-      // e.g., fetch('/api/save-fcm-token', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({ token: currentToken }),
-      //   });
-    } else {
-      console.log('No registration token available. Request permission to generate one.');
-    }
-  })
-  .catch((err) => {
-    console.error('An error occurred while retrieving token. ', err);
-  });
+  //     await updateDoc(userDocRef, {
+  //       tokens: arrayUnion(currentToken), // Adds the token only if it doesn’t already exist
+  //     });
+  //     // Send the token to your server, storing it against the user's data.
+  //     // e.g., fetch('/api/save-fcm-token', {
+  //     //     method: 'POST',
+  //     //     headers: { 'Content-Type': 'application/json' },
+  //     //     body: JSON.stringify({ token: currentToken }),
+  //     //   });
+  //   } else {
+  //     console.log('No registration token available. Request permission to generate one.');
+  //   }
+  // })
+  // .catch((err) => {
+  //   console.error('An error occurred while retrieving token. ', err);
+  // });
 
 
 
