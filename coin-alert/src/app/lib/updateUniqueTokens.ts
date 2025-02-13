@@ -1,14 +1,14 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { Connection, PublicKey, TokenAmount } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
+import chalk from "chalk";
 import { arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
-import { getToken } from "./firebase/tokenUtils";
 import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
+import { connection } from "./connection";
+import { getToken } from "./firebase/tokenUtils";
+import { blockchainTaskQueue } from "./taskQueue";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
-import chalk from "chalk";
-import { connection } from "./connection";
-import { blockchainTaskQueue } from "./taskQueue";
 import { TokenAccountData } from "./utils/solanaUtils";
 
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
@@ -46,8 +46,7 @@ async function storeTokenPrice(
 ) {
   try {
     const tokenDocRef = doc(db, "uniqueTokens", token);
-    const timestamp = Date.now();
-
+    
     // 🔹 Check if the document exists
     const docSnapshot = await getDoc(tokenDocRef);
 
@@ -111,9 +110,9 @@ async function deleteOldPrices(token: string) {
 export async function updateUniqueTokens() {
   try {
     console.log("🔄 Updating unique tokens...");
-    let timesToUpdateFirestore: number[] = []
-    let timesToDeleteFirestore: number[] = []
-    let timesToGetTokenPrice: number[] = []
+    const timesToUpdateFirestore: number[] = []
+    const timesToDeleteFirestore: number[] = []
+    const timesToGetTokenPrice: number[] = []
 
     // 🔹 1️⃣ Fetch All Users' Wallets
     const usersSnapshot = await getDocs(collection(db, "users"));
@@ -123,7 +122,6 @@ export async function updateUniqueTokens() {
 
     usersSnapshot.forEach((userDoc) => {
       const userData = userDoc.data();
-      userData.abs
       if (userData.wallets && Array.isArray(userData.wallets)) {
         userData.wallets.forEach((wallet) => uniqueWallets.add(wallet));
       }
@@ -150,7 +148,7 @@ export async function updateUniqueTokens() {
     tokenSetTest.add("2RuDRx9RAcXrSoLupeMLGuBay6w5Q1nUrdPySjA3pump")
 
     // 🔹 3️⃣ Fetch Token Prices Using the Queue
-    let tokensFailedToGetPrice: string[] = [];
+    const tokensFailedToGetPrice: string[] = [];
     const tokenPricePromises = Array.from(uniqueTokensSet).map(async (token) => {
         console.log("===========Getting price for token: " + token + "============");
         const performancePrice = Date.now();

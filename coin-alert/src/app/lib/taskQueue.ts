@@ -2,6 +2,7 @@ const MAX_REQUESTS_PER_SECOND = 15;
 const REQUEST_INTERVAL = 1000 / MAX_REQUESTS_PER_SECOND; // Delay between requests in ms
 
 class TaskQueue {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private queue: (() => Promise<any>)[] = [];
   private isProcessing = false;
 

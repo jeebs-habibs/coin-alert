@@ -1,5 +1,5 @@
+import { collection, doc, FirestoreDataConverter, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebase";
-import { collection, doc, FirestoreDataConverter, getDoc, getDocs, setDoc } from "firebase/firestore";
 
 export interface SirenUser {
     uid: string;           // Firestore User ID (same as Firebase Auth UID)

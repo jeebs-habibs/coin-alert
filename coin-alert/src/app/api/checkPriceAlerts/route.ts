@@ -15,6 +15,18 @@ export interface AlarmConfig {
   criticalAlarmPercentage: number;
 }
 
+export type AlarmType = "normal" | "critical" | null 
+
+interface NotificationReturn {
+  userId: string,
+  token: string
+  priceChange: number,
+  alertType: AlarmType
+  minutes: number
+  alarmedConfig: AlarmConfig | null
+  percentageBreached: number
+}
+
 const ALARM_CONFIGS = new Map<number, AlarmConfig>([
   [1, { standardAlarmPercentage: 50, criticalAlarmPercentage: 80}],
   [7, { standardAlarmPercentage: 60, criticalAlarmPercentage: 90}],
@@ -124,7 +136,7 @@ export async function GET(req: Request) {
     console.log("🔄 Checking price alerts for users...");
 
     const usersSnapshot = await getAllUsers();
-    const notificationsToSend: any[] = [];
+    const notificationsToSend: (NotificationReturn | null)[] = [];
 
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
@@ -144,7 +156,7 @@ export async function GET(req: Request) {
       const allTokens = Array.from(allTokensSet);
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
-      const tokenPricePromises = allTokens.map(async (token) => {
+      const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
         console.log("Getting price history for token: " + token)
         const priceHistory = await getLastHourPrices(token);
         // console.log("Price history: ")
@@ -163,6 +175,7 @@ export async function GET(req: Request) {
         const minuteToAlarmConfig = getAlarmConfig()
         let percentChange = 0
         let minutes = 0
+        let percentageBreached = 0
 
         for (const config of minuteToAlarmConfig) {
           const oldPriceEntry = priceHistory.find(
@@ -180,6 +193,7 @@ export async function GET(req: Request) {
             alarmedConfig = config[1]
             percentChange = priceChange
             minutes = config[0]
+            percentageBreached = config[1].criticalAlarmPercentage
             break;
           }
 
@@ -190,6 +204,7 @@ export async function GET(req: Request) {
             alarmedConfig = config[1]
             percentChange = priceChange
             minutes = config[0]
+            percentageBreached = config[1].standardAlarmPercentage
             break;
           }
 
@@ -198,14 +213,16 @@ export async function GET(req: Request) {
 
         // 🔹 6️⃣ Queue Notification if Needed
         if (alertType) {
-          return {
+          const notification: NotificationReturn = {
             userId: user.uid,
             token,
             priceChange: percentChange,
             alertType,
             minutes,
-            alarmedConfig
+            alarmedConfig,
+            percentageBreached: percentageBreached
           };
+          return notification
         }
         return null;
       });
@@ -220,9 +237,11 @@ export async function GET(req: Request) {
 
     // 🔹 8️⃣ Send Notifications in Bulk
     await Promise.all(
-      notificationsToSend.map((notification) =>
-        sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.alarmedConfig)
-      )
+      notificationsToSend.map((notification) => {
+        if(notification != null){
+          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached)
+        }
+      })
     );
 
     console.log("✅ Price alerts processed.");

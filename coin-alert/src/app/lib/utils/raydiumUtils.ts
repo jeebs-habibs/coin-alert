@@ -83,15 +83,6 @@ async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolD
     });
 }
 
-function containsList(nestedLists: string[][], targetList: string[]): boolean {
-    const targetSet = new Set(targetList);
-  
-    return nestedLists.some((list) => {
-      return list.length === targetList.length && new Set(list).size === targetSet.size && [...targetSet].every((item) => new Set(list).has(item));
-    });
-}
-
-
 export async function getTokenPriceRaydium(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
     let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
     if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){

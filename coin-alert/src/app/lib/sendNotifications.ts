@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { AlarmType } from "../api/checkPriceAlerts/route";
 import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
-import { AlarmConfig } from "../api/checkPriceAlerts/route";
 
 // Function to fetch all FCM tokens from Firestore
 async function getAllFCMTokens(): Promise<string[]> {
@@ -49,7 +49,7 @@ export async function sendNotificationsToAllUsers() {
 }
 
 // 🔹 Send Push Notification to User
-export async function sendNotification(userId: string, token: string, priceChange: number, alertType: "normal" | "critical", minutes: number, alarmedConfig: AlarmConfig) {
+export async function sendNotification(userId: string, token: string, priceChange: number, alertType: AlarmType, minutes: number, percentageBreached: number) {
   try {
     const userDocRef = doc(db, "users", userId);
     const userDocSnap = await getDoc(userDocRef);
@@ -68,10 +68,10 @@ export async function sendNotification(userId: string, token: string, priceChang
     const stonkEmoji = priceChange > 0 ? "📈" : "📉"
 
     const notificationTitle = alertType === "critical" ? "🚨 Critical Price Alert! " : "Standard Price Alert";
-    const notificationBody = `${stonkEmoji} ${token} price ${increaseOrDecrease} by ${priceChange.toFixed(2)}% within ${minutes} minutes.`;
+    const notificationBody = `${stonkEmoji} ${token} price ${increaseOrDecrease} by ${priceChange.toFixed(2)}% within ${minutes} minutes (over threshold of ${percentageBreached}).`;
 
     for (const fcmToken of userData.tokens) {
-      console.log(`Sending ${userId} a notification: ${notificationTitle}`)
+      console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`)
       await messaging.send({
         token: fcmToken,
         notification: { title: notificationTitle, body: notificationBody },
