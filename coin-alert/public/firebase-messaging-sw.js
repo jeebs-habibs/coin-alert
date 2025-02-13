@@ -75,11 +75,12 @@ self.addEventListener('activate', (event) => {
  */
 self.addEventListener('push', (e) => {
   console.log("Service worked receieved push noti")
+  console.log(e)
   console.log(JSON.stringify(e))
   const {message, body, icon } = JSON.parse(e.data.text())
 
   e.waitUntil(
-    self.ServiceWorkerRegistration.showNotification(message, {
+    self.registration.showNotification(message, {
       body,
       icon
     })
