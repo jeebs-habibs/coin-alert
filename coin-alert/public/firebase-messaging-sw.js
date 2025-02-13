@@ -1,16 +1,16 @@
-import {firebase} from "firebase"
+// import {firebase} from "firebase"
 
-firebase.initializeApp({
-  apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
-  authDomain: "coinalert-1872e.firebaseapp.com",
-  projectId: "coinalert-1872e",
-  storageBucket: "coinalert-1872e.firebasestorage.app",
-  messagingSenderId: "738018911031",
-  appId: "1:738018911031:web:a5ea56051bd5a2423630b2",
-  measurementId: "G-L5X3EPT8GM"
-});
+// firebase.initializeApp({
+//   apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
+//   authDomain: "coinalert-1872e.firebaseapp.com",
+//   projectId: "coinalert-1872e",
+//   storageBucket: "coinalert-1872e.firebasestorage.app",
+//   messagingSenderId: "738018911031",
+//   appId: "1:738018911031:web:a5ea56051bd5a2423630b2",
+//   measurementId: "G-L5X3EPT8GM"
+// });
 
-const messaging = firebase.messaging();
+// const messaging = firebase.messaging();
 
 
 
@@ -26,21 +26,21 @@ self.addEventListener('activate', (event) => {
 
 
 
-// Handle background notifications
-messaging.onBackgroundMessage((payload) => {
-  try{
-    console.log("📩 Background notification received:", payload);
+// // Handle background notifications
+// messaging.onBackgroundMessage((payload) => {
+//   try{
+//     console.log("📩 Background notification received:", payload);
 
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-      body: payload.notification.body,
-    };
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  } catch (e) {
-    console.error(e)
-    throw e
-  }
-});
+//     const notificationTitle = payload.notification.title;
+//     const notificationOptions = {
+//       body: payload.notification.body,
+//     };
+//     self.registration.showNotification(notificationTitle, notificationOptions);
+//   } catch (e) {
+//     console.error(e)
+//     throw e
+//   }
+// });
 
 
   // console.log("About to get token")
