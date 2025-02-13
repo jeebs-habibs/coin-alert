@@ -13,7 +13,6 @@ export default function Home() {
           Welcome to CoinAlert
         </h1>
         <p>A mobile app to notify you on changes in your memecoins. No wallet connection required!</p>
-
         <h2>How it works</h2>
         <ol>
           <li>
@@ -29,10 +28,23 @@ export default function Home() {
             App app to your home screen on IOS to receive notifications
           </li>
         </ol>
-      <button
-      onClick={() => router.push("/auth")}>
+        <button
+      onClick={() => router.push("/auth")}
+      className="button">
         Get started
       </button>
+        <h2>Setting up notifications</h2>
+        <p>CoinAlert will alert you on all devices when your coins change drastically in price. Below are checks to ensure your devices are properly set up to receive notifications.</p>
+        <h3>Web/Mac/Desktop</h3>
+        <p>For web browsers, navigate to Settings  Notifications and confirm notifications are enabled. You can enable notifications only for CoinAlert if you so choose.</p>
+        <p>Go to your system settings and confirm notifications are enabled for your browser.</p>
+        <p>If on Mac you may be in Focus or some other Do Not Disturb mode, which in this case you will only receive criticial alerts</p>
+
+        <h3>Mobile</h3>
+        <p>...</p>
+
+
+
       </main>
       <footer className={styles.footer}>
         <a

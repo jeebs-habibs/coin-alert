@@ -1,5 +1,39 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Issues
+- Only ones we cant get price data for: 2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv,8hRiwqXceFL12paSiVRYFNh7eS58NpJQYzV9aN1mC7W5,7bMQQSYmrJjgDcqxYEpyMdPVp65k1VKAe5ZhjAWwAT2j
+- Pudgy maybe on diff pool? 2025 Raydium CLMM or CPMM, and last one i cant even find
+
+## Latest Metrics
+Failed to get price for 22 tokens: 2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv,36mE6cvruVKF4tsnTf4BRAS32ErVR5cm3dVvjGdHpump,HsRR67PuNMernSZPMjLxZ6DWdJKMFK1qAB2NvucQ8ZXH,956ou1nJek6dCSQo4hN6pUkgw2oL2zHcfLcfnYNxpump,E3P5w17LjgLchvRC7gsAnmG84yVQLccC8K4re6xSpump,3Cnf7LVqTbLGYuGFwy2ua6nR5vn2PEbEzgfwsYUspump,9DHe3pycTuymFk4H4bbPoAJ4hQrr2kaLDF6J6aAKpump,8hRiwqXceFL12paSiVRYFNh7eS58NpJQYzV9aN1mC7W5,d5t1qzobqenc5r3ownXKefeRysL1qFBLAv4cU1Apump,AuVGPGcofcPTiH7ne6e3VvRgBYFDFFHVQWM1HfLGrwrj,J99YdKkGKY2yZJY6mEdQG19ac2Fa4U9YGodcDtATpump,B6U9KKAttXcc6HDKZviA9o9BUDXSqVus82gCAe3Apump,Umur6zd51qnixSBk7XfEvVLHXdoZjTiBysam64PDf83,q45iT3JuSDgrPhjcfUBToSAo58r9mEYPSQgWTW2CqeY,7bMQQSYmrJjgDcqxYEpyMdPVp65k1VKAe5ZhjAWwAT2j,GS3ZRVhQS5EqwHkzUenBcEEQAYH3C9Fs2PmEFN37p4pw,2hSf1yGRhJsmN8dFrRaeFr3LbDnVCWCPgrsMQGHcpump,8dHWG9GZ1HqYqFpB6GXLdtopwFKxbMibLom2FaMqpump,3Z5kGSYy634tuCbN2GQzu2fecEysyEnWMbfYboimpump,FCHyom1R7aNEEkT67hM1CVkLba4whvAkWY9Lzjk7pump,APABrboSovPNHHPEJMDGM8c1eA1EfjYZSvBSgDAQpump,27VSrng15AzufqA4SaB2aHRVjmBDT6XxE9PZHC9cpump
+=====API METRICS=====
+Update firestore: 85.89156626506023 ms (avg) 175 ms (max)
+Delete firestore: 72.3012048192771 ms (avg) 120 ms (max)
+Get token price: 923.6666666666666 ms (avg) 3459 ms (max)
+✅ Unique tokens updated in Firestore.
+ GET /api/updateTokens 200 in 97579ms
+
+## Backoff vs Pace control
+- Backoff finished in 27-ish seconds but with some errors that we were calling too much
+- Pace control took 171 seconds with no errors. 
+
+6 calls max per coin
+105 coins * 6 calls = 630 total calls
+should take 42 seconds max.
+
+
+## Reasons we cant get price
+- There are multiple pools for the token (PENGU)
+
+tokens to investigate:
+- AuVGPGcofcPTiH7ne6e3VvRgBYFDFFHVQWM1HfLGrwrj
+- Sig: 2SepAG32mecn8sEGjHNHT5RQYscSxZzjTQdsdp5ruRvaTtnpfZExodQsYnYyNJyhZiVgeUG8SZ86fW3xUdWQcoPK
+- 27VSrng15AzufqA4SaB2aHRVjmBDT6XxE9PZHC9cpump: Most recent transaction was a failed one, will need logic to retry here.
+
+
+## TODO
+- Eventually add code to remove 'dead coins'. These are coins that haven't had activty for > 30 days?
+
 ## Getting Started
 
 First, run the development server:
