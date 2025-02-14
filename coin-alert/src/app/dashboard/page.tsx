@@ -7,15 +7,17 @@ import { useEffect, useState } from "react";
 import { db, messaging } from "../lib/firebase/firebase";
 import { updateWallets } from "../lib/firestore";
 import { useAuth } from "../providers/auth-provider";
+import  styles from "../page.module.css"
+import { FaTrash } from "react-icons/fa";
+
 
 
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
-  const [fcmToken, setFcmToken] = useState<string>("")
   const [newWallet, setNewWallet] = useState<string>("");
   const {user, loading, userData} = useAuth();
   const [error, setError] = useState("");
-  const [notificationError, setNotificationError] = useState("")
+  // const [notificationError, setNotificationError] = useState("")
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -99,7 +101,7 @@ export default function Dashboard() {
     } catch (error) {
       const e = "❌ Error saving FCM token to Firestore:" +error
       console.error(e);
-      setNotificationError(e)
+      // setNotificationError(e)
     }
   };
 
@@ -138,14 +140,13 @@ export default function Dashboard() {
   
           if (fcmToken) {
             console.log("FCM Token:", fcmToken);
-            setNotificationError("SUCCESS" + fcmToken)
-            setFcmToken(fcmToken)
+            // setNotificationError("SUCCESS" + fcmToken)
             await saveTokenToFirestore(fcmToken)
           }
         } catch (error) {
           const e = "Error getting FCM token:" + error
           console.error(e);
-          setNotificationError(e)
+          // setNotificationError(e)
 
         }
       }
@@ -161,10 +162,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-      <p>Sending notis every 10 secs</p>
-      <p className="mb-6">Manage your wallets below:</p>
+    <div className={styles.page}>
+      <main className={styles.main}>
+      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <p>Manage your wallets below:</p>
       <p className="red-text">{error}</p>
       <div className="w-full max-w-md">
         <div className="mb-4">
@@ -187,19 +188,19 @@ export default function Dashboard() {
           {wallets.map((wallet) => (
             <li key={wallet} className="flex justify-between items-center">
               <span>{wallet}</span>
-              <button
-                onClick={() => handleRemoveWallet(wallet)}
-                className="text-red-500 hover:underline"
-              >
-                Remove
+              <button className="removeButton" onClick={() => handleRemoveWallet(wallet)}>
+              <FaTrash  />
               </button>
+              
             </li>
           ))}
         </ul>
-        <p>FCM Token {fcmToken}</p>
-        <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button>
-        <p>{notificationError}</p>
+        {/* <p>FCM Token {fcmToken}</p>
+        <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button> */}
+        {/* <p>{notificationError}</p> */}
       </div>
+      </main>
+      
     </div>
   );
 }

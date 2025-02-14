@@ -42,8 +42,8 @@ a {
 }
 
 .button {
-  background-color: #1122b6; /* Green */
-  max-width: 200px;
+  background-color: #1b7982; /* Green */
+  max-width: 150px;
   color: white;
   padding: 12px 24px;
   font-size: 16px;
@@ -55,8 +55,21 @@ a {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.removeButton {
+  background-color: #ff0000; 
+  width: 10px;
+  color: white;
+  padding: 12px 24px;
+  font-size: 12px;
+  border: none;
+  border-radius: 100px; /* Rounded corners */
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 .button:hover {
-  background-color: #45a049; /* Darker green on hover */
+  background-color: #459da0; /* Darker green on hover */
   transform: scale(1.05); /* Slight zoom effect */
 }
 
