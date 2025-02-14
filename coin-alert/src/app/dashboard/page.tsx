@@ -97,7 +97,7 @@ export default function Dashboard() {
 
 
     } catch (error) {
-      let e = "❌ Error saving FCM token to Firestore:" +error
+      const e = "❌ Error saving FCM token to Firestore:" +error
       console.error(e);
       setNotificationError(e)
     }
@@ -143,7 +143,7 @@ export default function Dashboard() {
             await saveTokenToFirestore(fcmToken)
           }
         } catch (error) {
-          let e = "Error getting FCM token:" + error
+          const e = "Error getting FCM token:" + error
           console.error(e);
           setNotificationError(e)
 
