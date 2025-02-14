@@ -12,10 +12,10 @@ import { useAuth } from "../providers/auth-provider";
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [fcmToken, setFcmToken] = useState<string>("")
-  const [isFcmTokenLoaded, setIsFcmTokenLoaded] = useState<boolean>(false)
   const [newWallet, setNewWallet] = useState<string>("");
   const {user, loading, userData} = useAuth();
   const [error, setError] = useState("");
+  const [notificationError, setNotificationError] = useState("")
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -97,7 +97,9 @@ export default function Dashboard() {
 
 
     } catch (error) {
-      console.error("❌ Error saving FCM token to Firestore:", error);
+      let e = "❌ Error saving FCM token to Firestore:" +error
+      console.error(e);
+      setNotificationError(e)
     }
   };
 
@@ -120,7 +122,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const requestPermissionAndSaveToken = async () => {
-      if(messaging && !isFcmTokenLoaded){
+      if(messaging){
         try {
           const permission = await Notification.requestPermission();
           if (permission !== "granted") {
@@ -136,12 +138,15 @@ export default function Dashboard() {
   
           if (fcmToken) {
             console.log("FCM Token:", fcmToken);
+            setNotificationError("SUCCESS" + fcmToken)
             setFcmToken(fcmToken)
-            setIsFcmTokenLoaded(true)
             await saveTokenToFirestore(fcmToken)
           }
         } catch (error) {
-          console.error("Error getting FCM token:", error);
+          let e = "Error getting FCM token:" + error
+          console.error(e);
+          setNotificationError(e)
+
         }
       }
     };
@@ -193,6 +198,7 @@ export default function Dashboard() {
         </ul>
         <p>FCM Token {fcmToken}</p>
         <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button>
+        <p>{notificationError}</p>
       </div>
     </div>
   );
