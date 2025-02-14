@@ -40,7 +40,7 @@ export default function Home() {
         <p>If on Mac you may be in Focus, Do Not Disturb or some other mode that is preventing you to enable notifications.</p>
 
         <h3>Mobile</h3>
-        <p>On IOS, view this page on Safari and click the share icon. Click "Add to Home Screen". Upon re-opening the app you will be prompted to enable notifications. Select yes. You can customize notifications anytime in your notification settings under the Siren app.</p>
+        <p>On IOS, view this page on Safari and click the share icon. Click Add to Home Screen. Upon re-opening the app you will be prompted to enable notifications. Select yes. You can customize notifications anytime in your notification settings under the Siren app.</p>
       </main>
       <footer className={styles.footer}>
         2025 Siren Copywrite
