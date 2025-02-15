@@ -27,7 +27,11 @@ export default async function RootLayout({
     <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>{children}</AuthProvider>
+        <footer>
+        2025 Siren Copywrite
+      </footer>
       </body>  
+
     </html>
   );
 }

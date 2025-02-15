@@ -21,7 +21,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+      
             navigator.serviceWorker.register('/firebase-messaging-sw.js')
                 .then((registration) => {
                     console.log('Service Worker registered:', registration);
@@ -29,7 +29,7 @@ export default function Dashboard() {
                 .catch((error) => {
                     console.error('Service Worker registration failed:', error);
                 });
-        });
+     
     } else {
       console.error("No service worker")
     }
@@ -164,8 +164,8 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <p>Manage your wallets below:</p>
+      <h1>Dashboard</h1>
+      <h2>Wallet addresses</h2>
       <p className="red-text">{error}</p>
       <div className="w-full max-w-md">
         <div className="mb-4">
@@ -174,27 +174,27 @@ export default function Dashboard() {
             value={newWallet}
             onChange={(e) => setNewWallet(e.target.value)}
             placeholder="Enter new wallet address"
-            className="w-full px-4 py-2 border rounded-md mb-2"
+            className="textInput"
           />
           <button
             onClick={handleAddWallet}
-            className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+            className="buttonSmall"
           >
             Add Wallet
           </button>
         </div>
 
-        <ul className="list-disc list-inside">
+        <div>
           {wallets.map((wallet) => (
-            <li key={wallet} className="flex justify-between items-center">
-              <span>{wallet}</span>
+            <div key={wallet} className="flex justify-between items-center">
+              <span className="m-2">{wallet}</span>
               <button className="removeButton" onClick={() => handleRemoveWallet(wallet)}>
               <FaTrash  />
               </button>
               
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
         {/* <p>FCM Token {fcmToken}</p>
         <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button> */}
         {/* <p>{notificationError}</p> */}
