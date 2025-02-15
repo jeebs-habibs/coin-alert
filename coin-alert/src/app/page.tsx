@@ -22,8 +22,8 @@ export default function Home() {
 
 {
   loading ? <h1>loading...</h1> :  <>
-  <h1>
-    Welcome to CoinAlert
+  <h1 className="largeHeading">
+    Welcome to Siren
   </h1>
   <p>A mobile app to notify you on changes in your memecoins. No wallet connection required!</p>
   <h2>How it works</h2>

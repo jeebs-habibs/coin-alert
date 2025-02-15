@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./providers/auth-provider";
+import { AppHeader } from "./components/AppHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AuthProvider>{children}</AuthProvider>
+          
+        <AuthProvider>
+        <AppHeader/>
+          {children}
+          </AuthProvider>
         <footer>
         2025 Siren Copywrite
       </footer>

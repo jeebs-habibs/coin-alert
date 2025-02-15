@@ -158,7 +158,7 @@ export default function Dashboard() {
   if (loading) return <p>Loading...</p>;
 
   if (!user) {
-    return <p>You must be signed in to view this page.</p>;
+    return <h1>You must be signed in to view this page.</h1>;
   }
 
   return (
