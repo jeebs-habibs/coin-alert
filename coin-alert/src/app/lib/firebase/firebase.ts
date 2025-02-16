@@ -10,8 +10,8 @@ import { getMessaging } from "firebase/messaging";
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
-  authDomain: "coinalert-1872e.firebaseapp.com",
-  projectId: "coinalert-1872e",
+  authDomain: "auth.sirennotify.com",
+  projectId: "coinalert-1872e.firebaseapp.com",
   storageBucket: "coinalert-1872e.firebasestorage.app",
   messagingSenderId: "738018911031",
   appId: "1:738018911031:web:a5ea56051bd5a2423630b2",

@@ -53,6 +53,7 @@ a {
   cursor: pointer;
   transition: all 0.3s ease-in-out;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
 }
 
 .buttonSmall {
@@ -89,7 +90,7 @@ a {
 }
 
 .textInput:focus {
-  border-color: #007bff; /* Highlight color when focused */
+  border-color: #1b7982; /* Highlight color when focused */
   background-color: #fff;
   box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
 }
@@ -119,4 +120,41 @@ a {
 
 .red-text {
   color: red;
+}
+
+.largeHeading {
+  font-size: xx-large;
+}
+
+
+.iconButton {
+  width: 50;
+  height: 50;
+  margin: 5;
+  background-color: #1b7982; /* Green */
+  color: white;
+  border: none;
+  border-radius: 25px; /* Rounded corners */
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.iconButton:hover {
+  background-color: #459da0; /* Darker green on hover */
+  transform: scale(1.05); /* Slight zoom effect */
+}
+
+.footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10px;
+  color: grey;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
