@@ -144,3 +144,17 @@ a {
   background-color: #459da0; /* Darker green on hover */
   transform: scale(1.05); /* Slight zoom effect */
 }
+
+.footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10px;
+  color: grey;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}

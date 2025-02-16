@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AppHeader } from "./components/AppHeader";
 import "./globals.css";
 import { AuthProvider } from "./providers/auth-provider";
-import { AppHeader } from "./components/AppHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,11 +30,15 @@ export default async function RootLayout({
           
         <AuthProvider>
         <AppHeader/>
-          {children}
+        <div className="wrapper">
+        {children}
+          <footer className="footer">
+            © SirenNotify.com, 2025
+          </footer>
+        </div>
+
           </AuthProvider>
-        <footer>
-        2025 Siren Copywrite
-      </footer>
+
       </body>  
 
     </html>

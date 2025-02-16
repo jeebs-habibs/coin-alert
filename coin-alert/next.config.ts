@@ -15,7 +15,7 @@ module.exports = {
         ],
       },
       {
-        source: '/sw.js',
+        source: '/firebase-messaging-sw.js',
         headers: [
           {
             key: 'Content-Type',
