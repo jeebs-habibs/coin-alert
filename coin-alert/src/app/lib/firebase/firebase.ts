@@ -11,7 +11,7 @@ import { getMessaging } from "firebase/messaging";
 const firebaseConfig = {
   apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
   authDomain: "auth.sirennotify.com",
-  projectId: "coinalert-1872e.firebaseapp.com",
+  projectId: "coinalert-1872e",
   storageBucket: "coinalert-1872e.firebasestorage.app",
   messagingSenderId: "738018911031",
   appId: "1:738018911031:web:a5ea56051bd5a2423630b2",
