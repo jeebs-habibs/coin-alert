@@ -30,7 +30,9 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
 // 🔹 Fetch a User From Firestore
 export async function getUser(uid: string): Promise<SirenUser | null> {
   try {
+    console.log("User uid to get from DB: " + uid)
     const userDocRef = doc(db, "users", uid).withConverter(userConverter);
+    
     const userSnapshot = await getDoc(userDocRef);
 
     if (userSnapshot.exists()) {

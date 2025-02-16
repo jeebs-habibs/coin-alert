@@ -7,7 +7,6 @@ import { auth, db } from "../lib/firebase/firebase";
 
 interface AuthContextType {
   user: User | null;
-  userData: { wallets?: string[]; tokens?: string[] } | null;
   loading: boolean;
 }
 
@@ -15,47 +14,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<{ wallets?: string[]; tokens?: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
+      console.log("Auth state changed!!")
       setUser(authUser);
-
-      if (authUser) {
-        const userDocRef = doc(db, "users", authUser.uid);
-
-        try {
-          // 🔹 Fetch user data immediately on first load
-          const docSnap = await getDoc(userDocRef);
-          if (docSnap.exists()) {
-            setUserData(docSnap.data() as { wallets?: string[]; tokens?: string[] });
-          }
-
-          // 🔹 Listen for real-time changes
-          const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-              setUserData(docSnap.data() as { wallets?: string[]; tokens?: string[] });
-            }
-          });
-
-          setLoading(false); // ✅ Ensure loading state is set to false
-          return unsubscribeFirestore; // Cleanup Firestore listener
-        } catch (error) {
-          console.error("❌ Error fetching user data:", error);
-          setLoading(false); // ✅ Prevent infinite loading
-        }
-      } else {
-        setUserData(null);
-        setLoading(false); // ✅ Make sure loading stops when user is null
-      }
+      setLoading(false); // ✅ Make sure loading stops when user is null
     });
 
     return () => unsubscribeAuth(); // Cleanup auth listener
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading }}>
+    <AuthContext.Provider value={{ user, loading }}>
       {children}
     </AuthContext.Provider>
   );

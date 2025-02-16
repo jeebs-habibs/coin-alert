@@ -1,4 +1,4 @@
-import { AuthOptions, getServerSession } from "next-auth";
+import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions: AuthOptions = {
@@ -13,7 +13,5 @@ export const authOptions: AuthOptions = {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
   };
-
-export const getServerAuthSession = () => getServerSession(authOptions);
 
 

@@ -9,13 +9,16 @@ import { updateWallets } from "../lib/firestore";
 import { useAuth } from "../providers/auth-provider";
 import  styles from "../page.module.css"
 import { FaTrash } from "react-icons/fa";
+import { getUser, SirenUser } from "../lib/firebase/userUtils";
 
 
 
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
-  const {user, loading, userData} = useAuth();
+  const [sirenUser, setSirenUser] = useState<SirenUser | null>(null)
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState<boolean>(false)
+  const {user, loading} = useAuth();
   const [error, setError] = useState("");
   // const [notificationError, setNotificationError] = useState("")
 
@@ -45,15 +48,37 @@ export default function Dashboard() {
       }
     };
   
-  useEffect(() => {
-    if (userData) {
-      // Fetch user data
-        if (userData?.wallets) {
-          setWallets(userData.wallets);
-        }
-    
-    }
-  }, [userData]);
+    useEffect(() => {
+      console.log("In use effect")
+      console.log("isUserDataLoaded" + isUserDataLoaded)
+      if(user == null){
+        console.error("USER IS NULL")
+      } else {
+        console.log("USER IS NOT NULL")
+      }
+      if(!isUserDataLoaded && user != null){
+        getUser(user.uid)
+        .then((data) => {
+          console.log("Got user data")
+          console.log(JSON.stringify(data))
+          setSirenUser(data)
+          if(data?.wallets){
+            setWallets([...wallets, ...data.wallets])
+          }
+        })
+        .catch((err) => {
+          console.error("Error getting user data: " + err)
+          setError(err.message)
+      })
+        .finally(() => {
+          setIsUserDataLoaded(true)
+          console.log("hit finally")
+      });
+      }
+
+
+  
+    }); // Runs when userId changes
 
   const handleAddWallet = async () => {
     if (!newWallet || !isValidSolanaAddress(newWallet) || wallets.includes(newWallet)) {
@@ -87,7 +112,8 @@ export default function Dashboard() {
         return;
       }
 
-      if(user){
+      if(user != null){
+        console.log("Updating FCM tokens for User: " + user.uid)
         const userDocRef = doc(db, "users", user.uid);
 
         await updateDoc(userDocRef, {
