@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
-      if (!user.wallets || !Array.isArray(user.wallets)) return; // Skip users with no wallets
+      if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn) return; // Skip users with no wallets
 
       console.log(`👤 Checking tokens for user: ${user.uid} (${user.wallets.join(",")})`);
 
@@ -62,6 +62,12 @@ export async function GET(req: Request) {
             (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
           );
           if (!oldPriceEntry) continue;
+          const recentNotificationForMiniute = user?.recentNotifications.get(config[0])
+          if(recentNotificationForMiniute && ((Date.now() - recentNotificationForMiniute.timestamp) < (config[0] * 60 * 1000))){
+            // If a notification was sent for the same minute less than that 
+            console.log("Skipping notification since one was already sent within cooldown period")
+            continue
+          }
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
           console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);

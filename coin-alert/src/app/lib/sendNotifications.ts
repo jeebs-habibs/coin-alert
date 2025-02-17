@@ -2,6 +2,7 @@ import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
 import { AlarmType } from "./constants/alarmConstants";
+import { updateRecentNotification } from "./firebase/userUtils";
 
 // Function to fetch all FCM tokens from Firestore
 async function getAllFCMTokens(): Promise<string[]> {
@@ -77,6 +78,14 @@ export async function sendNotification(userId: string, token: string, priceChang
         notification: { title: notificationTitle, body: notificationBody },
         android: { priority: alertType === "critical" ? "high" : "normal" },
         apns: { payload: { aps: { sound: alertType === "critical" ? "emergency" : "default" } } },
+      }).then(() => {
+        updateRecentNotification(userId, minutes, {
+          timestamp: Date.now(),
+          percentageBreached: percentageBreached,
+          minutes: minutes,
+          percentChange: priceChange,
+          alertType: alertType
+        })
       });
     }
 

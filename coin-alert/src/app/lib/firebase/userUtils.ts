@@ -1,5 +1,14 @@
 import { collection, doc, FirestoreDataConverter, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
+import { AlarmType } from "../constants/alarmConstants";
 import { db } from "../firebase/firebase";
+
+interface RecentNotification {
+  timestamp: number;
+  percentageBreached: number;
+  minutes: number;
+  percentChange: number;
+  alertType: AlarmType;
+}
 
 export interface SirenUser {
     uid: string;           // Firestore User ID (same as Firebase Auth UID)
@@ -8,6 +17,7 @@ export interface SirenUser {
     tokens?: string[];     // Optional FCM tokens for notifications
     alarmPreset: "left" | "right" | "center";   // Either left, center, or right 
     isNotificationsOn: boolean;
+    recentNotifications: Map<number, RecentNotification>;
 }
 
 const userConverter: FirestoreDataConverter<SirenUser> = {
@@ -18,7 +28,8 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         wallets: user.wallets,
         tokens: user.tokens || [],
         alarmPreset: user.alarmPreset,
-        isNotificationsOn: user.isNotificationsOn
+        isNotificationsOn: user.isNotificationsOn,
+        recentNotifications: user.recentNotifications
       };
     },
     fromFirestore(snapshot, options) {
@@ -29,7 +40,8 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         wallets: data.wallets,
         tokens: data.tokens || [],
         alarmPreset: data.alarmPreset,
-        isNotificationsOn: data.isNotificationsOn
+        isNotificationsOn: data.isNotificationsOn,
+        recentNotifications: data.recentNotifications
       };
     },
   };
@@ -85,7 +97,8 @@ export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
         tokens: newData.tokens || [],
         wallets: newData.wallets || [],
         alarmPreset: newData.alarmPreset || "center",
-        isNotificationsOn: newData.isNotificationsOn === undefined ? true : newData.isNotificationsOn
+        isNotificationsOn: newData.isNotificationsOn === undefined ? true : newData.isNotificationsOn,
+        recentNotifications: newData.recentNotifications || new Map<number, RecentNotification>()
       };
       await setDoc(userDocRef, newUser);
       console.log(`✅ Created new user document for ${uid}.`);
@@ -97,5 +110,44 @@ export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
     console.log(`✅ Successfully updated user ${uid} in Firestore.`);
   } catch (error) {
     console.error(`❌ Error updating user ${uid}:`, error);
+  }
+}
+
+
+/**
+ * Updates the recentNotifications map for a given user.
+ * @param uid - The user's ID
+ * @param minutes - The time interval (key in the map)
+ * @param notification - The RecentNotification object to store
+ */
+export async function updateRecentNotification(uid: string, minutes: number, notification: RecentNotification) {
+  try {
+    const userDocRef = doc(db, "users", uid).withConverter(userConverter);
+
+    // 🔹 Fetch the current user document using the converter
+    const userSnapshot = await getDoc(userDocRef);
+    if (!userSnapshot.exists()) {
+      console.warn(`⚠️ User ${uid} not found.`);
+      return;
+    }
+
+    // 🔹 Convert Firestore object to a Map
+    const userData = userSnapshot.data() as SirenUser;
+    const recentNotifications = new Map<number, RecentNotification>(
+      Object.entries(userData.recentNotifications || {}).map(([key, value]) => [Number(key), value])
+    );
+
+    // 🔹 Update the recentNotifications map
+    recentNotifications.set(minutes, notification);
+
+    // 🔹 Convert back to Firestore-friendly format (Object)
+    const updatedRecentNotifications = Object.fromEntries(recentNotifications);
+
+    // 🔹 Update Firestore document
+    await updateDoc(userDocRef, { recentNotifications: updatedRecentNotifications });
+
+    console.log(`✅ Updated recentNotifications for user ${uid} at ${minutes} minutes.`);
+  } catch (error) {
+    console.error(`❌ Error updating recentNotifications for user ${uid}:`, error);
   }
 }
