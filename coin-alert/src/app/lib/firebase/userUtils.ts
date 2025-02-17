@@ -7,6 +7,7 @@ export interface SirenUser {
     wallets: string[];     // List of wallet addresses
     tokens?: string[];     // Optional FCM tokens for notifications
     alarmPreset: "left" | "right" | "center";   // Either left, center, or right 
+    isNotificationsOn: boolean;
 }
 
 const userConverter: FirestoreDataConverter<SirenUser> = {
@@ -16,7 +17,8 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         email: user.email,
         wallets: user.wallets,
         tokens: user.tokens || [],
-        alarmPreset: user.alarmPreset
+        alarmPreset: user.alarmPreset,
+        isNotificationsOn: user.isNotificationsOn
       };
     },
     fromFirestore(snapshot, options) {
@@ -26,7 +28,8 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         email: data?.email,
         wallets: data.wallets,
         tokens: data.tokens || [],
-        alarmPreset: data.alarmPreset
+        alarmPreset: data.alarmPreset,
+        isNotificationsOn: data.isNotificationsOn
       };
     },
   };
@@ -81,7 +84,8 @@ export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
         email: newData.email || "unknown@example.com",
         tokens: newData.tokens || [],
         wallets: newData.wallets || [],
-        alarmPreset: newData.alarmPreset || "center"
+        alarmPreset: newData.alarmPreset || "center",
+        isNotificationsOn: newData.isNotificationsOn === undefined ? true : newData.isNotificationsOn
       };
       await setDoc(userDocRef, newUser);
       console.log(`✅ Created new user document for ${uid}.`);
