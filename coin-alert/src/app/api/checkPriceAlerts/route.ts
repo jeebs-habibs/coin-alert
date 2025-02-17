@@ -1,5 +1,6 @@
+import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getAllUsers, SirenUser } from "@/app/lib/firebase/userUtils";
-import { AlarmConfig, calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
+import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 
 

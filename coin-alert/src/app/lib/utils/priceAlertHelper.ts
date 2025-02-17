@@ -2,18 +2,12 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { doc, getDoc } from "firebase/firestore";
 import { connection } from "../connection";
+import { ALARM_CONFIGS_MAX, AlarmConfig, AlarmType } from "../constants/alarmConstants";
 import { db } from "../firebase/firebase";
 import { PriceData, tokenConverter } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
 import { TokenAccountData } from "./solanaUtils";
 
-export interface AlarmConfig {
-    standardAlarmPercentage: number;
-    criticalAlarmPercentage: number;
-  }
-  
-export type AlarmType = "normal" | "critical" | null 
-  
 export interface NotificationReturn {
     userId: string,
     token: string
@@ -23,42 +17,6 @@ export interface NotificationReturn {
     alarmedConfig: AlarmConfig | null
     percentageBreached: number
 }
-  
-const ALARM_CONFIGS = new Map<number, AlarmConfig>([
-    [1, { standardAlarmPercentage: 50, criticalAlarmPercentage: 80}],
-    [7, { standardAlarmPercentage: 60, criticalAlarmPercentage: 90}],
-    [15, {standardAlarmPercentage: 70, criticalAlarmPercentage: 100}],
-    [30, {standardAlarmPercentage: 80, criticalAlarmPercentage: 120}],
-    [60, {standardAlarmPercentage: 90, criticalAlarmPercentage: 175}]
-])
-
-const ALARM_CONFIGS_MAX = new Map<number, AlarmConfig>([
-    [1, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [7, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [15, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [30, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [60, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}]
-])
-
-
-const QUIETER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
-const NOISIER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
-
-ALARM_CONFIGS.forEach((config, key) => {
-QUIETER_ALARM_CONFIGS.set(key, {
-    standardAlarmPercentage: config.standardAlarmPercentage * 2,
-    criticalAlarmPercentage: config.criticalAlarmPercentage * 2
-});
-});
-
-
-ALARM_CONFIGS.forEach((config, key) => {
-NOISIER_ALARM_CONFIGS.set(key, {
-    standardAlarmPercentage: config.standardAlarmPercentage / 4,
-    criticalAlarmPercentage: config.criticalAlarmPercentage / 4
-});
-});
-
 
 export async function getLastHourPrices(token: string): Promise<PriceData[]> {
 try {
@@ -125,3 +83,4 @@ export async function getTokensFromBlockchain(walletAddress: string): Promise<st
 export function calculatePriceChange(oldPrice: number, newPrice: number): number {
     return ((newPrice - oldPrice) / oldPrice) * 100;
 }
+

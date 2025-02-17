@@ -1,0 +1,62 @@
+/* Base button styles */
+.button {
+    border: none;
+    margin: 5px;
+    max-width: 150px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, filter 0.2s ease-in-out;
+  }
+  
+  /* Size variants */
+  .button.sm {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  .button.md {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  
+  .button.lg {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  
+  /* Color variants */
+  .button.primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .button.secondary {
+    background-color: var(--secondary-color);
+    color: white;
+  }
+  
+  .button.danger {
+    background-color: var(--danger-color);
+    color: white;
+  }
+  
+  .button.grey {
+    background-color: var(--grey-color);
+    color: white;
+  }
+  
+  /* Hover effect using brightness filter */
+  .button:hover {
+    filter: brightness(1.15);
+    transform: scale(1.05);
+    transition: all .03s ease-in-out;
+  }
+  
+  /* Disabled state - lighter color and unclickable */
+  .button.disabled, .button:disabled {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.5);
+    cursor: not-allowed;
+    filter: brightness(1.3);
+  }
