@@ -6,7 +6,7 @@ export interface SirenUser {
     email?: string;
     wallets: string[];     // List of wallet addresses
     tokens?: string[];     // Optional FCM tokens for notifications
-    alarmPreset: string;   // Either left, center, or right 
+    alarmPreset: "left" | "right" | "center";   // Either left, center, or right 
 }
 
 const userConverter: FirestoreDataConverter<SirenUser> = {

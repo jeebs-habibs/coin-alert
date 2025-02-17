@@ -7,6 +7,8 @@ interface LabelInfo {
   desc?: string;
 }
 
+export type TogglePosition = "left" | "right" | "center"
+
 interface Labels {
   left: LabelInfo;
   center: LabelInfo;
@@ -15,35 +17,43 @@ interface Labels {
 
 interface TripleToggleSwitchProps {
   labels?: Labels;
-  onChange?: (value: string) => void;
+  onChange?: (value: TogglePosition | undefined) => void;
   styles?: React.CSSProperties;
+  activePosition: "left" | "center" | "right";
 }
 
 interface TripleToggleSwitchState {
   switchPosition: "left" | "center" | "right";
   animation: string | null;
-  showDescription: boolean[];
 }
 
 class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggleSwitchState> {
   static defaultProps: Partial<TripleToggleSwitchProps> = {
     labels: {
-      left: { title: "left", value: "left" },
-      center: { title: "center", value: "center" },
-      right: { title: "right", value: "right" },
+      left: { title: "left", value: "left", desc: "Left description" },
+      center: { title: "center", value: "center", desc: "Center description" },
+      right: { title: "right", value: "right", desc: "Right description" },
     },
     onChange: (value) => console.log("value:", value),
+    activePosition: "center",
   };
 
   constructor(props: TripleToggleSwitchProps) {
     super(props);
+    console.log("in constructor props.activePosition: " + props.activePosition)
     this.state = {
-      switchPosition: "left",
+      switchPosition: props.activePosition,
       animation: null,
-      showDescription: [false, false, false],
     };
   }
 
+
+  componentDidUpdate(prevProps: TripleToggleSwitchProps) {
+    if (prevProps.activePosition !== this.props.activePosition) {
+      this.setState({ switchPosition: this.props.activePosition || "center" });
+    }
+  }
+  
   getSwitchAnimation = (value: "left" | "center" | "right") => {
     const { switchPosition } = this.state;
     let animation: string | null = null;
@@ -62,31 +72,19 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
     this.setState({ switchPosition: value, animation });
   };
 
-  handleMouseEnter = (index: number) => {
-    this.setState((prevState) => {
-      const newShowDescription = [...prevState.showDescription];
-      newShowDescription[index] = true;
-      return { showDescription: newShowDescription };
-    });
-  };
-
-  handleMouseLeave = (index: number) => {
-    this.setState((prevState) => {
-      const newShowDescription = [...prevState.showDescription];
-      newShowDescription[index] = false;
-      return { showDescription: newShowDescription };
-    });
-  };
-
   render() {
     const { labels } = this.props;
-    const { showDescription, switchPosition, animation } = this.state;
+    const { switchPosition, animation } = this.state;
+
+    console.log("switchPosition: " + switchPosition)
+    console.log("props.activePosition" + this.props.activePosition)
 
     return (
-      <div className="main-container">
+        <div>
+      <div className="main-container" style={{ position: "relative", display: "inline-block" }}>
         <div className={`switch ${animation} ${switchPosition}-position`}></div>
 
-        {["left", "center", "right"].map((position, index) => (
+        {["left", "center", "right"].map((position) => (
           <React.Fragment key={position}>
             <input
               onChange={() => this.getSwitchAnimation(position as "left" | "center" | "right")}
@@ -94,22 +92,22 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
               id={position}
               type="radio"
               value={position}
-              defaultChecked={position === "left"}
+              checked={switchPosition === position}
             />
             <label
               className={`${position}-label ${switchPosition === position ? "black-font" : ""}`}
               htmlFor={position}
-              onMouseEnter={() => this.handleMouseEnter(index)}
-              onMouseLeave={() => this.handleMouseLeave(index)}
             >
               <h4>{labels?.[position as keyof Labels]?.title}</h4>
-              {showDescription[index] && labels?.[position as keyof Labels]?.desc && (
-                <div className="showDecription">{labels[position as keyof Labels]?.desc}</div>
-              )}
             </label>
           </React.Fragment>
         ))}
+
       </div>
+              <p className="toggle-description">
+              {labels?.[switchPosition]?.desc}
+            </p>
+            </div>
     );
   }
 }

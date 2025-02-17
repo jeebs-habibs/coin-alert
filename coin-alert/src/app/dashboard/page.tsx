@@ -5,7 +5,8 @@ import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { getToken, onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
-import TripleToggleSwitch from "../components/TripleToggle";
+import { Button } from "../components/Button";
+import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
 import { db, messaging } from "../lib/firebase/firebase";
 import { updateUserData } from "../lib/firebase/userUtils";
 import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
@@ -16,7 +17,7 @@ import { useAuth } from "../providers/auth-provider";
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
-  const [newAlarmPreset, setNewAlarmPreset] = useState<string>()
+  const [newAlarmPreset, setNewAlarmPreset] = useState<TogglePosition | undefined>("center")
   const {user, userData, loading} = useAuth();
   const [error, setError] = useState("");
   // const [notificationError, setNotificationError] = useState("")
@@ -52,6 +53,10 @@ export default function Dashboard() {
         // Fetch user data
           if (userData?.wallets) {
             setWallets(userData.wallets);
+          }
+          if(userData?.alarmPreset){
+            console.log("Set alarm preset to " + userData.alarmPreset)
+            setNewAlarmPreset(userData.alarmPreset)
           }
   
       }
@@ -161,7 +166,15 @@ export default function Dashboard() {
   }
 
   function didUserDataChange(){
-    return userData && (areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset)  
+    if(!userData){
+      return true
+    }
+    console.log("userData.wallets" + userData.wallets.join(","))
+    console.log("wallets" + wallets.join(","))
+    console.log("newAlarmPreset: " + newAlarmPreset)
+    console.log("userData.alarmPreset: " + userData.alarmPreset)
+    console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
+    return (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset)  
   }
 
   if (loading) return <p>Loading...</p>;
@@ -192,7 +205,7 @@ export default function Dashboard() {
     <div className={styles.page}>
       <main className={styles.main}>
       <h1>Dashboard</h1>
-      <TripleToggleSwitch labels={labels} onChange={(e) => setNewAlarmPreset(e)}/>
+      <TripleToggleSwitch labels={labels} onChange={(e: TogglePosition | undefined) => setNewAlarmPreset(e)} activePosition={newAlarmPreset}/>
       <h2>Wallet addresses</h2>
       {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">
@@ -204,12 +217,12 @@ export default function Dashboard() {
             placeholder="Enter new wallet address"
             className="textInput"
           />
-          <button
+          <Button
+            disabled={!newWallet.length}
             onClick={handleAddWallet}
-            className="button"
           >
             Add Wallet
-          </button>
+          </Button>
         </div>
 
         <div>
@@ -223,17 +236,18 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        <button className="button" disabled={!didUserDataChange()} onClick={() => 
+        <Button variant="grey" disabled={!didUserDataChange()} onClick={() => 
           {
             if(userData){
               setWallets(userData.wallets)
+              setNewAlarmPreset(userData.alarmPreset)
             }
           }}>
           Reset Changes
-        </button>
-        <button className="button" disabled={!didUserDataChange()} onClick={saveChanges}>
+        </Button>
+        <Button variant="primary" disabled={!didUserDataChange()} onClick={saveChanges}>
           Save Changes
-        </button>
+        </Button>
         {/* <p>FCM Token {fcmToken}</p>
         <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button> */}
         {/* <p>{notificationError}</p> */}

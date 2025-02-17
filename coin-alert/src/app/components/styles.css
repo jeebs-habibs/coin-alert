@@ -177,3 +177,10 @@ h4 {
     z-index: 999999;
     box-shadow: 15px 15px 18px 1px rgba(0, 0, 0, 0.7);
 }
+
+
+.toggle-description {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 14px;
+}
