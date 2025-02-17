@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
 import TripleToggleSwitch from "../components/TripleToggle";
 import { db, messaging } from "../lib/firebase/firebase";
-import { updateWallets } from "../lib/firestore";
-import { shortenString } from "../lib/utils/solanaUtils";
+import { updateUserData } from "../lib/firebase/userUtils";
+import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
 import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
@@ -67,19 +67,11 @@ export default function Dashboard() {
     const updatedWallets = [...wallets, newWallet];
     setWallets(updatedWallets);
     setNewWallet("");
-
-    if (user) {
-      await updateWallets(user.uid, updatedWallets);
-    }
   };
 
   const handleRemoveWallet = async (wallet: string) => {
     const updatedWallets = wallets.filter((w) => w !== wallet);
     setWallets(updatedWallets);
-
-    if (user) {
-      await updateWallets(user.uid, updatedWallets);
-    }
   };
   
   const saveTokenToFirestore = async (token: string) => {
@@ -158,6 +150,20 @@ export default function Dashboard() {
     requestPermissionAndSaveToken();
   });
 
+  function saveChanges(){
+    // this function will save new changes to database
+    if(user != null && user.uid){
+      updateUserData(user.uid, {...userData, wallets: wallets, alarmPreset: newAlarmPreset})
+    } else {
+      console.error("Error saving data, user is not defined.")
+    }
+
+  }
+
+  function didUserDataChange(){
+    return userData && (areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset)  
+  }
+
   if (loading) return <p>Loading...</p>;
 
   if (!user) {
@@ -217,6 +223,17 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+        <button className="button" disabled={!didUserDataChange()} onClick={() => 
+          {
+            if(userData){
+              setWallets(userData.wallets)
+            }
+          }}>
+          Reset Changes
+        </button>
+        <button className="button" disabled={!didUserDataChange()} onClick={saveChanges}>
+          Save Changes
+        </button>
         {/* <p>FCM Token {fcmToken}</p>
         <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button> */}
         {/* <p>{notificationError}</p> */}

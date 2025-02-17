@@ -1,4 +1,4 @@
-import { collection, doc, FirestoreDataConverter, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, FirestoreDataConverter, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 export interface SirenUser {
@@ -6,6 +6,7 @@ export interface SirenUser {
     email?: string;
     wallets: string[];     // List of wallet addresses
     tokens?: string[];     // Optional FCM tokens for notifications
+    alarmPreset: string;   // Either left, center, or right 
 }
 
 const userConverter: FirestoreDataConverter<SirenUser> = {
@@ -15,6 +16,7 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         email: user.email,
         wallets: user.wallets,
         tokens: user.tokens || [],
+        alarmPreset: user.alarmPreset
       };
     },
     fromFirestore(snapshot, options) {
@@ -24,6 +26,7 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         email: data?.email,
         wallets: data.wallets,
         tokens: data.tokens || [],
+        alarmPreset: data.alarmPreset
       };
     },
   };
@@ -62,3 +65,33 @@ export async function getAllUsers(): Promise<SirenUser[]> {
       return []; // Return an empty array if there's an error
     }
   }
+
+// 🔹 Function to Update User Data
+export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
+  try {
+    const userDocRef = doc(db, "users", uid).withConverter(userConverter);
+
+    // 🔹 Fetch the current user document
+    const userSnapshot = await getDoc(userDocRef);
+
+    if (!userSnapshot.exists()) {
+      console.warn(`⚠️ User ${uid} does not exist. Creating a new user document...`);
+      const newUser: SirenUser = {
+        uid,
+        email: newData.email || "unknown@example.com",
+        tokens: newData.tokens || [],
+        wallets: newData.wallets || [],
+        alarmPreset: newData.alarmPreset || "center"
+      };
+      await setDoc(userDocRef, newUser);
+      console.log(`✅ Created new user document for ${uid}.`);
+      return;
+    }
+
+    // 🔹 Merge new data with existing user data
+    await updateDoc(userDocRef, newData);
+    console.log(`✅ Successfully updated user ${uid} in Firestore.`);
+  } catch (error) {
+    console.error(`❌ Error updating user ${uid}:`, error);
+  }
+}
