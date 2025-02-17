@@ -4,24 +4,23 @@ import { PublicKey } from "@solana/web3.js";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { getToken, onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
+import { FaTrash } from "react-icons/fa";
 import { db, messaging } from "../lib/firebase/firebase";
 import { updateWallets } from "../lib/firestore";
+import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
-import  styles from "../page.module.css"
-import { FaTrash } from "react-icons/fa";
 
 
 
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
-  const {user, loading, userData} = useAuth();
+  const {user, userData, loading} = useAuth();
   const [error, setError] = useState("");
   // const [notificationError, setNotificationError] = useState("")
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      
             navigator.serviceWorker.register('/firebase-messaging-sw.js')
                 .then((registration) => {
                     console.log('Service Worker registered:', registration);
@@ -45,15 +44,15 @@ export default function Dashboard() {
       }
     };
   
-  useEffect(() => {
-    if (userData) {
-      // Fetch user data
-        if (userData?.wallets) {
-          setWallets(userData.wallets);
-        }
-    
-    }
-  }, [userData]);
+    useEffect(() => {
+      if (userData) {
+        // Fetch user data
+          if (userData?.wallets) {
+            setWallets(userData.wallets);
+          }
+  
+      }
+    }, [userData]);
 
   const handleAddWallet = async () => {
     if (!newWallet || !isValidSolanaAddress(newWallet) || wallets.includes(newWallet)) {
@@ -87,7 +86,8 @@ export default function Dashboard() {
         return;
       }
 
-      if(user){
+      if(user != null){
+        console.log("Updating FCM tokens for User: " + user.uid)
         const userDocRef = doc(db, "users", user.uid);
 
         await updateDoc(userDocRef, {

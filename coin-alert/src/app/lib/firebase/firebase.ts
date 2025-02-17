@@ -11,7 +11,7 @@ import { getMessaging } from "firebase/messaging";
 const firebaseConfig = {
   apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
   authDomain: "auth.sirennotify.com",
-  projectId: "coinalert-1872e.firebaseapp.com",
+  projectId: "coinalert-1872e",
   storageBucket: "coinalert-1872e.firebasestorage.app",
   messagingSenderId: "738018911031",
   appId: "1:738018911031:web:a5ea56051bd5a2423630b2",
@@ -20,8 +20,11 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Enable persistence.  `synchronizeTabs` is optional, but recommended
+
 //const analytics = getAnalytics(app);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app)
 export const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
 

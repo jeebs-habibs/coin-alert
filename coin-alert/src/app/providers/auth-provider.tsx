@@ -4,10 +4,11 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase/firebase";
+import { SirenUser } from "../lib/firebase/userUtils";
 
 interface AuthContextType {
   user: User | null;
-  userData: { wallets?: string[]; tokens?: string[] } | null;
+  userData: SirenUser | null;
   loading: boolean;
 }
 
@@ -15,7 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<{ wallets?: string[]; tokens?: string[] } | null>(null);
+  const [userData, setUserData] = useState<SirenUser| null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,13 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // 🔹 Fetch user data immediately on first load
           const docSnap = await getDoc(userDocRef);
           if (docSnap.exists()) {
-            setUserData(docSnap.data() as { wallets?: string[]; tokens?: string[] });
+            setUserData(docSnap.data() as SirenUser);
           }
 
           // 🔹 Listen for real-time changes
           const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
-              setUserData(docSnap.data() as { wallets?: string[]; tokens?: string[] });
+              setUserData(docSnap.data() as SirenUser);
             }
           });
 
