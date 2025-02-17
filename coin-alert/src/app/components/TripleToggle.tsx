@@ -40,7 +40,6 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
 
   constructor(props: TripleToggleSwitchProps) {
     super(props);
-    console.log("in constructor props.activePosition: " + props.activePosition)
     this.state = {
       switchPosition: props.activePosition,
       animation: null,
@@ -75,9 +74,6 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
   render() {
     const { labels } = this.props;
     const { switchPosition, animation } = this.state;
-
-    console.log("switchPosition: " + switchPosition)
-    console.log("props.activePosition" + this.props.activePosition)
 
     return (
         <div>

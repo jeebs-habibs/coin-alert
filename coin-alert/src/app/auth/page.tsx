@@ -1,9 +1,10 @@
 'use client'
 
 import { useRouter } from "next/navigation";
+import GoogleButton from 'react-google-button';
+import { Button } from "../components/Button";
 import { signInWithGoogle, signOut } from "../lib/firebase/auth";
 import { useAuth } from "../providers/auth-provider";
-import GoogleButton from 'react-google-button'
 
 export default function Auth(){
   const auth = useAuth()
@@ -18,8 +19,8 @@ export default function Auth(){
           <h1 style={{margin: "10px"}}>Please sign in</h1>
           <GoogleButton onClick={signInWithGoogle}>Sign In with Google</GoogleButton>
         </div> : <>      
-        <button className="button" onClick={() => router.push("/dashboard")}>My dashboard</button>
-        <button className="removeButton" onClick={signOut}>Sign Out</button></>
+        <Button variant="primary" onClick={() => router.push("/dashboard")}>My dashboard</Button>
+        <Button variant="danger" onClick={signOut}>Sign Out</Button></>
         }
 
       </div>

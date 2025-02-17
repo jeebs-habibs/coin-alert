@@ -1,6 +1,8 @@
 /* Base button styles */
 .button {
     border: none;
+    margin: 5px;
+    max-width: 150px;
     border-radius: 4px;
     font-weight: bold;
     cursor: pointer;
@@ -47,6 +49,8 @@
   /* Hover effect using brightness filter */
   .button:hover {
     filter: brightness(1.15);
+    transform: scale(1.05);
+    transition: all .03s ease-in-out;
   }
   
   /* Disabled state - lighter color and unclickable */

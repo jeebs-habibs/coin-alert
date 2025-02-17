@@ -229,9 +229,9 @@ export default function Dashboard() {
           {wallets.map((wallet) => (
             <div key={wallet} className="flex justify-between items-center">
               <span className="m-2">{shortenString(wallet)}</span>
-              <button className="removeButton" onClick={() => handleRemoveWallet(wallet)}>
+              <Button variant="danger" size="sm" onClick={() => handleRemoveWallet(wallet)}>
               <FaTrash  />
-              </button>
+              </Button>
               
             </div>
           ))}

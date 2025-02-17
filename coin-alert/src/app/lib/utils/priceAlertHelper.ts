@@ -83,3 +83,4 @@ export async function getTokensFromBlockchain(walletAddress: string): Promise<st
 export function calculatePriceChange(oldPrice: number, newPrice: number): number {
     return ((newPrice - oldPrice) / oldPrice) * 100;
 }
+

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Button } from "./components/Button";
 import { useAuth } from "./providers/auth-provider";
 
 export default function Home() {
@@ -40,11 +41,11 @@ export default function Home() {
       App app to your home screen on IOS to receive notifications
     </li>
   </ol>
-  <button
-onClick={() => router.push("/auth")}
-className="button">
-  Get started
-</button>
+  <Button
+    onClick={() => router.push("/auth")}
+    variant="primary">
+    Get started
+  </Button>
   <h2>Setting up notifications</h2>
   <p>Siren will alert you on all devices when your coins change drastically in price. Below are checks to ensure your devices are properly set up to receive notifications.</p>
   <h3>Web/Mac/Windows</h3>

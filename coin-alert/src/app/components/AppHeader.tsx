@@ -1,9 +1,10 @@
 'use client'
 
-import { useAuth } from "../providers/auth-provider";
-import { signOut } from "../lib/firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut } from "../lib/firebase/auth";
+import { useAuth } from "../providers/auth-provider";
+import { Button } from "./Button";
 
 export const AppHeader = () => {
     const router = useRouter();
@@ -13,28 +14,28 @@ export const AppHeader = () => {
     let authContent = null;
     if (user) {
       authContent = (
-          <button 
+        <div style={{marginLeft: "auto"}}>
+          <Button 
             onClick={() => {
                 signOut()
                 router.push("/")
             }}
-            className="flex items-center justify-center removeButton ml-auto"
-            style={{marginLeft: "auto"}}
+            variant="danger"
           >
             Sign out
-          </button>
+          </Button>
+        </div>
       );
     } else if (loading) {
       authContent = <div className="spinner-border m-auto" role="status"></div>;
     } else {
       authContent = (
           <Link href="/auth" passHref style={{marginLeft: "auto"}}>
-            <button
-              className="flex items-center justify-center button ml-auto"
-              style={{marginLeft: "auto"}}
+            <Button
+              variant="primary"
             >
              Sign in
-            </button>
+            </Button>
           </Link>
       );
     }
