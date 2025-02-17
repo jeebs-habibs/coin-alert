@@ -11,13 +11,13 @@ import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
 
-
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
   const {user, userData, loading} = useAuth();
   const [error, setError] = useState("");
   // const [notificationError, setNotificationError] = useState("")
+  console.log(error)
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -166,7 +166,7 @@ export default function Dashboard() {
       <main className={styles.main}>
       <h1>Dashboard</h1>
       <h2>Wallet addresses</h2>
-      <p className="red-text">{error}</p>
+      {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">
         <div className="mb-4">
           <input
@@ -178,7 +178,7 @@ export default function Dashboard() {
           />
           <button
             onClick={handleAddWallet}
-            className="buttonSmall"
+            className="button"
           >
             Add Wallet
           </button>

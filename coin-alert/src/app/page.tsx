@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter } from "next/navigation";
-import styles from "./page.module.css";
 import { useAuth } from "./providers/auth-provider";
 import { useEffect } from "react";
 
@@ -17,8 +16,8 @@ export default function Home() {
   })
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
+    <div className="page">
+      <main className="main">
 
 {
   loading ? <h1>loading...</h1> :  <>

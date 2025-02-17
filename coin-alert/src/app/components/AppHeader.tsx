@@ -1,6 +1,5 @@
 'use client'
 
-import { FaSignInAlt, FaSignOutAlt  } from "react-icons/fa";
 import { useAuth } from "../providers/auth-provider";
 import { signOut } from "../lib/firebase/auth";
 import Link from "next/link";
@@ -19,10 +18,10 @@ export const AppHeader = () => {
                 signOut()
                 router.push("/")
             }}
-            className="p-4 flex items-center justify-center iconButton ml-auto"
-            style={{backgroundColor: "red", marginLeft: "auto"}}
+            className="flex items-center justify-center removeButton ml-auto"
+            style={{marginLeft: "auto"}}
           >
-            <FaSignOutAlt size={30} />
+            Sign out
           </button>
       );
     } else if (loading) {
@@ -31,10 +30,10 @@ export const AppHeader = () => {
       authContent = (
           <Link href="/auth" passHref style={{marginLeft: "auto"}}>
             <button
-              className="p-4 flex items-center justify-center iconButton ml-auto"
+              className="flex items-center justify-center button ml-auto"
               style={{marginLeft: "auto"}}
             >
-             <FaSignInAlt size={30} />
+             Sign in
             </button>
           </Link>
       );
