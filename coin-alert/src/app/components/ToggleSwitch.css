@@ -1,0 +1,52 @@
+/* Container to align text & toggle */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between label and toggle */
+  }
+  
+  /* Label text styles */
+  .toggle-label {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  /* Toggle switch container */
+  .toggle-switch {
+    width: 56px;
+    height: 28px;
+    border-radius: 14px;
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+  }
+  
+  /* Toggle switch ON state */
+  .toggle-switch.on {
+    background-color: var(--primary-color); /* Green when ON */
+  }
+  
+  /* Toggle switch OFF state */
+  .toggle-switch.off {
+    background-color: #888; /* Gray when OFF */
+  }
+  
+  /* Slider inside toggle */
+  .toggle-slider {
+    width: 24px;
+    height: 24px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  /* Move slider to the right when ON */
+  .toggle-switch.on .toggle-slider {
+    transform: translateX(28px);
+  }
+  

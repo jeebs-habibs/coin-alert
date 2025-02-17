@@ -6,6 +6,7 @@ import { getToken, onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
 import { Button } from "../components/Button";
+import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
 import { db, messaging } from "../lib/firebase/firebase";
 import { updateUserData } from "../lib/firebase/userUtils";
@@ -17,6 +18,7 @@ import { useAuth } from "../providers/auth-provider";
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
+  const [isNotificationsOn, setIsNotificationsOn] = useState<boolean>(true)
   const [newAlarmPreset, setNewAlarmPreset] = useState<TogglePosition | undefined>("center")
   const {user, userData, loading} = useAuth();
   const [error, setError] = useState("");
@@ -57,6 +59,11 @@ export default function Dashboard() {
           if(userData?.alarmPreset){
             console.log("Set alarm preset to " + userData.alarmPreset)
             setNewAlarmPreset(userData.alarmPreset)
+          }
+          if(userData?.isNotificationsOn != undefined){
+            setIsNotificationsOn(userData.isNotificationsOn)
+          } else {
+            setIsNotificationsOn(true)
           }
   
       }
@@ -155,10 +162,11 @@ export default function Dashboard() {
     requestPermissionAndSaveToken();
   });
 
+
   function saveChanges(){
     // this function will save new changes to database
     if(user != null && user.uid){
-      updateUserData(user.uid, {...userData, wallets: wallets, alarmPreset: newAlarmPreset})
+      updateUserData(user.uid, {...userData, wallets: wallets, alarmPreset: newAlarmPreset, isNotificationsOn: isNotificationsOn})
     } else {
       console.error("Error saving data, user is not defined.")
     }
@@ -174,7 +182,7 @@ export default function Dashboard() {
     console.log("newAlarmPreset: " + newAlarmPreset)
     console.log("userData.alarmPreset: " + userData.alarmPreset)
     console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
-    return (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset)  
+    return (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
   }
 
   if (loading) return <p>Loading...</p>;
@@ -204,9 +212,11 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-      <h1>Dashboard</h1>
+      <h1>Notification Settings</h1>
+      <ToggleSwitch label="Notifications on/off" isOn={isNotificationsOn === undefined ? true : isNotificationsOn} onToggle={(value) => setIsNotificationsOn(value)} />
+      <div className={isNotificationsOn == false ? "disabled-div" : ""}>
       <TripleToggleSwitch labels={labels} onChange={(e: TogglePosition | undefined) => setNewAlarmPreset(e)} activePosition={newAlarmPreset}/>
-      <h2>Wallet addresses</h2>
+      <h1 style={{margin: "10px"}}>Wallet addresses</h1>
       {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">
         <div className="mb-4">
@@ -236,11 +246,15 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+        </div>
+        </div>
+        <div className="w-full max-w-md">
         <Button variant="grey" disabled={!didUserDataChange()} onClick={() => 
           {
             if(userData){
               setWallets(userData.wallets)
               setNewAlarmPreset(userData.alarmPreset)
+              setIsNotificationsOn(userData.isNotificationsOn === undefined ? true : userData.isNotificationsOn)
             }
           }}>
           Reset Changes
@@ -251,6 +265,7 @@ export default function Dashboard() {
         {/* <p>FCM Token {fcmToken}</p>
         <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button> */}
         {/* <p>{notificationError}</p> */}
+    
       </div>
       </main>
       

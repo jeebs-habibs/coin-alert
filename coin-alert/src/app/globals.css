@@ -45,6 +45,14 @@ a {
   }
 }
 
+.disabled-div {
+  pointer-events: none; /* Disables interactions */
+  opacity: 0.5; /* Fades content */
+  cursor: not-allowed; /* Shows "blocked" cursor */
+  filter: grayscale(80%); /* (Optional) Desaturates colors */
+}
+
+
 
 .textInput {
   padding: 10px 15px;
