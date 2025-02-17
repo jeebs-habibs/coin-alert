@@ -12,3 +12,10 @@ export interface TokenAccountInfo {
     state: string;
     tokenAmount: TokenAmount;
 }
+
+export function shortenString(input: string): string {
+    if (input.length <= 6) {
+      return input; // Return the original string if it's too short
+    }
+    return `${input.slice(0, 3)}...${input.slice(-3)}`;
+  }

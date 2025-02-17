@@ -5,8 +5,10 @@ import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { getToken, onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
+import TripleToggleSwitch from "../components/TripleToggle";
 import { db, messaging } from "../lib/firebase/firebase";
 import { updateWallets } from "../lib/firestore";
+import { shortenString } from "../lib/utils/solanaUtils";
 import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
@@ -14,6 +16,7 @@ import { useAuth } from "../providers/auth-provider";
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
+  const [newAlarmPreset, setNewAlarmPreset] = useState<string>()
   const {user, userData, loading} = useAuth();
   const [error, setError] = useState("");
   // const [notificationError, setNotificationError] = useState("")
@@ -161,10 +164,29 @@ export default function Dashboard() {
     return <h1>You must be signed in to view this page.</h1>;
   }
 
+  const labels = {
+    left: {
+      title: "Quieter",
+      value: "left",
+      desc: "You will be notified on larger price swings",
+    },
+    right: {
+      title: "Noisier",
+      value: "right",
+      desc: "You will be notified on smaller price swings",
+    },
+    center: {
+      title: "Standard",
+      value: "center",
+      desc: "Standard alarm sensitivity",
+    },
+  };
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
       <h1>Dashboard</h1>
+      <TripleToggleSwitch labels={labels} onChange={(e) => setNewAlarmPreset(e)}/>
       <h2>Wallet addresses</h2>
       {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">
@@ -187,7 +209,7 @@ export default function Dashboard() {
         <div>
           {wallets.map((wallet) => (
             <div key={wallet} className="flex justify-between items-center">
-              <span className="m-2">{wallet}</span>
+              <span className="m-2">{shortenString(wallet)}</span>
               <button className="removeButton" onClick={() => handleRemoveWallet(wallet)}>
               <FaTrash  />
               </button>
