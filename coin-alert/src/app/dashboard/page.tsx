@@ -4,27 +4,23 @@ import { PublicKey } from "@solana/web3.js";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { getToken, onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
+import { FaTrash } from "react-icons/fa";
 import { db, messaging } from "../lib/firebase/firebase";
 import { updateWallets } from "../lib/firestore";
+import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
-import  styles from "../page.module.css"
-import { FaTrash } from "react-icons/fa";
-import { getUser, SirenUser } from "../lib/firebase/userUtils";
 
 
 
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
-  const [sirenUser, setSirenUser] = useState<SirenUser | null>(null)
-  const [isUserDataLoaded, setIsUserDataLoaded] = useState<boolean>(false)
-  const {user, loading} = useAuth();
+  const {user, userData, loading} = useAuth();
   const [error, setError] = useState("");
   // const [notificationError, setNotificationError] = useState("")
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      
             navigator.serviceWorker.register('/firebase-messaging-sw.js')
                 .then((registration) => {
                     console.log('Service Worker registered:', registration);
@@ -49,36 +45,14 @@ export default function Dashboard() {
     };
   
     useEffect(() => {
-      console.log("In use effect")
-      console.log("isUserDataLoaded" + isUserDataLoaded)
-      if(user == null){
-        console.error("USER IS NULL")
-      } else {
-        console.log("USER IS NOT NULL")
-      }
-      if(!isUserDataLoaded && user != null){
-        getUser(user.uid)
-        .then((data) => {
-          console.log("Got user data")
-          console.log(JSON.stringify(data))
-          setSirenUser(data)
-          if(data?.wallets){
-            setWallets([...wallets, ...data.wallets])
+      if (userData) {
+        // Fetch user data
+          if (userData?.wallets) {
+            setWallets(userData.wallets);
           }
-        })
-        .catch((err) => {
-          console.error("Error getting user data: " + err)
-          setError(err.message)
-      })
-        .finally(() => {
-          setIsUserDataLoaded(true)
-          console.log("hit finally")
-      });
-      }
-
-
   
-    }); // Runs when userId changes
+      }
+    }, [userData]);
 
   const handleAddWallet = async () => {
     if (!newWallet || !isValidSolanaAddress(newWallet) || wallets.includes(newWallet)) {

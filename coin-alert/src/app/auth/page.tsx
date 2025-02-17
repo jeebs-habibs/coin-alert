@@ -5,7 +5,6 @@ import { signInWithGoogle, signOut } from "../lib/firebase/auth";
 import { useAuth } from "../providers/auth-provider";
 
 export default function Auth(){
-  console.log("Inside auth page")
   const auth = useAuth()
   const router = useRouter()
   //const session = await getServerAuthSession();
