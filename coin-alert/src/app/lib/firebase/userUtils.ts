@@ -31,7 +31,7 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         tokens: user.tokens || [],
         alarmPreset: user.alarmPreset,
         isNotificationsOn: user.isNotificationsOn,
-        recentNotifications: user.recentNotifications
+        recentNotifications: user.recentNotifications || new Map<number, RecentNotification>()
       };
     },
     fromFirestore(snapshot, options) {
@@ -43,7 +43,7 @@ const userConverter: FirestoreDataConverter<SirenUser> = {
         tokens: data.tokens || [],
         alarmPreset: data.alarmPreset,
         isNotificationsOn: data.isNotificationsOn,
-        recentNotifications: data.recentNotifications
+        recentNotifications: data.recentNotifications || new Map<number, RecentNotification>()
       };
     },
   };
@@ -150,6 +150,6 @@ export async function updateRecentNotification(uid: string, minutes: number, not
 
     console.log(`✅ Updated recentNotifications for user ${uid} at ${minutes} minutes.`);
   } catch (error) {
-    console.error(`❌ Error updating recentNotifications for user ${uid}:`, error);
+    throw Error(`❌ Error updating recentNotifications for user ${uid}: ${error}`);
   }
 }

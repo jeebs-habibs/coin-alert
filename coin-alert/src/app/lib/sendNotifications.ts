@@ -91,6 +91,6 @@ export async function sendNotification(userId: string, token: string, priceChang
 
     console.log(`✅ Sent ${alertType} alert for ${token} to ${userId}`);
   } catch (error) {
-    console.error("❌ Error sending notification:", error);
+    throw Error("❌ Error sending notification: " + error)
   }
 }
