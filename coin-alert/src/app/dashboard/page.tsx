@@ -2,7 +2,7 @@
 
 import { PublicKey } from "@solana/web3.js";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
-import { getToken, onMessage } from "firebase/messaging";
+import { getToken } from "firebase/messaging";
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
 import { Button } from "../components/Button";
@@ -15,28 +15,20 @@ import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
 async function unRegisterMultipleWorkers(){
-  const workers = await navigator.serviceWorker.getRegistrations()
-  if(workers.length > 1){
-    for (const worker of workers){
-      await worker.unregister()
-    }
-  } 
-  if(workers.length == 0 || (workers.length == 1 && !workers[0].active)){
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-          .then((registration) => {
-              console.log('Service Worker registered:', registration);
-              //alert("Service worker registered")
-          })
-          .catch((error) => {
-              console.error('Service Worker registration failed:', error);
-              //alert("Service worker registration failed")
-          });
+  if ('serviceWorker' in navigator && !(await navigator.serviceWorker.getRegistration())?.active) {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+            console.log('Service Worker registered:', registration);
+            //alert("Service worker registered")
+        })
+        .catch((error) => {
+            console.error('Service Worker registration failed:', error);
+            //alert("Service worker registration failed")
+        });
 
-    } else {
-      console.error("No service worker")
-      //alert("ERROR: Failed to register service worker")
-    }
+  } else {
+    console.error("No service worker")
+    //alert("ERROR: Failed to register service worker")
   }
 
 }
@@ -53,7 +45,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     unRegisterMultipleWorkers()
-}, []);
+  });
 
     // 🔹 Function to Validate Solana Address
     const isValidSolanaAddress = (address: string): boolean => {
@@ -128,23 +120,6 @@ export default function Dashboard() {
       // setNotificationError(e)
     }
   };
-
-  useEffect(() => {
-    if (!messaging) return;
-
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log("📩 Foreground notification received:", payload);
-
-      // Manually display the notification
-      if(payload.notification?.title && payload.notification.body){
-        new Notification(payload.notification.title, {
-          body: payload.notification.body,
-        });
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     const requestPermissionAndSaveToken = async () => {
