@@ -14,6 +14,33 @@ import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
 import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
+async function unRegisterMultipleWorkers(){
+  const workers = await navigator.serviceWorker.getRegistrations()
+  if(workers.length > 1){
+    for (const worker of workers){
+      await worker.unregister()
+    }
+  } 
+  if(workers.length == 0 || (workers.length == 1 && !workers[0].active)){
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then((registration) => {
+              console.log('Service Worker registered:', registration);
+              //alert("Service worker registered")
+          })
+          .catch((error) => {
+              console.error('Service Worker registration failed:', error);
+              //alert("Service worker registration failed")
+          });
+
+    } else {
+      console.error("No service worker")
+      //alert("ERROR: Failed to register service worker")
+    }
+  }
+
+}
+
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
@@ -25,29 +52,7 @@ export default function Dashboard() {
   console.log(error)
 
   useEffect(() => {
-    navigator.serviceWorker.getRegistration().then((val) => {
-      if(val?.active){
-        console.log("Service Worker already active.")
-        //alert("Service worker is already active")
-      } else {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/firebase-messaging-sw.js')
-              .then((registration) => {
-                  console.log('Service Worker registered:', registration);
-                  //alert("Service worker registered")
-              })
-              .catch((error) => {
-                  console.error('Service Worker registration failed:', error);
-                  //alert("Service worker registration failed")
-              });
-   
-        } else {
-          console.error("No service worker")
-          //alert("ERROR: Failed to register service worker")
-        }
-      }
-    })
-
+    unRegisterMultipleWorkers()
 }, []);
 
     // 🔹 Function to Validate Solana Address
