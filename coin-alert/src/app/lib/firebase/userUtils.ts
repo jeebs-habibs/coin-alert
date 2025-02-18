@@ -10,12 +10,14 @@ interface RecentNotification {
   alertType: AlarmType;
 }
 
+export type AlarmPreset = "left" | "right" | "center"
+
 export interface SirenUser {
     uid: string;           // Firestore User ID (same as Firebase Auth UID)
     email?: string;
     wallets: string[];     // List of wallet addresses
     tokens?: string[];     // Optional FCM tokens for notifications
-    alarmPreset: "left" | "right" | "center";   // Either left, center, or right 
+    alarmPreset: AlarmPreset;   // Either left, center, or right 
     isNotificationsOn: boolean;
     recentNotifications: Map<number, RecentNotification>;
 }

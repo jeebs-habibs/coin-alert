@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
-      if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn) return; // Skip users with no wallets
+      if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn) return; // Skip users with no wallets or with notis turned off
 
       console.log(`👤 Checking tokens for user: ${user.uid} (${user.wallets.join(",")})`);
 
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
         const latestPrice = priceHistory[0]?.price;
         let alertType: "normal" | "critical" | null = null;
         let alarmedConfig: AlarmConfig | null = null
-        const minuteToAlarmConfig = getAlarmConfig()
+        const minuteToAlarmConfig = getAlarmConfig(user.alarmPreset)
         let percentChange = 0
         let minutes = 0
         let percentageBreached = 0

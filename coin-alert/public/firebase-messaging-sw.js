@@ -75,19 +75,33 @@ self.addEventListener('activate', (event) => {
  * Overrides push notification data, to avoid having 'notification' key and firebase blocking
  * the message handler from being called
  */
-self.addEventListener('push', (e) => {
-  console.log("Service worked receieved push noti")
-  console.log(e)
-  console.log(JSON.stringify(e))
-  const {message, body, icon } = JSON.parse(e.data.text())
+self.addEventListener("push", (event) => {
+  console.log("Service Worker received a push event.");
 
-  e.waitUntil(
-    self.registration.showNotification(message, {
-      body,
-      icon
-    })
-  )
-}) 
+  if (!event.data) {
+    console.warn("⚠️ Push event has no data.");
+    return;
+  }
+
+  try {
+    const pushData = event.data.json(); // ✅ Properly parse JSON payload
+    console.log("📩 Parsed Push Data:", pushData);
+
+    // 🔹 Extract notification content
+    const notificationTitle = pushData.notification?.title || "New Notification";
+    const notificationOptions = {
+      body: pushData.notification?.body || "You have a new message.",
+      icon: pushData.notification?.icon || "/sirenLogo.png",
+      badge: pushData.notification?.badge || "/sirenLogo.png",
+    };
+
+    // 🔹 Show Notification
+    event.waitUntil(self.registration.showNotification(notificationTitle, notificationOptions));
+
+  } catch (error) {
+    console.error("❌ Error parsing push event data:", error);
+  }
+});
 
 
 self.addEventListener('notificationclick', (event) => {
