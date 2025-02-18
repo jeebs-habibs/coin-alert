@@ -62,7 +62,7 @@ export async function GET(req: Request) {
             (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
           );
           if (!oldPriceEntry) continue;
-          const recentNotificationForMiniute = user?.recentNotifications.get(config[0])
+          const recentNotificationForMiniute = user?.recentNotifications ? user?.recentNotifications.get(config[0]) : undefined
           if(recentNotificationForMiniute && ((Date.now() - recentNotificationForMiniute.timestamp) < (config[0] * 60 * 1000))){
             // If a notification was sent for the same minute less than that 
             console.log("Skipping notification since one was already sent within cooldown period")
