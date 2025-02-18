@@ -2,7 +2,7 @@ name: Fetch Token Prices Every Minute
 
 on:
   schedule:
-    - cron: '* * * * *'  # Runs every minute
+    - cron: '*/5 * * * *'  # Runs every minute
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Send Request to Update Tokens API
         run: |
-          curl -X GET "https://sirennotify.com/api/updateTokens" \
+          curl -X GET "https://www.sirennotify.com/api/updateTokens" \
             -H "Authorization: ${{ secrets.API_KEY }}" \
             -H "Content-Type: application/json"
