@@ -134,6 +134,6 @@ export async function GET(req: Request) {
     return new Response(JSON.stringify({ message: "Alerts checked successfully" }), { status: 200 });
   } catch (error) {
     console.error("❌ Error checking price alerts:", error);
-    return new Response(JSON.stringify({ error: "Failed to check alerts" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Failed to check alerts: " + error }), { status: 500 });
   }
 }
