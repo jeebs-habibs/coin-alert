@@ -2,11 +2,12 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { doc, getDoc } from "firebase/firestore";
 import { connection } from "../connection";
-import { ALARM_CONFIGS_MAX, AlarmConfig, AlarmType } from "../constants/alarmConstants";
+import { AlarmConfig, AlarmType, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
 import { db } from "../firebase/firebase";
 import { PriceData, tokenConverter } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
 import { TokenAccountData } from "./solanaUtils";
+import { AlarmPreset } from "../firebase/userUtils";
 
 export interface NotificationReturn {
     userId: string,
@@ -54,10 +55,19 @@ try {
 }
 
 
-export function getAlarmConfig(){
+export function getAlarmConfig(alarmPreset: AlarmPreset){
     // console.log("Using alarm config: ")
     // console.log(NOISIER_ALARM_CONFIGS)
-    return ALARM_CONFIGS_MAX
+    if(alarmPreset == "left"){
+        return NOISIER_ALARM_CONFIGS
+    } 
+    if(alarmPreset == "center"){
+        return STANDARD_ALARM_CONFIGS
+    }
+    if(alarmPreset == "right"){
+        return NOISIER_ALARM_CONFIGS
+    }
+    return STANDARD_ALARM_CONFIGS
 }
 
 

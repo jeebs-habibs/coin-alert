@@ -13,13 +13,13 @@ export const STANDARD_ALARM_CONFIGS = new Map<number, AlarmConfig>([
     [60, {standardAlarmPercentage: 90, criticalAlarmPercentage: 175}]
 ])
 
-export const ALARM_CONFIGS_MAX = new Map<number, AlarmConfig>([
-    [1, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [7, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [15, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [30, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
-    [60, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}]
-])
+// export const ALARM_CONFIGS_MAX = new Map<number, AlarmConfig>([
+//     [1, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+//     [7, { standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+//     [15, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+//     [30, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}],
+//     [60, {standardAlarmPercentage: 0, criticalAlarmPercentage: 0}]
+// ])
 
 
 export const QUIETER_ALARM_CONFIGS = new Map<number, AlarmConfig>();
@@ -41,9 +41,9 @@ NOISIER_ALARM_CONFIGS.set(key, {
 });
 
 
-export const PRESET_TO_CONFIG = new Map<string, Map<number, AlarmConfig>>([
-    ["quieter", QUIETER_ALARM_CONFIGS],
-    ["standard", STANDARD_ALARM_CONFIGS],
-    ["noisier", NOISIER_ALARM_CONFIGS]
-])
+// export const PRESET_TO_CONFIG = new Map<string, Map<number, AlarmConfig>>([
+//     ["quieter", QUIETER_ALARM_CONFIGS],
+//     ["standard", STANDARD_ALARM_CONFIGS],
+//     ["noisier", NOISIER_ALARM_CONFIGS]
+// ])
   

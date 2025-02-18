@@ -1,7 +1,7 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
 import { connection } from "./connection";
@@ -37,18 +37,18 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
   }
 }
 
-async function storeTokenPrice(
+export async function storeTokenPrice(
   token: string,
   price: PriceData,
   tokenData: TokenData,
-  timesToUpdateFirestore: number[],
-  timesToDeleteFirestore: number[]
+  timesToUpdateFirestore: number[]
 ) {
   try {
     const tokenDocRef = doc(db, "uniqueTokens", token);
-    
+
     // 🔹 Check if the document exists
     const docSnapshot = await getDoc(tokenDocRef);
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
     if (!docSnapshot.exists()) {
       console.log(`📄 Token ${token} does not exist. Creating document...`);
@@ -59,52 +59,54 @@ async function storeTokenPrice(
       });
       console.log(`✅ Created new Firestore document for token: ${token}`);
     } else {
-      // 🔹 Append New Price Data to Prices Array
+      const tokenDataFromDB = docSnapshot.data();
+      let updatedPrices = tokenDataFromDB.prices || [];
+
+      // 🔹 Filter out prices older than 1 hour
+      updatedPrices = updatedPrices.filter((p: PriceData) => p.timestamp > oneHourAgo);
+      
+      // 🔹 Append new price
+      updatedPrices.push(price);
+
+      // 🔹 Update Firestore document
       console.log(`✏️ Updating existing document for token: ${token}`);
-      const updatePerformance = new Date().getTime();
+      const updatePerformance = Date.now();
       await updateDoc(tokenDocRef, {
         lastUpdated: new Date(),
         tokenData: tokenData,
-        prices: arrayUnion(price),
+        prices: updatedPrices,
       });
-      const afterUpdatePerformance = new Date().getTime();
-      const timeToUpdateFirestore = afterUpdatePerformance - updatePerformance;
-      timesToUpdateFirestore.push(timeToUpdateFirestore);
+      const afterUpdatePerformance = Date.now();
+      timesToUpdateFirestore.push(afterUpdatePerformance - updatePerformance);
     }
 
     console.log(`✅ Price stored for ${token}: $${price.price}`);
 
-    // 🔹 Clean up old prices (Keep only last 60 minutes)
-    const deletePerformance = new Date().getTime();
-    await deleteOldPrices(token);
-    const afterDeletePerformance = new Date().getTime();
-    const timeToDeleteFirestore = afterDeletePerformance - deletePerformance;
-    timesToDeleteFirestore.push(timeToDeleteFirestore);
   } catch (error) {
     console.error(`❌ Error storing price for ${token}:`, error);
   }
 }
 
-// 🔹 Function to Delete Prices Older Than 1 Hour
-async function deleteOldPrices(token: string) {
-  try {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
-    const tokenDocRef = doc(db, "uniqueTokens", token);
-    const pricesCollectionRef = collection(tokenDocRef, "prices");
+// // 🔹 Function to Delete Prices Older Than 1 Hour
+// async function deleteOldPrices(token: string) {
+//   try {
+//     const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
+//     const tokenDocRef = doc(db, "uniqueTokens", token);
+//     const pricesCollectionRef = collection(tokenDocRef, "prices");
 
-    const oldPricesQuery = query(pricesCollectionRef, orderBy("timestamp"));
-    const querySnapshot = await getDocs(oldPricesQuery);
+//     const oldPricesQuery = query(pricesCollectionRef, orderBy("timestamp"));
+//     const querySnapshot = await getDocs(oldPricesQuery);
 
-    querySnapshot.forEach(async (docSnap) => {
-      if (docSnap.data().timestamp < oneHourAgo) {
-        await deleteDoc(docSnap.ref);
-        console.log(`🗑 Deleted old price data for ${token}`);
-      }
-    });
-  } catch (error) {
-    console.error(`❌ Error deleting old prices for ${token}:`, error);
-  }
-}
+//     querySnapshot.forEach(async (docSnap) => {
+//       if (docSnap.data().timestamp < oneHourAgo) {
+//         await deleteDoc(docSnap.ref);
+//         console.log(`🗑 Deleted old price data for ${token}`);
+//       }
+//     });
+//   } catch (error) {
+//     console.error(`❌ Error deleting old prices for ${token}:`, error);
+//   }
+// }
 
 // 🔹 Function to Fetch All Unique Tokens and Store in Firestore
 export async function updateUniqueTokens() {
@@ -160,7 +162,7 @@ export async function updateUniqueTokens() {
         timesToGetTokenPrice.push(timeTakenToGetPrice);
 
         if (data?.price) {
-          await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore, timesToDeleteFirestore);
+          await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
         } else {
           tokensFailedToGetPrice.push(token);
         }
