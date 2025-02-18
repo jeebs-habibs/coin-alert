@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { NextResponse } from "next/server";
 import { updateUniqueTokens } from "../../lib/updateUniqueTokens";
 
@@ -10,8 +9,7 @@ export async function GET(req: Request) {
   }
   
   try {
-    const apiStartTime = new Date().getTime()
-    await updateUniqueTokens();
+    updateUniqueTokens();
   //   const result = await connection.getSignaturesForAddress(new PublicKey("B6GNKnaVeDrahttqvKyf58GUQYsqyQif6LdxaxHpynnv"), {limit: 1})
   //   connection.getParsedTransactions(result.map((a) => a.signature), { maxSupportedTransactionVersion: 0 }).then((val) =>{
   //     for (const transaction of val){
@@ -24,9 +22,6 @@ export async function GET(req: Request) {
   //     }
   // })
   
-    const apiEndTime = new Date().getTime()
-    const timeTaken = apiEndTime - apiStartTime
-    console.log(chalk.green("Updated unique tokens with prices in " + timeTaken / 1000 + " seconds."))
     return NextResponse.json({ message: "✅ Unique tokens updated successfully." });
   } catch (error) {
     console.error("❌ Error updating tokens:", error);
