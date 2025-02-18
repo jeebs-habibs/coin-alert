@@ -12,6 +12,4 @@ jobs:
     steps:
       - name: Send Request to Update Tokens API
         run: |
-          curl -X GET "https://www.sirennotify.com/api/updateTokens" \
-            -H "Authorization: ${{ secrets.API_KEY }}" \
-            -H "Content-Type: application/json"
+          curl -X GET "https://www.sirennotify.com/api/updateTokens" -H "Authorization: ${{ secrets.API_KEY }}" -H "Content-Type: application/json"
