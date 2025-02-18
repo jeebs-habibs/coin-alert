@@ -1,4 +1,4 @@
-name: Fetch Token Prices Every Minute
+name: Fetch/Notify Token Prices Every 5 Minutes
 
 on:
   schedule:
