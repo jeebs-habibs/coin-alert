@@ -14,7 +14,6 @@ import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
 import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
-
 export default function Dashboard() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [newWallet, setNewWallet] = useState<string>("");
@@ -26,18 +25,29 @@ export default function Dashboard() {
   console.log(error)
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                .then((registration) => {
-                    console.log('Service Worker registered:', registration);
-                })
-                .catch((error) => {
-                    console.error('Service Worker registration failed:', error);
-                });
-     
-    } else {
-      console.error("No service worker")
-    }
+    navigator.serviceWorker.getRegistration().then((val) => {
+      if(val?.active){
+        console.log("Service Worker already active.")
+        //alert("Service worker is already active")
+      } else {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/firebase-messaging-sw.js')
+              .then((registration) => {
+                  console.log('Service Worker registered:', registration);
+                  //alert("Service worker registered")
+              })
+              .catch((error) => {
+                  console.error('Service Worker registration failed:', error);
+                  //alert("Service worker registration failed")
+              });
+   
+        } else {
+          console.error("No service worker")
+          //alert("ERROR: Failed to register service worker")
+        }
+      }
+    })
+
 }, []);
 
     // 🔹 Function to Validate Solana Address
@@ -102,6 +112,8 @@ export default function Dashboard() {
         });
   
         console.log("✅ FCM token saved to Firestore!");
+      } else {
+        console.error("Cannot save FCM token since user is null")
       }
 
 
@@ -131,36 +143,40 @@ export default function Dashboard() {
 
   useEffect(() => {
     const requestPermissionAndSaveToken = async () => {
-      if(messaging){
-        try {
+      if (!messaging) return;
+  
+      try {
+        // 🔹 Only ask for permission if it's "default" (not granted or denied)
+        if (Notification.permission === "default") {
+          console.log("Requesting notification permission...");
           const permission = await Notification.requestPermission();
+  
           if (permission !== "granted") {
-            console.log("Notification permission denied.");
+            console.log("❌ Notification permission denied.");
             return;
-          } else {
-            console.log("Notifications are allowed")
           }
-  
-          const fcmToken = await getToken(messaging, {
-            vapidKey: process.env.VAPID_KEY,
-          });
-  
-          if (fcmToken) {
-            console.log("FCM Token:", fcmToken);
-            // setNotificationError("SUCCESS" + fcmToken)
-            await saveTokenToFirestore(fcmToken)
-          }
-        } catch (error) {
-          const e = "Error getting FCM token:" + error
-          console.error(e);
-          // setNotificationError(e)
-
+          console.log("✅ Notifications are allowed.");
+        } else {
+          console.log(`🔹 Notifications already ${Notification.permission}, skipping request.`);
         }
+  
+        // 🔹 Get the FCM token
+        const fcmToken = await getToken(messaging, {
+          vapidKey: process.env.VAPID_KEY,
+        });
+  
+        if (fcmToken) {
+          console.log("📩 FCM Token:", fcmToken);
+          saveTokenToFirestore(fcmToken);
+        }
+      } catch (error) {
+        console.error("❌ Error getting FCM token:", error);
       }
     };
-
+  
     requestPermissionAndSaveToken();
-  });
+  }, []); // 🔹 Runs only once when the component mounts
+  
 
 
   function saveChanges(){

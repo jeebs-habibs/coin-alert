@@ -12,7 +12,7 @@ export const AppHeader = () => {
   
     // Render the signed in experience.
     let authContent = null;
-    if (user) {
+    if (user != null) {
       authContent = (
         <div style={{marginLeft: "auto"}}>
           <Button 

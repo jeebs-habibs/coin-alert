@@ -35,7 +35,7 @@ messaging.onBackgroundMessage((payload) => {
 
     const notificationTitle = payload.notification.title;
     const notificationOptions = {
-      body: payload?.notification?.body || "Notification body",
+      body: "Background notificiation",
       icon: payload?.notification?.icon || "sirenLogo.png"
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
@@ -76,7 +76,7 @@ messaging.onBackgroundMessage((payload) => {
   
       const notificationTitle = payload.notification.title;
       const notificationOptions = {
-        body: payload?.notification?.body || "Notification body",
+        body: "Foreground noti",
         icon: payload?.notification?.icon || "sirenLogo.png"
       };
       self.registration.showNotification(notificationTitle, notificationOptions);
