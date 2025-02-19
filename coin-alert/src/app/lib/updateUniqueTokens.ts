@@ -157,8 +157,21 @@ export async function updateUniqueTokens() {
         const tokenFromFirestore: Token | undefined = await getToken(token);
         let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
         if(!tokenMetadata){
-          const newTokenMetadata = await getTokenMetadata(connection, new PublicKey(token))
-          if(newTokenMetadata != null){
+          const newTokenMetadata = await blockchainTaskQueue.addTask(async () => {
+              return await getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID).then((val) => {
+                if (val != null){
+                  console.log("successfully got metadaa")   
+                } else {
+                  console.log("got metadata but its null?")
+                }
+                return val
+              }).catch((e) => {
+                console.log("Error getting metadata")
+                console.error(e)
+          })
+            
+        })
+          if(newTokenMetadata){
             tokenMetadata = {
               name: newTokenMetadata.name,
               symbol: newTokenMetadata.symbol,

@@ -9,6 +9,12 @@ export interface PriceData {
 
 export type PoolType = "pump" | "raydium"
 
+export interface TokenMetadata {
+  symbol: string;
+  name: string;
+  uri: string
+}
+
 export interface TokenData {
   pool?: PoolType
   baseVault?: string;
@@ -16,6 +22,7 @@ export interface TokenData {
   quoteVault?: string;
   quoteMint?: string;
   marketPoolId?: string;
+  tokenMetadata?: TokenMetadata;
 }
 
 export interface GetPriceResponse {
