@@ -1,15 +1,40 @@
+import { fetchDigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
+import { publicKey } from "@metaplex-foundation/umi";
 import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
-import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
-import { connection } from "./connection";
+import { GetPriceResponse, PriceData, Token, TokenData, TokenMetadata } from "../lib/firebase/tokenUtils";
+import { connection, umi } from "./connection";
 import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
 import { TokenAccountData } from "./utils/solanaUtils";
+
+
+async function getTokenMetadatMetaplex(token: string){
+  const mint = publicKey(token);
+  const asset = await fetchDigitalAsset(umi, mint).then((val) => {
+    return val
+  }).catch((e) => {
+    console.error("Error getting metaplex metadata: " + e)
+    return null
+  })
+
+  if(asset != null){
+    console.log(chalk.green("Got metadata for token: " + token))
+    return {
+      name: asset.metadata.name,
+      symbol: asset.metadata.symbol,
+      uri: asset.metadata.uri
+    }
+  }
+  return null;
+
+}
+
 
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
@@ -158,18 +183,25 @@ export async function updateUniqueTokens() {
         let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
         if(!tokenMetadata){
           const newTokenMetadata = await blockchainTaskQueue.addTask(async () => {
-              return await getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID).then((val) => {
-                if (val != null){
-                  console.log("successfully got metadaa")   
-                } else {
-                  console.log("got metadata but its null?")
-                }
-                return val
-              }).catch((e) => {
-                console.log("Error getting metadata")
-                console.error(e)
-          })
-            
+              let finalMetadata: TokenMetadata | null = await blockchainTaskQueue.addTask(async () => {
+                console.log("Getting metaplex metadata for token: " + token)
+                return await getTokenMetadatMetaplex(token)
+              })
+              if(!finalMetadata){
+                finalMetadata = await getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID).then((val) => {
+                  if (val != null){
+                    console.log("successfully got metadaa")   
+                  } else {
+                    console.log("got metadata but its null?")
+                  }
+                  return val
+                }).catch((e) => {
+                  console.log("Error getting metadata")
+                  console.error(e)
+                  return null
+                })
+              }
+              return finalMetadata
         })
           if(newTokenMetadata){
             tokenMetadata = {
