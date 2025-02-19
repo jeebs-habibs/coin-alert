@@ -155,7 +155,7 @@ export default function Dashboard() {
     };
   
     requestPermissionAndSaveToken();
-  }, []); // 🔹 Runs only once when the component mounts
+  }); // 🔹 Runs only once when the component mounts
   
 
 

@@ -79,7 +79,7 @@ export async function sendNotification(userId: string, token: string, priceChang
         android: { priority: alertType === "critical" ? "high" : "normal" },
         apns: { payload: { aps: { sound: alertType === "critical" ? "emergency" : "default" } } },
       }).then(() => {
-        updateRecentNotification(userId, minutes, {
+        updateRecentNotification(userId, token, minutes, {
           timestamp: Date.now(),
           percentageBreached: percentageBreached,
           minutes: minutes,

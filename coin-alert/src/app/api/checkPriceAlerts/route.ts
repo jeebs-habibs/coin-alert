@@ -1,7 +1,35 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
-import { getAllUsers, SirenUser } from "@/app/lib/firebase/userUtils";
+import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+
+/**
+ * Checks if the last notification for a given token and minute interval is older than the cooldown period.
+ * @param token - The token symbol or ID
+ * @param minutes - The cooldown period in minutes
+ * @param recentNotificationsObj - The user's recent notifications object (Firestore format)
+ * @returns true if the last notification was sent more than `minutes` ago, otherwise false
+ */
+function isTokenMinuteAfterCooldown(
+  token: string,
+  minutes: number,
+  recentNotificationsObj: Record<string, RecentNotification>
+): boolean {
+  // 🔹 Convert object to a Map
+  const recentNotifications = new Map<string, RecentNotification>(Object.entries(recentNotificationsObj || {}));
+
+  const key = `${token}_${minutes}`; // 🔹 Construct key in format "token_minutes"
+  
+  const lastNotification = recentNotifications.get(key);
+  if (!lastNotification) return true; // ✅ No notification exists, so it's after cooldown
+
+  const now = Date.now();
+  const lastNotificationTime = lastNotification.timestamp;
+  const elapsedTime = (now - lastNotificationTime) / (60 * 1000); // Convert to minutes
+
+  return elapsedTime > minutes; // ✅ Return true if notification is older than cooldown
+}
+
 
 
 // 🔹 Main API Function
@@ -62,12 +90,12 @@ export async function GET(req: Request) {
             (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
           );
           if (!oldPriceEntry) continue;
-          const recentNotificationForMiniute = user?.recentNotifications ? user?.recentNotifications.get(config[0]) : undefined
-          if(recentNotificationForMiniute && ((Date.now() - recentNotificationForMiniute.timestamp) < (config[0] * 60 * 1000))){
-            // If a notification was sent for the same minute less than that 
-            console.log("Skipping notification since one was already sent within cooldown period")
-            continue
-          }
+
+          // If token_minute got alarmed within minute threshold, skip
+          if(!isTokenMinuteAfterCooldown(token, config[0], user.recentNotifications || {})){
+            console.warn(`Skipping noti for token ${token}, user ${user.uid}, minute ${config[0]}`)
+            continue;
+          } 
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
           console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
