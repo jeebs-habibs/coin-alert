@@ -1,4 +1,4 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
@@ -155,7 +155,23 @@ export async function updateUniqueTokens() {
         console.log("===========Getting price for token: " + token + "============");
         const performancePrice = Date.now();
         const tokenFromFirestore: Token | undefined = await getToken(token);
-        const data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore);
+        let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
+        if(!tokenMetadata){
+          const newTokenMetadata = await getTokenMetadata(connection, new PublicKey(token))
+          if(newTokenMetadata != null){
+            tokenMetadata = {
+              name: newTokenMetadata.name,
+              symbol: newTokenMetadata.symbol,
+              uri: newTokenMetadata.uri
+            }
+          } else {
+            console.error("Unable to grab token metadata from blockchain for token: " + token)
+          }
+        }
+        let data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore);
+        if(tokenMetadata && data){
+          data.tokenData.tokenMetadata = tokenMetadata
+        }
         const afterPerformancePrice = Date.now();
         const timeTakenToGetPrice = afterPerformancePrice - performancePrice;
 
