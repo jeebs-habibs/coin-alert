@@ -2,6 +2,7 @@ import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+import { FaRegFaceGrinTongueSquint } from "react-icons/fa6";
 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
@@ -15,8 +16,12 @@ function isTokenMinuteAfterCooldown(
   minutes: number,
   recentNotificationsObj: Record<string, RecentNotification>
 ): boolean {
+  console.log("In isTokenMinuteAfterCooldown")
+  console.log("token: " + token)
+  console.log("recentNotificationsObj: " + JSON.stringify(recentNotificationsObj))
   // 🔹 Convert object to a Map
   const recentNotifications = new Map<string, RecentNotification>(Object.entries(recentNotificationsObj || {}));
+  console.log("Recent notis: " + JSON.stringify(recentNotifications))
 
   const key = `${token}_${minutes}`; // 🔹 Construct key in format "token_minutes"
   
@@ -27,6 +32,7 @@ function isTokenMinuteAfterCooldown(
   const lastNotificationTime = lastNotification.timestamp;
   const elapsedTime = (now - lastNotificationTime) / (60 * 1000); // Convert to minutes
 
+  console.log("elapsed time: " + elapsedTime + " minutes: " + minutes)
   return elapsedTime > minutes; // ✅ Return true if notification is older than cooldown
 }
 
@@ -95,7 +101,9 @@ export async function GET(req: Request) {
           if(!isTokenMinuteAfterCooldown(token, config[0], user.recentNotifications || {})){
             console.warn(`Skipping noti for token ${token}, user ${user.uid}, minute ${config[0]}`)
             continue;
-          } 
+          } else {
+            console.log(`No recent noti detected for token ${token}, user ${user.uid} minute: ${config[0]}`)
+          }
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
           console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
