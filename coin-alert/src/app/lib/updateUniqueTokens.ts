@@ -147,7 +147,7 @@ export async function updateUniqueTokens() {
     console.log("Finished getting " + uniqueTokensSet.size + " unique tokens")
 
     const tokenSetTest = new Set<string>()
-    tokenSetTest.add("2RuDRx9RAcXrSoLupeMLGuBay6w5Q1nUrdPySjA3pump")
+    tokenSetTest.add("4h26eponcR8jc3N3EuQZ72ZCpurpGoszvFgGiekTpump")
 
     // 🔹 3️⃣ Fetch Token Prices Using the Queue
     const tokensFailedToGetPrice: string[] = [];

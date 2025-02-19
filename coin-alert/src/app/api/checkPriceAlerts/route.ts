@@ -2,7 +2,6 @@ import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-import { FaRegFaceGrinTongueSquint } from "react-icons/fa6";
 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
@@ -16,14 +15,19 @@ function isTokenMinuteAfterCooldown(
   minutes: number,
   recentNotificationsObj: Record<string, RecentNotification>
 ): boolean {
-  console.log("In isTokenMinuteAfterCooldown")
-  console.log("token: " + token)
-  console.log("recentNotificationsObj: " + JSON.stringify(recentNotificationsObj))
-  // 🔹 Convert object to a Map
-  const recentNotifications = new Map<string, RecentNotification>(Object.entries(recentNotificationsObj || {}));
-  console.log("Recent notis: " + JSON.stringify(recentNotifications))
+  // 🔹 Convert nested Firestore object properly
+  const recentNotifications = new Map<string, RecentNotification>();
 
+  for (const [key, value] of Object.entries(recentNotificationsObj)) {
+    if (value && typeof value === "object") {
+      //console.log("setting a val in recentnotfs")
+      recentNotifications.set(key, { ...value }); // Ensure deep copy
+    } else {
+      //console.error(`❌ Skipping invalid entry in recentNotificationsObj:`, key, value);
+    }
+  }
   const key = `${token}_${minutes}`; // 🔹 Construct key in format "token_minutes"
+
   
   const lastNotification = recentNotifications.get(key);
   if (!lastNotification) return true; // ✅ No notification exists, so it's after cooldown
@@ -32,7 +36,6 @@ function isTokenMinuteAfterCooldown(
   const lastNotificationTime = lastNotification.timestamp;
   const elapsedTime = (now - lastNotificationTime) / (60 * 1000); // Convert to minutes
 
-  console.log("elapsed time: " + elapsedTime + " minutes: " + minutes)
   return elapsedTime > minutes; // ✅ Return true if notification is older than cooldown
 }
 

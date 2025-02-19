@@ -149,7 +149,7 @@ export async function updateRecentNotification(
     // 🔹 Update or insert new notification
     recentNotifications[key] = notification;
 
-    console.log(` Updating recentNotifications for user ${uid} at ${minutes} minutes for token ${token}. Map: ${JSON.stringify(recentNotifications)}`);
+    // console.log(` Updating recentNotifications for user ${uid} at ${minutes} minutes for token ${token}.`);
     // 🔹 Update Firestore document
     await updateDoc(userDocRef, { recentNotifications });
 
