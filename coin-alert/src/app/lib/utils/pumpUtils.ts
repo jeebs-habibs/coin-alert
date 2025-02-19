@@ -71,14 +71,14 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
     if (accountData) {
         const parsedData = decodeBuffer(accountData);
     
-        console.log({
-            virtualTokenReserves: parsedData.virtualTokenReserves.toString(),
-            virtualSolReserves: parsedData.virtualSolReserves.toString(),
-            realTokenReserves: parsedData.realTokenReserves.toString(),
-            realSolReserves: parsedData.realSolReserves.toString(),
-            tokenTotalSupply: parsedData.tokenTotalSupply.toString(),
-            complete: parsedData.complete
-        });
+        // console.log({
+        //     virtualTokenReserves: parsedData.virtualTokenReserves.toString(),
+        //     virtualSolReserves: parsedData.virtualSolReserves.toString(),
+        //     realTokenReserves: parsedData.realTokenReserves.toString(),
+        //     realSolReserves: parsedData.realSolReserves.toString(),
+        //     tokenTotalSupply: parsedData.tokenTotalSupply.toString(),
+        //     complete: parsedData.complete
+        // });
 
         const virtualSolReserves: number = Number(parsedData.virtualSolReserves.valueOf())
         const virtualTokenReserves: number = Number(parsedData.virtualTokenReserves.valueOf())

@@ -15,10 +15,19 @@ function isTokenMinuteAfterCooldown(
   minutes: number,
   recentNotificationsObj: Record<string, RecentNotification>
 ): boolean {
-  // 🔹 Convert object to a Map
-  const recentNotifications = new Map<string, RecentNotification>(Object.entries(recentNotificationsObj || {}));
+  // 🔹 Convert nested Firestore object properly
+  const recentNotifications = new Map<string, RecentNotification>();
 
+  for (const [key, value] of Object.entries(recentNotificationsObj)) {
+    if (value && typeof value === "object") {
+      //console.log("setting a val in recentnotfs")
+      recentNotifications.set(key, { ...value }); // Ensure deep copy
+    } else {
+      //console.error(`❌ Skipping invalid entry in recentNotificationsObj:`, key, value);
+    }
+  }
   const key = `${token}_${minutes}`; // 🔹 Construct key in format "token_minutes"
+
   
   const lastNotification = recentNotifications.get(key);
   if (!lastNotification) return true; // ✅ No notification exists, so it's after cooldown
@@ -95,7 +104,9 @@ export async function GET(req: Request) {
           if(!isTokenMinuteAfterCooldown(token, config[0], user.recentNotifications || {})){
             console.warn(`Skipping noti for token ${token}, user ${user.uid}, minute ${config[0]}`)
             continue;
-          } 
+          } else {
+            console.log(`No recent noti detected for token ${token}, user ${user.uid} minute: ${config[0]}`)
+          }
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
           console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
