@@ -2,7 +2,13 @@ import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-import { getToken } from "@/app/lib/firebase/tokenUtils";
+import { getTokenCached, Token } from "@/app/lib/firebase/tokenUtils";
+import { deleteDoc, doc } from "firebase/firestore";
+import { db } from "@/app/lib/firebase/firebase";
+
+
+let tokensCache: Map<string, Token> = new Map<string, Token>()
+
 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
@@ -41,6 +47,40 @@ function isTokenMinuteAfterCooldown(
 }
 
 
+async function removeTokenIfDead(token: string, tokenDb: Token | undefined): Promise<boolean> {
+  try {
+    if (!tokenDb || !tokenDb.prices || tokenDb.prices.length < 2) {
+      console.log(`🔹 Not enough price data to determine if ${token} is dead.`);
+      return false;
+    }
+
+    const prices = tokenDb.prices;
+    const oneHourMs = 60 * 60 * 1000;
+
+    // 🔹 Check if any two price entries are more than 60 minutes apart and identical
+    for (let i = 0; i < prices.length - 1; i++) {
+      for (let j = i + 1; j < prices.length; j++) {
+        const timeDifference = Math.abs(prices[j].timestamp - prices[i].timestamp);
+        if (timeDifference > oneHourMs && prices[i].price === prices[j].price) {
+          console.log(`💀 Token ${token} detected as dead (same price > 60 min apart). Removing...`);
+
+          // 🔹 Remove the token from Firestore
+          const tokenDocRef = doc(db, "uniqueTokens", token);
+          await deleteDoc(tokenDocRef);
+          console.log(`✅ Token ${token} successfully removed from Firestore.`);
+          return true;
+        }
+      }
+    }
+
+    console.log(`🔹 Token ${token} is still active.`);
+    return false;
+  } catch (error) {
+    console.error(`❌ Error removing dead token ${token}:`, error);
+    return false;
+  }
+}
+
 
 // 🔹 Main API Function
 export async function GET(req: Request) {
@@ -51,6 +91,7 @@ export async function GET(req: Request) {
   }
 
   try {
+
     console.log("🔄 Checking price alerts for users...");
 
     const usersSnapshot = await getAllUsers();
@@ -76,7 +117,13 @@ export async function GET(req: Request) {
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
         console.log("Getting price history for token: " + token)
-        const priceHistory = await getLastHourPrices(token);
+
+        const tokenObj = await getTokenCached(token, tokensCache)
+        const priceHistory = await getLastHourPrices(tokenObj);
+        const isTokenDead = await removeTokenIfDead(token, tokenObj)
+        if(isTokenDead){
+          return null;
+        }
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
         //   console.log("Price: " + p.price)
@@ -165,7 +212,7 @@ export async function GET(req: Request) {
     await Promise.all(
       notificationsToSend.map((notification) => {
         if(notification != null){
-          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached)
+          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached, tokensCache.get(notification.token))
         }
       })
     );

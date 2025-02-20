@@ -3,7 +3,7 @@ import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
 import { AlarmType } from "./constants/alarmConstants";
 import { updateRecentNotification } from "./firebase/userUtils";
-import { getToken } from "./firebase/tokenUtils";
+import { getToken, Token } from "./firebase/tokenUtils";
 
 // Function to fetch all FCM tokens from Firestore
 async function getAllFCMTokens(): Promise<string[]> {
@@ -51,7 +51,7 @@ export async function sendNotificationsToAllUsers() {
 }
 
 // 🔹 Send Push Notification to User
-export async function sendNotification(userId: string, token: string, priceChange: number, alertType: AlarmType, minutes: number, percentageBreached: number) {
+export async function sendNotification(userId: string, token: string, priceChange: number, alertType: AlarmType, minutes: number, percentageBreached: number, tokenObj: Token | undefined) {
   try {
     const userDocRef = doc(db, "users", userId);
     const userDocSnap = await getDoc(userDocRef);
@@ -66,9 +66,8 @@ export async function sendNotification(userId: string, token: string, priceChang
       return
     } 
 
-    const tokenDB = await getToken(token)
     const tokenSliced = `${token.slice(0,3)}..${token.slice(-4)}`
-    const symbolOrToken = tokenDB?.tokenData?.tokenMetadata?.symbol ? `$${tokenDB?.tokenData?.tokenMetadata?.symbol}` : tokenSliced
+    const symbolOrToken = tokenObj?.tokenData?.tokenMetadata?.symbol ? `$${tokenObj?.tokenData?.tokenMetadata?.symbol}` : tokenSliced
     const increaseOrDecrease = priceChange > 0 ? "increased" : "decrease"
     const stonkEmoji = priceChange > 0 ? "📈" : "📉"
     const alertEmoji = alertType === "critical" ? "🚨" : "🟡";

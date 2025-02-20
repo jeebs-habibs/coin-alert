@@ -37,6 +37,18 @@ export interface Token {
     tokenData?: TokenData;
 }
 
+export async function getTokenCached(token: string, tokenCache: Map<string, Token>){
+  if(tokenCache.has(token)){
+    return tokenCache.get(token)
+  } 
+  const tokenDb = await getToken(token)
+  if(tokenDb){
+    tokenCache.set(token, tokenDb)
+    return tokenDb
+  }
+
+}
+
 export const tokenConverter: FirestoreDataConverter<Token> = {
     toFirestore(token: Token) {
       return {
