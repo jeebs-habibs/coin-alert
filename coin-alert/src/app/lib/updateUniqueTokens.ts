@@ -5,13 +5,14 @@ import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
-import { GetPriceResponse, PriceData, Token, TokenData, TokenMetadata } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, PriceData, removeTokenIfDead, Token, TokenData, TokenMetadata } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
 import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
 import { TokenAccountData } from "./utils/solanaUtils";
+import { Istok_Web } from "next/font/google";
 
 
 async function getTokenMetadatMetaplex(token: string){
@@ -206,6 +207,10 @@ export async function updateUniqueTokens() {
         console.log("===========Getting price for token: " + token + "============");
         const performancePrice = Date.now();
         const tokenFromFirestore: Token | undefined = await getToken(token);
+        const isTokenDead: boolean = await removeTokenIfDead(token, tokenFromFirestore)
+        if(isTokenDead){
+          return null;
+        }
         let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
         if(!tokenMetadata){
           const newTokenMetadata = await getTokenMetadataFromBlockchain(token)
@@ -236,8 +241,8 @@ export async function updateUniqueTokens() {
       }
     );
 
-    console.log("About to get all token prices with queue")
-    await Promise.all(tokenPricePromises);
+    console.log("About to get all token prices with queue");
+    (await Promise.all(tokenPricePromises)).filter(Boolean);
     console.log(chalk.green("SUCCESSFULLY GOT ALL TOKEN PRICES"))
 
     if(tokensFailedToGetPrice.length){
