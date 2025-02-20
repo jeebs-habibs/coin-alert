@@ -58,14 +58,14 @@ export async function removeTokenIfDead(token: string, tokenDb: Token | undefine
     }
 
     const prices = tokenDb.prices;
-    const oneHourMs = 60 * 60 * 1000;
+    const fourtyFiveMinMs = 45 * 60 * 1000;
 
     // 🔹 Check if any two price entries are more than 60 minutes apart and identical
     for (let i = 0; i < prices.length - 1; i++) {
       for (let j = i + 1; j < prices.length; j++) {
         const timeDifference = Math.abs(prices[j].timestamp - prices[i].timestamp);
-        if (timeDifference > oneHourMs && prices[i].price === prices[j].price) {
-          console.log(`💀 Token ${token} detected as dead (same price > 60 min apart). Removing...`);
+        if (timeDifference > fourtyFiveMinMs && prices[i].price === prices[j].price) {
+          console.log(`💀 Token ${token} detected as dead (same price > 45 min apart). Removing...`);
 
           // 🔹 Remove the token from Firestore
           const tokenDocRef = doc(db, "uniqueTokens", token);
