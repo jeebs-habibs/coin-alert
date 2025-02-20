@@ -12,7 +12,6 @@ import { blockchainTaskQueue } from "./taskQueue";
 import { getTokenPricePump } from './utils/pumpUtils';
 import { getTokenPriceRaydium } from './utils/raydiumUtils';
 import { TokenAccountData } from "./utils/solanaUtils";
-import { Istok_Web } from "next/font/google";
 
 
 async function getTokenMetadatMetaplex(token: string){
@@ -224,7 +223,7 @@ export async function updateUniqueTokens() {
             console.error("Unable to grab token metadata from blockchain for token: " + token)
           }
         }
-        let data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore);
+        const data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore);
         if(tokenMetadata && data){
           data.tokenData.tokenMetadata = tokenMetadata
         }

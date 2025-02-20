@@ -1,11 +1,11 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
+import { getTokenCached, removeTokenIfDead, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-import { getTokenCached, removeTokenIfDead, Token } from "@/app/lib/firebase/tokenUtils";
 
 
-let tokensCache: Map<string, Token> = new Map<string, Token>()
+const tokensCache: Map<string, Token> = new Map<string, Token>()
 
 
 /**
