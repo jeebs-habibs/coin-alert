@@ -1,13 +1,11 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { doc, getDoc } from "firebase/firestore";
 import { connection } from "../connection";
 import { AlarmConfig, AlarmType, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
-import { db } from "../firebase/firebase";
-import { PriceData, tokenConverter } from "../firebase/tokenUtils";
+import { PriceData, Token } from "../firebase/tokenUtils";
+import { AlarmPreset } from "../firebase/userUtils";
 import { blockchainTaskQueue } from "../taskQueue";
 import { TokenAccountData } from "./solanaUtils";
-import { AlarmPreset } from "../firebase/userUtils";
 
 export interface NotificationReturn {
     userId: string,
@@ -19,45 +17,37 @@ export interface NotificationReturn {
     percentageBreached: number
 }
 
-export async function getLastHourPrices(token: string): Promise<PriceData[]> {
-try {
-    console.log("Getting last hour prices for token: " + token);
+export async function getLastHourPrices(token: Token | undefined): Promise<PriceData[]> {
+    try {
+        if(!token){
+            return []
+        }
+        const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
+        console.log("One hour ago (ms): " + oneHourAgo);
 
-    const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
-    console.log("One hour ago (ms): " + oneHourAgo);
+        if (!token?.prices || !Array.isArray(token.prices)) {
+        console.warn(`⚠️ No price history found for token`);
+        return [];
+        }
 
-    const tokenDocRef = doc(db, "uniqueTokens", token).withConverter(tokenConverter);
-    const tokenSnapshot = await getDoc(tokenDocRef);
+        // 🔹 Filter prices to only include last 60 minutes
+        const lastHourPrices = token.prices
+        .filter((entry: PriceData) => entry.timestamp > oneHourAgo)
+        .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
 
-    if (!tokenSnapshot.exists()) {
-    console.warn(`⚠️ No document found for token: ${token}`);
-    return [];
+        console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${token}`);
+        return lastHourPrices;
+    } catch (error) {
+        console.error(`❌ Error fetching prices for ${token}:`, error);
+        return [];
     }
-
-    const tokenData = tokenSnapshot.data();
-
-    if (!tokenData?.prices || !Array.isArray(tokenData.prices)) {
-    console.warn(`⚠️ No price history found for token: ${token}`);
-    return [];
-    }
-
-    // 🔹 Filter prices to only include last 60 minutes
-    const lastHourPrices = tokenData.prices
-    .filter((entry: PriceData) => entry.timestamp > oneHourAgo)
-    .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
-
-    console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${token}`);
-    return lastHourPrices;
-} catch (error) {
-    console.error(`❌ Error fetching prices for ${token}:`, error);
-    return [];
-}
 }
 
 
 export function getAlarmConfig(alarmPreset: AlarmPreset){
     // console.log("Using alarm config: ")
     // console.log(NOISIER_ALARM_CONFIGS)
+    // return ALARM_CONFIGS_MAX
     if(alarmPreset == "left"){
         return NOISIER_ALARM_CONFIGS
     } 

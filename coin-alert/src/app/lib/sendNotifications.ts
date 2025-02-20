@@ -2,6 +2,7 @@ import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
 import { AlarmType } from "./constants/alarmConstants";
+import { Token } from "./firebase/tokenUtils";
 import { updateRecentNotification } from "./firebase/userUtils";
 
 // Function to fetch all FCM tokens from Firestore
@@ -50,7 +51,7 @@ export async function sendNotificationsToAllUsers() {
 }
 
 // 🔹 Send Push Notification to User
-export async function sendNotification(userId: string, token: string, priceChange: number, alertType: AlarmType, minutes: number, percentageBreached: number) {
+export async function sendNotification(userId: string, token: string, priceChange: number, alertType: AlarmType, minutes: number, percentageBreached: number, tokenObj: Token | undefined) {
   try {
     const userDocRef = doc(db, "users", userId);
     const userDocSnap = await getDoc(userDocRef);
@@ -65,11 +66,14 @@ export async function sendNotification(userId: string, token: string, priceChang
       return
     } 
 
-    const increaseOrDecrease = priceChange > 0 ? "increased" : "decrease"
+    const tokenSliced = `${token.slice(0,3)}..${token.slice(-4)}`
+    const symbolOrToken = tokenObj?.tokenData?.tokenMetadata?.symbol ? `$${tokenObj?.tokenData?.tokenMetadata?.symbol}` : tokenSliced
+    const increaseOrDecrease = priceChange > 0 ? "up" : "down"
     const stonkEmoji = priceChange > 0 ? "📈" : "📉"
+    const alertEmoji = alertType === "critical" ? "🚨" : "🟡";
 
-    const notificationTitle = alertType === "critical" ? "🚨 Critical Price Alert! " : "Standard Price Alert";
-    const notificationBody = `${stonkEmoji} ${token} price ${increaseOrDecrease} by ${priceChange.toFixed(2)}% within ${minutes} minutes (over threshold of ${percentageBreached}).`;
+    const notificationTitle = `${alertEmoji} ${symbolOrToken} ${increaseOrDecrease} ${priceChange.toFixed(2)}% in ${minutes} minutes`
+    const notificationBody = `${stonkEmoji} ${tokenSliced} breached threshold of ${percentageBreached}.`;
 
     for (const fcmToken of userData.tokens) {
       console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`)

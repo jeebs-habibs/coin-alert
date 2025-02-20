@@ -1,7 +1,12 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
+import { getTokenCached, removeTokenIfDead, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+
+
+const tokensCache: Map<string, Token> = new Map<string, Token>()
+
 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
@@ -40,7 +45,6 @@ function isTokenMinuteAfterCooldown(
 }
 
 
-
 // 🔹 Main API Function
 export async function GET(req: Request) {
   const apiKey = req.headers.get("Authorization");
@@ -50,6 +54,7 @@ export async function GET(req: Request) {
   }
 
   try {
+
     console.log("🔄 Checking price alerts for users...");
 
     const usersSnapshot = await getAllUsers();
@@ -75,7 +80,13 @@ export async function GET(req: Request) {
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
         console.log("Getting price history for token: " + token)
-        const priceHistory = await getLastHourPrices(token);
+
+        const tokenObj = await getTokenCached(token, tokensCache)
+        const priceHistory = await getLastHourPrices(tokenObj);
+        const isTokenDead = await removeTokenIfDead(token, tokenObj)
+        if(isTokenDead){
+          return null;
+        }
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
         //   console.log("Price: " + p.price)
@@ -164,7 +175,7 @@ export async function GET(req: Request) {
     await Promise.all(
       notificationsToSend.map((notification) => {
         if(notification != null){
-          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached)
+          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached, tokensCache.get(notification.token))
         }
       })
     );
