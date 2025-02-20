@@ -35,6 +35,32 @@ async function getTokenMetadatMetaplex(token: string){
 
 }
 
+async function getTokenMetadataFromBlockchain(token: string){
+  const metaplexMetadata: TokenMetadata | null = await blockchainTaskQueue.addTask(async () => {
+      console.log("Getting metaplex metadata for token: " + token)
+      return await getTokenMetadatMetaplex(token)
+  })
+  if(metaplexMetadata != null){
+    return metaplexMetadata
+  }
+  return await blockchainTaskQueue.addTask(async () => {
+  
+      return await getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID).then((val) => {
+        if (val != null){
+          console.log("successfully got metadaa")   
+        } else {
+          console.log("got metadata but its null?")
+        }
+        return val
+      }).catch((e) => {
+        console.log("Error getting metadata")
+        console.error(e)
+        return null
+      })
+  })
+
+}
+
 
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
@@ -182,27 +208,7 @@ export async function updateUniqueTokens() {
         const tokenFromFirestore: Token | undefined = await getToken(token);
         let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
         if(!tokenMetadata){
-          const newTokenMetadata = await blockchainTaskQueue.addTask(async () => {
-              let finalMetadata: TokenMetadata | null = await blockchainTaskQueue.addTask(async () => {
-                console.log("Getting metaplex metadata for token: " + token)
-                return await getTokenMetadatMetaplex(token)
-              })
-              if(!finalMetadata){
-                finalMetadata = await getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID).then((val) => {
-                  if (val != null){
-                    console.log("successfully got metadaa")   
-                  } else {
-                    console.log("got metadata but its null?")
-                  }
-                  return val
-                }).catch((e) => {
-                  console.log("Error getting metadata")
-                  console.error(e)
-                  return null
-                })
-              }
-              return finalMetadata
-        })
+          const newTokenMetadata = await getTokenMetadataFromBlockchain(token)
           if(newTokenMetadata){
             tokenMetadata = {
               name: newTokenMetadata.name,
