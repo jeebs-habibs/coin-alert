@@ -3,6 +3,7 @@ import { db } from "../lib/firebase/firebase";
 import { messaging } from "../lib/firebase/firebaseAdmin";
 import { AlarmType } from "./constants/alarmConstants";
 import { updateRecentNotification } from "./firebase/userUtils";
+import { getToken } from "./firebase/tokenUtils";
 
 // Function to fetch all FCM tokens from Firestore
 async function getAllFCMTokens(): Promise<string[]> {
@@ -65,11 +66,15 @@ export async function sendNotification(userId: string, token: string, priceChang
       return
     } 
 
+    const tokenDB = await getToken(token)
+    const tokenSliced = `${token.slice(0,3)}..${token.slice(-4)}`
+    const symbolOrToken = tokenDB?.tokenData?.tokenMetadata?.symbol ? `$${tokenDB?.tokenData?.tokenMetadata?.symbol}` : tokenSliced
     const increaseOrDecrease = priceChange > 0 ? "increased" : "decrease"
     const stonkEmoji = priceChange > 0 ? "📈" : "📉"
+    const alertEmoji = alertType === "critical" ? "🚨" : "🟡";
 
-    const notificationTitle = alertType === "critical" ? "🚨 Critical Price Alert! " : "Standard Price Alert";
-    const notificationBody = `${stonkEmoji} ${token} price ${increaseOrDecrease} by ${priceChange.toFixed(2)}% within ${minutes} minutes (over threshold of ${percentageBreached}).`;
+    const notificationTitle = `${alertEmoji} ${symbolOrToken} ${increaseOrDecrease} by ${priceChange.toFixed(2)}% in ${minutes} minutes`
+    const notificationBody = `${stonkEmoji} ${tokenSliced} breached threshold of ${percentageBreached}.`;
 
     for (const fcmToken of userData.tokens) {
       console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`)

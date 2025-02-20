@@ -2,6 +2,7 @@ import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+import { getToken } from "@/app/lib/firebase/tokenUtils";
 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.

@@ -1,5 +1,34 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Server decision
+Problem statement: We are hitting daily firestore usage limit when running every 2 minutes for about 4 hours. We need a solution so we can scale more easily.
+In updateTokens API we are getting all users from Firestore, getting their tokens from chain and updating firestore with all unique tokens including price and other data
+In checkPriceAlerts API, we are getting all users from Firestore and unique tokens owned by each user on chain. we then look at the price data for each token a user owns and send notification if applicable.
+
+Wasted reads/writes:
+- Price data writing to DB when only last hour is needed
+- Storing recent notis in DB when we only need last one
+- Getting all users in both apis and all tokens they own
+- Getting 
+
+Proposed state:
+1 API:
+- Get all users from DB with notifications on
+- Store user -> tokensOwned mapping in local variable
+- Get unique tokens across all users
+    - For each token, get price and store in cache. Check cache for metadata, if nothing in cache, metadata from chain and store in cache
+- For each user, check if price of their tokens owned changed. Check cache for recent notis. If none sent, send noti and add to cache 
+
+Maybe a separate API that checks cache and if price data hasnt changed in an hour we call the token dead and add an entry. Then at beginning of above API we remove dead tokens
+
+8000 reads and 4000 writes an hour
+
+
+## DECISION
+
+Going to stay with firestore. Scaling seems cheap and by removing some old (dead) tokens I think we can save a lot of costs. 
+
+
 ## Issues
 - Only ones we cant get price data for: 2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv,8hRiwqXceFL12paSiVRYFNh7eS58NpJQYzV9aN1mC7W5,7bMQQSYmrJjgDcqxYEpyMdPVp65k1VKAe5ZhjAWwAT2j
 - Pudgy maybe on diff pool? 2025 Raydium CLMM or CPMM, and last one i cant even find
