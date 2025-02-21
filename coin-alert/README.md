@@ -1,5 +1,79 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Issues
+
+### Duplicate Notis
+- Haven't solved yet, no clue whats going on.
+
+### Dead tokens should result in far less DB writes/reads
+- Problem: On each execution, we get all unique tokens from blockchain. If the prices in the db havent changed, we remove that token from the database.
+    However, on the next execution, we will have no way of telling whether the coin is dead or not, and will add price back. 
+- Solution: Store a collection of dead tokens in the database. Then after we get all unique tokens from blockchain, we can filter out dead tokens.
+
+
+Current:
+- Get all users and their wallets
+- Get unique tokens from blockchain
+- Get latest price for token
+- Store in DB
+
+Then in checkPriceAlerts...
+- Loop through each user and get their tokens from blockchain
+- Check token price in local variable or db
+- If token price changed a lot, send noti
+
+Where T is number of total tokens. T = 5000, D = 4,500 dead and A = 500 active
+U = number of users
+
+Total Reads: FirstApi(U) + SecondAPI(U + T + RNS) // should add duplicated blockchain calls as well
+Total Writes: FirstApi(T) + SecondAPI(RNS) // should add duplicated blockchain calls as well
+
+With dead token logic
+FirstAPI
+- Get all users from db and their wallets
+- Get all dead tokens from db 
+- Get all tokens from blockchain
+- Filter to only alive tokens
+- Get price for alive tokens and store in db
+
+SecondAPI
+- Loop through each user and get their tokens from blockchain
+- Get alive tokens
+- IF token price changed a lot, sent noti
+
+
+Total reads: FirstAPI(U + DT) + SecondAPI(AT)
+Total writes: FirstAPI(AT) + SecondAPI(RNS)
+
+
+U = 100
+T = 20000
+DT = 15000
+AT = 5000
+
+Current:
+Total Reads: FirstApi(U) + SecondAPI(U + T) = 100 + 100 + 20000  = 20200
+Total Writes: FirstApi(T) + SecondAPI(RNS) = 20000
+
+With dead token check:
+Total reads: FirstAPI(U + DT) + SecondAPI(u + AT) = 100 + 15000 + 5000 = 20200
+Total writes: FirstAPI(AT) + SecondAPI(RNS) = 5000
+
+With 1 API
+Total reads: U + T = 100 + 20000 = 20100
+Total writes: (AT) + SecondAPI(RNS) = 5000
+
+
+Future:
+- Get unique tokens from blockchain
+- For each token, get token from db and check if its dead
+- If its dead, skip updating the price
+
+
+Lets try and make 1 API
+
+
+
 ## Server decision
 Problem statement: We are hitting daily firestore usage limit when running every 2 minutes for about 4 hours. We need a solution so we can scale more easily.
 In updateTokens API we are getting all users from Firestore, getting their tokens from chain and updating firestore with all unique tokens including price and other data
@@ -14,9 +88,9 @@ Wasted reads/writes:
 Proposed state:
 1 API:
 - Get all users from DB with notifications on
-- Store user -> tokensOwned mapping in local variable
-- Get unique tokens across all users
-    - For each token, get price and store in cache. Check cache for metadata, if nothing in cache, metadata from chain and store in cache
+- Get all unique tokens from blockchain for those users.
+- Get each token from Db and filter out dead tokens
+- Store user -> aliveTokensOwned mapping in local variable
 - For each user, check if price of their tokens owned changed. Check cache for recent notis. If none sent, send noti and add to cache 
 
 Maybe a separate API that checks cache and if price data hasnt changed in an hour we call the token dead and add an entry. Then at beginning of above API we remove dead tokens
