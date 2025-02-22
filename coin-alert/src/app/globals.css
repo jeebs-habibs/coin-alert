@@ -15,8 +15,8 @@ html, body {
 }
 
 .sirenLogo {
-  width: 30vw;   /* Adjusts size based on screen width */
-  max-width: 200px;  /* Prevents it from being too large */
+  width: 50vw;   /* Adjusts size based on screen width */
+  max-width: 352px;  /* Prevents it from being too large */
   height: auto;
 }
 
@@ -111,7 +111,8 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  padding: 20px;
+  padding-left: 20px;
+  padding-right: 20px;
   background-image: url('/sirenBg.png');  /* Use the image from your assets */
   background-size: cover;  /* Ensure it covers the entire page */
   background-position: center;  /* Center it */
@@ -215,10 +216,10 @@ hr {
 
 .floatingX {
   position: fixed;
-  bottom: 30px; /* Increased spacing */
-  right: 30px;  /* Increased spacing */
-  width: 40px;  /* Slightly larger */
-  height: 40px;
+  bottom: 20px; /* Increased spacing */
+  right: 20px;  /* Increased spacing */
+  width: 35px;  /* Slightly larger */
+  height: 35px;
   display: flex;
   align-items: center;
   justify-content: center;

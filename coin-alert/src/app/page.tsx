@@ -72,8 +72,8 @@ export default function BetaSignup() {
           src="/sirenSmaller.png" 
           alt="Siren Logo" 
           className="sirenLogo"
-          width={100}  // Adjust width as needed
-          height={100} // Adjust height as needed
+          width={352}  // Adjust width as needed
+          height={352} // Adjust height as needed
           priority // Ensures it loads quickly
         />        
         <h1 className="title">Beta Sign Up</h1>
