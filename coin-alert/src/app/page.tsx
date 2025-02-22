@@ -1,66 +1,137 @@
-'use client'
+"use client";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Button } from "./components/Button";
-import { useAuth } from "./providers/auth-provider";
-
-export default function Home() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
-  
+export default function BetaSignup() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if(user && !loading){
-      router.push("/dashboard")
+    const lastSignup = localStorage.getItem("lastSignupTime");
+    if (lastSignup && Date.now() - Number(lastSignup) < 30 * 60 * 1000) {
+      setMessage("You have already signed up recently. Try again later.");
     }
-  })
+  }, []);
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    // Basic validation before sending request
+    if (!email.includes("@")) {
+      setMessage("⚠️ Please enter a valid email address.");
+      return;
+    }
+  
+    try {
+      setIsSubmitting(true);
+  
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+  
+      const data = await response.json(); // Parse the JSON response
+  
+      if (response.ok) {
+        // ✅ Success case
+        localStorage.setItem("lastSignupTime", Date.now().toString());
+        setMessage("✅ Thank you for signing up!");
+        setEmail(""); // Clear input
+      } else {
+        // ⚠️ Error or duplicate email
+        setMessage(`⚠️ ${data.message || "Signup failed. Try again."}`);
+      }
+    } catch (error) {
+      console.error("Signup Error:", error);
+      setMessage("❌ Error signing up. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
 
   return (
-    <div className="page">
-      <main className="main">
+    <div className="beta-container">
+      {/* 🔹 Navbar */}
+      <nav className="navbar">
+        <div className="logo">SIREN</div>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#roadmap">Roadmap</a></li>
+          <li><a href="#demo">Demo</a></li>
+        </ul>
+      </nav>
 
-{
-  loading ? <h1>loading...</h1> :  <>
-  <h1 className="largeHeading">
-    Welcome to Siren
-  </h1>
-  <p>A mobile app to notify you on changes in your memecoins. No wallet connection required!</p>
-  <h2>How it works</h2>
-  <ol>
-    <li>
-      Sign up via Google
-    </li>
-    <li>
-      Enter up to 3 wallet addresses
-    </li>
-    <li>
-      Set up your notification preferences
-    </li>
-    <li>
-      App app to your home screen on IOS to receive notifications
-    </li>
-  </ol>
-  <Button
-    onClick={() => router.push("/auth")}
-    variant="primary">
-    Get started
-  </Button>
-  <h2>Setting up notifications</h2>
-  <p>Siren will alert you on all devices when your coins change drastically in price. Below are checks to ensure your devices are properly set up to receive notifications.</p>
-  <h3>Web/Mac/Windows</h3>
-  <p>For web browsers, navigate to Settings → Notifications and confirm notifications are enabled. You can enable notifications only for Siren if you so choose.</p>
-  <p>Go to your system settings and confirm notifications are enabled for your browser.</p>
-  <p>If on Mac you may be in Focus, Do Not Disturb or some other mode that is preventing you to enable notifications.</p>
+      {/* 🔹 Hero Section */}
+      <section className="hero">
+        <Image 
+          src="/sirenSmaller.png" 
+          alt="Siren Logo" 
+          className="sirenLogo"
+          width={100}  // Adjust width as needed
+          height={100} // Adjust height as needed
+          priority // Ensures it loads quickly
+        />        
+        <h1 className="title">Beta Sign Up</h1>
+        <form className="signup-form" onSubmit={handleSignup}>
+          <input
+            type="email"
+            placeholder="Enter email address..."
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="email-input"
+            required
+          />
+          <button type="submit" className={`signup-button ${isSubmitting || message == "You have already signed up recently. Try again later." ? "disabled" : ""}`} disabled={isSubmitting || message == "You have already signed up recently. Try again later."}>
+            {isSubmitting ? "Submitting..." : "Sign Up"}
+          </button>
+        </form>
+        {message && <p className="message">{message}</p>}
+      </section>
 
-  <h3>Mobile</h3>
-  <p>On IOS, view this page on Safari and click the share icon. Click Add to Home Screen. Upon re-opening the app you will be prompted to enable notifications. Select yes. You can customize notifications anytime in your notification settings under the Siren app.</p>
-  </>
-}
-       
+      {/* 🔹 About Section */}
+      <section id="about" className="content-section">
+        <h2>About Siren</h2>
+        <hr />
+        <p>
+          Siren is an innovative platform designed to keep you ahead of the market.
+          With real-time alerts and intelligent insights, you never miss an important opportunity.
+        </p>
+      </section>
 
-      </main>
+      {/* 🔹 Roadmap Section */}
+      <section id="roadmap" className="content-section">
+        <h2>Roadmap</h2>
+        <hr />
+        <ul>
+          <li>📌 Q1 2025: Beta Release & Early Access</li>
+          <li>📌 Q2 2025: Full Product Launch</li>
+          <li>📌 Q3 2025: Advanced Analytics & AI-powered Alerts</li>
+          <li>📌 Q4 2025: Community Features & Custom Alerts</li>
+        </ul>
+      </section>
 
+      {/* 🔹 Demo Section */}
+      <section id="demo" className="content-section">
+        <h2>Demo</h2>
+        <hr />
+        <p>
+          Watch a preview of Siren in action! Stay tuned for an interactive experience.
+        </p>
+        {/* <button className="demo-button">Watch Demo</button> */}
+      </section>
+      <a
+        href="https://x.com/siren_notify" // Replace with your actual X profile
+        target="_blank"
+        rel="noopener noreferrer"
+        className="floatingX"
+      >
+        <Image src="/x-logo/logo.svg" alt="X Logo" width={30} height={30} />
+      </a>
     </div>
   );
 }
