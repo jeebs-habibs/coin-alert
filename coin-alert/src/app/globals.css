@@ -7,13 +7,16 @@
   font-style: normal;
 }
 
-html {
+html, body {
   scroll-behavior: smooth;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden; /* Prevents horizontal scrolling */
 }
 
 .sirenLogo {
-  width: 40vw;   /* Adjusts size based on screen width */
-  max-width: 300px;  /* Prevents it from being too large */
+  width: 30vw;   /* Adjusts size based on screen width */
+  max-width: 200px;  /* Prevents it from being too large */
   height: auto;
 }
 
@@ -37,45 +40,69 @@ body {
   scroll-behavior: smooth;
 }
 
-/* 🔹 Navbar */
-.navbar {
-  display: flex;
-  justify-content: space-between;  /* Space out items */
-  align-items: center;
-  width: 100%;
-  max-width: 1200px;  /* Prevents stretching */
-  margin: 0 auto;  /* Centers the navbar */
-  padding: 10px 20px;
-  position: relative; /* Instead of fixed, allows normal flow */
-  z-index: 1000; /* Ensures it stays on top */
-}
-
 .logo {
   font-size: 22px;
   font-weight: bold;
   color: #1b7982;
 }
 
+/* 🔹 Navbar */
+/* 🔹 Ensure Navbar Stays Inside the Page */
+.navbar {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  justify-content: space-between; /* Spread items */
+  align-items: center;
+  width: 100%; /* Full width */
+  max-width: 100vw; /* Prevent it from exceeding viewport */
+  padding: 10px 20px;
+  box-sizing: border-box; /* Ensures padding doesn’t cause overflow */
+}
+
+/* 🔹 Ensure Navbar Links Don't Overflow */
 .navbar ul {
   list-style: none;
   display: flex;
   gap: 20px;
+  flex-wrap: wrap; /* Allow wrapping if needed */
+  margin: 0;
+  padding: 0;
+  justify-content: flex-end; /* Aligns links to the right */
 }
 
+/* 🔹 Navbar Items */
 .navbar ul li {
-  display: inline;
+  display: inline-block;
 }
 
+/* 🔹 Navbar Links */
 .navbar ul li a {
   text-decoration: none;
   color: #1b7982;
   font-weight: normal;
   transition: color 0.3s ease-in-out;
+  white-space: nowrap; /* Prevent text from wrapping awkwardly */
 }
 
 .navbar ul li a:hover {
-  color: #1abc9c;
+  color: #1abc9c; /* Bright green hover effect */
+  transition: color 0.3s ease-in-out; /* Smooth transition */
 }
+
+
+/* 🔹 Prevent Navbar from Collapsing */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column; /* Stack navbar on small screens */
+    align-items: center; /* Center navbar items */
+  }
+
+  .navbar ul {
+    justify-content: center; /* Center items when stacked */
+    gap: 10px; /* Reduce spacing */
+  }
+}
+
 
 /* 🔹 Hero Section */
 .hero {
@@ -206,4 +233,9 @@ hr {
 .floatingX:hover {
   background-color: #14585e; /* Slightly darker hover effect */
   transform: scale(1.1);
+}
+
+.footer {
+  color: #0f3d3e;
+  margin: 5px;
 }

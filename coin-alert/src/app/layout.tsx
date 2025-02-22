@@ -29,7 +29,7 @@ export default async function RootLayout({
         <div className="wrapper">
         {children}
           <footer className="footer">
-            © SirenNotify.com, 2025
+            © sirennotify.com, 2025
           </footer>
         </div>
 
