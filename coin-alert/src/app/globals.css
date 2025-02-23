@@ -15,8 +15,9 @@ html, body {
 }
 
 .sirenLogo {
-  width: 50vw;   /* Adjusts size based on screen width */
-  max-width: 352px;  /* Prevents it from being too large */
+  width: 40vw;   /* Adjusts size based on screen width */
+  max-width: 300px;  /* Prevents it from being too large */
+  min-width: 250px;
   height: auto;
 }
 
@@ -100,6 +101,7 @@ body {
   .navbar ul {
     justify-content: center; /* Center items when stacked */
     gap: 10px; /* Reduce spacing */
+    margin: 5px;
   }
 }
 
@@ -137,10 +139,10 @@ body {
 }
 
 .email-input {
-  width: 100%;
+  width: 90%;
   padding: 12px;
   border: 2px solid #1b7982;
-  border-radius: 8px;
+  border-radius: 13px;
   font-size: 16px;
   margin: 20px;
 }
@@ -158,7 +160,7 @@ body {
   border: none;
   font-size: 18px;
   font-weight: bold;
-  border-radius: 8px;
+  border-radius: 13px;
   cursor: pointer;
   transition: background-color 0.3s ease;}
 

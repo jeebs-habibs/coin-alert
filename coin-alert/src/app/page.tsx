@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import React, { useEffect, useState } from "react";
 
 export default function BetaSignup() {
   const [email, setEmail] = useState("");
@@ -72,9 +72,8 @@ export default function BetaSignup() {
           src="/sirenSmaller.png" 
           alt="Siren Logo" 
           className="sirenLogo"
-          width={352}  // Adjust width as needed
-          height={352} // Adjust height as needed
-          priority // Ensures it loads quickly
+          width={320}  // Adjust width as needed
+          height={320} // Adjust height as needed
         />        
         <h1 className="title">Beta Sign Up</h1>
         <form className="signup-form" onSubmit={handleSignup}>
