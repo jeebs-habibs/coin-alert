@@ -57,38 +57,6 @@ export async function getAllUsers(): Promise<SirenUser[]> {
   }
 }
 
-// 🔹 Function to Update User Data
-export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
-  try {
-    const userDocRef = adminDB.collection("users").doc(uid);
-
-    // 🔹 Fetch the current user document
-    const userSnapshot = await userDocRef.get();
-
-    if (!userSnapshot.exists) {
-      console.warn(`⚠️ User ${uid} does not exist. Creating a new user document...`);
-      const newUser: SirenUser = {
-        uid,
-        email: newData.email || "unknown@example.com",
-        tokens: newData.tokens || [],
-        wallets: newData.wallets || [],
-        alarmPreset: newData.alarmPreset || "center",
-        isNotificationsOn: newData.isNotificationsOn ?? true,
-        recentNotifications: newData.recentNotifications || {},
-      };
-      await userDocRef.set(newUser);
-      console.log(`✅ Created new user document for ${uid}.`);
-      return;
-    }
-
-    // 🔹 Merge new data with existing user data
-    await userDocRef.update(newData);
-    console.log(`✅ Successfully updated user ${uid} in Firestore.`);
-  } catch (error) {
-    throw Error(`❌ Error updating user ${uid}:` + error)
-  }
-}
-
 /**
  * Updates the recentNotifications object for a given user.
  * @param uid - The user's ID

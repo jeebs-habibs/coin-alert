@@ -1,17 +1,16 @@
-import admin from "firebase-admin";
 import { fetchDigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
 import { publicKey } from "@metaplex-foundation/umi";
 import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { GetPriceResponse, PriceData, setTokenDead, Token, TokenData, TokenMetadata } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, PriceData, setTokenDead, Token, TokenData } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
+import { adminDB } from "./firebase/firebaseAdmin";
 import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 import { getTokenPricePump } from "./utils/pumpUtils";
 import { getTokenPriceRaydium } from "./utils/raydiumUtils";
 import { TokenAccountData } from "./utils/solanaUtils";
-import { adminDB } from "./firebase/firebaseAdmin";
 
 
 // 🔹 Fetch Metadata from Metaplex
@@ -166,7 +165,7 @@ export async function updateUniqueTokens() {
           return;
         }
 
-        let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata || (await getTokenMetadataFromBlockchain(token));
+        const tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata || (await getTokenMetadataFromBlockchain(token));
 
         if (!tokenMetadata) {
           totalFailedToGetMetadata++;

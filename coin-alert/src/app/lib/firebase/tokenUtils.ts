@@ -1,4 +1,4 @@
-import { doc, FirestoreDataConverter, getDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { FirestoreDataConverter, Timestamp } from "firebase/firestore";
 import { adminDB } from "./firebaseAdmin";
 
 export interface PriceData {

@@ -1,7 +1,7 @@
 "use client";
 
 import { PublicKey } from "@solana/web3.js";
-import { arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
@@ -9,7 +9,7 @@ import { Button } from "../components/Button";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
 import { db, messaging } from "../lib/firebase/firebase";
-import { updateUserData } from "../lib/firebase/userUtils";
+import { SirenUser } from "../lib/firebase/userUtils";
 import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
 import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
@@ -27,10 +27,40 @@ async function unRegisterMultipleWorkers(){
         });
 
   } else {
-    console.error("No service worker")
+    console.log("Service worker already detected")
     //alert("ERROR: Failed to register service worker")
   }
 
+}
+
+async function updateUserData(uid: string, newData: Partial<SirenUser>) {
+  try {
+    const userDocRef = doc(db, "users", uid)
+    // 🔹 Fetch the current user document
+    const userSnapshot = await getDoc(userDocRef);
+
+    if (!userSnapshot.exists) {
+      console.warn(`⚠️ User ${uid} does not exist. Creating a new user document...`);
+      const newUser: SirenUser = {
+        uid,
+        email: newData.email || "unknown@example.com",
+        tokens: newData.tokens || [],
+        wallets: newData.wallets || [],
+        alarmPreset: newData.alarmPreset || "center",
+        isNotificationsOn: newData.isNotificationsOn ?? true,
+        recentNotifications: newData.recentNotifications || {},
+      };
+      await setDoc(userDocRef, newUser);
+      console.log(`✅ Created new user document for ${uid}.`);
+      return;
+    }
+
+    // 🔹 Merge new data with existing user data
+    await updateDoc(userDocRef, newData);
+    console.log(`✅ Successfully updated user ${uid} in Firestore.`);
+  } catch (error) {
+    throw Error(`❌ Error updating user ${uid}:` + error)
+  }
 }
 
 export default function Dashboard() {
@@ -96,12 +126,12 @@ export default function Dashboard() {
   const saveTokenToFirestore = async (token: string) => {
     try {
       if (!loading && !user) {
-        console.error("User is not authenticated. Cannot save token.");
+        console.log("User is not authenticated. Cannot save token.");
         return;
       }
 
       if(user != null){
-        console.log("Updating FCM tokens for User: " + user.uid)
+        //console.log("Updating FCM tokens for User: " + user.uid)
         const userDocRef = doc(db, "users", user.uid);
 
         await updateDoc(userDocRef, {
@@ -110,7 +140,7 @@ export default function Dashboard() {
   
         console.log("✅ FCM token saved to Firestore!");
       } else {
-        console.error("Cannot save FCM token since user is null")
+        console.log("Cannot save FCM token since user is null")
       }
 
 
@@ -162,7 +192,7 @@ export default function Dashboard() {
   function saveChanges(){
     // this function will save new changes to database
     if(user != null && user.uid){
-      updateUserData(user.uid, {...userData, wallets: wallets, alarmPreset: newAlarmPreset, isNotificationsOn: isNotificationsOn})
+      updateUserData(user.uid, {...userData, uid: user.uid, wallets: wallets, alarmPreset: newAlarmPreset, isNotificationsOn: isNotificationsOn})
     } else {
       console.error("Error saving data, user is not defined.")
     }
@@ -173,11 +203,11 @@ export default function Dashboard() {
     if(!userData){
       return true
     }
-    console.log("userData.wallets" + userData.wallets.join(","))
-    console.log("wallets" + wallets.join(","))
-    console.log("newAlarmPreset: " + newAlarmPreset)
-    console.log("userData.alarmPreset: " + userData.alarmPreset)
-    console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
+    // console.log("userData.wallets" + userData.wallets.join(","))
+    // console.log("wallets" + wallets.join(","))
+    // console.log("newAlarmPreset: " + newAlarmPreset)
+    // console.log("userData.alarmPreset: " + userData.alarmPreset)
+    // console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
     return (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
   }
 

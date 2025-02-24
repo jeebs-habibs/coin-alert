@@ -3,8 +3,6 @@ import { getTokenCached, setTokenDead, Token } from "@/app/lib/firebase/tokenUti
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-import chalk from "chalk";
-
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -75,7 +73,7 @@ export async function GET(req: Request) {
       totalNumberOfUsers++
       if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn) return; // Skip users with no wallets or with notis turned off
 
-      console.log(`👤 Checking tokens for user: ${JSON.stringify(user)} (${user.wallets.join(",")})`);
+      //console.log(`👤 Checking tokens for user: ${JSON.stringify(user)} (${user.wallets.join(",")})`);
 
       // 🔹 2️⃣ Get All Tokens Owned by User (via Blockchain) in Parallel
       const allTokensSet = new Set<string>();
@@ -105,7 +103,7 @@ export async function GET(req: Request) {
         if(isTokenDead){
           return null
         }
-                const priceHistory = await getLastHourPrices(tokenObj[0]);
+        const priceHistory = await getLastHourPrices(tokenObj[0]);
 
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
@@ -120,7 +118,7 @@ export async function GET(req: Request) {
         const latestPrice = priceHistory[0]?.price;
         let alertType: "normal" | "critical" | null = null;
         let alarmedConfig: AlarmConfig | null = null
-        const minuteToAlarmConfig = getAlarmConfig(user.alarmPreset, user?.uid)
+        const minuteToAlarmConfig = getAlarmConfig(user.alarmPreset)
         let percentChange = 0
         let minutes = 0
         let percentageBreached = 0
