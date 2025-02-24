@@ -1,9 +1,8 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
-import { getTokenCached, removeTokenIfDead, Token } from "@/app/lib/firebase/tokenUtils";
+import { getTokenCached, setTokenDead, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -47,6 +46,8 @@ function isTokenMinuteAfterCooldown(
 
 // 🔹 Main API Function
 export async function GET(req: Request) {
+
+  const startTime = Date.now()
   const apiKey = req.headers.get("Authorization");
 
   if (apiKey !== process.env.API_SECRET_KEY) {
@@ -55,6 +56,13 @@ export async function GET(req: Request) {
 
   try {
 
+    // Metrics
+    let numberOfNotisSkipped = 0
+    let totalNumberOfTokensGottenFromDB = 0
+    let totalNumberOfTokensGottenFromCache = 0
+    let totalNumberOfUsers = 0
+    let totalNumberOfWallets = 0
+
     console.log("🔄 Checking price alerts for users...");
 
     const usersSnapshot = await getAllUsers();
@@ -62,13 +70,15 @@ export async function GET(req: Request) {
 
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
+      totalNumberOfUsers++
       if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn) return; // Skip users with no wallets or with notis turned off
 
-      console.log(`👤 Checking tokens for user: ${user.uid} (${user.wallets.join(",")})`);
+      //console.log(`👤 Checking tokens for user: ${JSON.stringify(user)} (${user.wallets.join(",")})`);
 
       // 🔹 2️⃣ Get All Tokens Owned by User (via Blockchain) in Parallel
       const allTokensSet = new Set<string>();
       const tokenPromises = user.wallets.map(async (wallet) => {
+        totalNumberOfWallets++
         const tokens = await getTokensFromBlockchain(wallet);
         console.log("Address " + wallet + " has " + tokens.length + " unique tokens held")
         tokens.forEach((token) => allTokensSet.add(token));
@@ -79,14 +89,22 @@ export async function GET(req: Request) {
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
-        console.log("Getting price history for token: " + token)
-
         const tokenObj = await getTokenCached(token, tokensCache)
-        const priceHistory = await getLastHourPrices(tokenObj);
-        const isTokenDead = await removeTokenIfDead(token, tokenObj)
-        if(isTokenDead){
+        if(tokenObj[1] == "db"){
+          totalNumberOfTokensGottenFromDB++
+        }
+        if(tokenObj[1] == "cache"){
+          totalNumberOfTokensGottenFromCache++
+        }
+        if(tokenObj[0]?.isDead){
           return null;
         }
+        const isTokenDead = await setTokenDead(token, tokenObj[0])
+        if(isTokenDead){
+          return null
+        }
+        const priceHistory = await getLastHourPrices(tokenObj[0]);
+
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
         //   console.log("Price: " + p.price)
@@ -113,10 +131,8 @@ export async function GET(req: Request) {
 
           // If token_minute got alarmed within minute threshold, skip
           if(!isTokenMinuteAfterCooldown(token, config[0], user.recentNotifications || {})){
-            console.warn(`Skipping noti for token ${token}, user ${user.uid}, minute ${config[0]}`)
+            numberOfNotisSkipped++
             continue;
-          } else {
-            console.log(`No recent noti detected for token ${token}, user ${user.uid} minute: ${config[0]}`)
           }
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
@@ -180,10 +196,22 @@ export async function GET(req: Request) {
       })
     );
 
-    console.log("✅ Price alerts processed.");
-    return new Response(JSON.stringify({ message: "Alerts checked successfully" }), { status: 200 });
+    const endTime = Date.now()
+    const timeInSeconds = (endTime - startTime) / 1000
+    const metrics = `
+      numberOfNotisSkipped = ${numberOfNotisSkipped}
+      totalNumberOfTokensGottenFromDB = ${totalNumberOfTokensGottenFromDB}
+      totalNumberOfTokensGottenFromCache = ${totalNumberOfTokensGottenFromCache}
+      totalNumberOfUsers = ${totalNumberOfUsers}
+      totalNumberOfWallets = ${totalNumberOfWallets}
+    `
+    console.log(`✅ Price alerts processed in ${timeInSeconds} seconds.`);
+    return new Response(JSON.stringify({ message: "Alerts checked successfully in " + timeInSeconds + " seconds. \n ======Metrics===== \n " + metrics }), { status: 200 });
   } catch (error) {
     console.error("❌ Error checking price alerts:", error);
+    const e = error as Error
+    console.error("Full stack trace: " + e.stack)
+  
     return new Response(JSON.stringify({ error: "Failed to check alerts: " + error }), { status: 500 });
   }
 }

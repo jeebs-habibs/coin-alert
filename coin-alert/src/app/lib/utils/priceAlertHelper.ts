@@ -47,7 +47,9 @@ export async function getLastHourPrices(token: Token | undefined): Promise<Price
 export function getAlarmConfig(alarmPreset: AlarmPreset){
     // console.log("Using alarm config: ")
     // console.log(NOISIER_ALARM_CONFIGS)
-    // return ALARM_CONFIGS_MAX
+    // if(userId == "D7gDyfspTANknhFTJwYlCEM9NLW2"){
+    //     return ALARM_CONFIGS_MAX
+    // }
     if(alarmPreset == "left"){
         return NOISIER_ALARM_CONFIGS
     } 

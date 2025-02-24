@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       setUser(authUser);
 
-      if (authUser) {
+      if (authUser != null) {
         const userDocRef = doc(db, "users", authUser.uid);
 
         try {

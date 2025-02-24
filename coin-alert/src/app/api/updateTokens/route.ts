@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   
   try {
     const timeBeforeUpdate = Date.now()
-    await updateUniqueTokens();
+    const tokenUpdateResp = await updateUniqueTokens();
     const timeAfterUpdate = Date.now()
 
   //   const result = await connection.getSignaturesForAddress(new PublicKey("B6GNKnaVeDrahttqvKyf58GUQYsqyQif6LdxaxHpynnv"), {limit: 1})
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   //     }
   // })
   
-    return NextResponse.json({ message: "✅ Unique tokens updated successfully in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds." });
+    return NextResponse.json({ message: "✅ Unique tokens updated successfully in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds." + tokenUpdateResp });
   } catch (error) {
     console.error("❌ Error updating tokens:", error);
     return NextResponse.json({ error: "Failed to update unique tokens" }, { status: 500 });

@@ -3,91 +3,68 @@ import { publicKey } from "@metaplex-foundation/umi";
 import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "../lib/firebase/firebase";
-import { GetPriceResponse, PriceData, removeTokenIfDead, Token, TokenData, TokenMetadata } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, PriceData, setTokenDead, Token, TokenData } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
+import { adminDB } from "./firebase/firebaseAdmin";
 import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
-import { getTokenPricePump } from './utils/pumpUtils';
-import { getTokenPriceRaydium } from './utils/raydiumUtils';
+import { getTokenPricePump } from "./utils/pumpUtils";
+import { getTokenPriceRaydium } from "./utils/raydiumUtils";
 import { TokenAccountData } from "./utils/solanaUtils";
 
 
-async function getTokenMetadatMetaplex(token: string){
+// 🔹 Fetch Metadata from Metaplex
+async function getTokenMetadataMetaplex(token: string) {
   const mint = publicKey(token);
-  const asset = await fetchDigitalAsset(umi, mint).then((val) => {
-    return val
-  }).catch((e) => {
-    console.error("Error getting metaplex metadata: " + e)
-    return null
-  })
-
-  if(asset != null){
-    console.log(chalk.green("Got metadata for token: " + token))
+  try {
+    const asset = await fetchDigitalAsset(umi, mint);
+    console.log(chalk.green(`✅ Got metadata for token: ${token}`));
     return {
       name: asset.metadata.name,
       symbol: asset.metadata.symbol,
-      uri: asset.metadata.uri
-    }
+      uri: asset.metadata.uri,
+    };
+  } catch (error) {
+    console.error(`❌ Error getting Metaplex metadata for ${token}:`, error);
+    return null;
   }
-  return null;
-
 }
 
-async function getTokenMetadataFromBlockchain(token: string){
-  const metaplexMetadata: TokenMetadata | null = await blockchainTaskQueue.addTask(async () => {
-      console.log("Getting metaplex metadata for token: " + token)
-      return await getTokenMetadatMetaplex(token)
-  })
-  if(metaplexMetadata != null){
-    return metaplexMetadata
-  }
-  return await blockchainTaskQueue.addTask(async () => {
-  
-      return await getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID).then((val) => {
-        if (val != null){
-          console.log("successfully got metadaa")   
-        } else {
-          console.log("got metadata but its null?")
-        }
-        return val
-      }).catch((e) => {
-        console.log("Error getting metadata")
-        console.error(e)
-        return null
+// 🔹 Get Metadata from Blockchain (Fallback)
+async function getTokenMetadataFromBlockchain(token: string) {
+  const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
+
+  if (metaplexMetadata) return metaplexMetadata;
+
+  return blockchainTaskQueue.addTask(() =>
+    getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID)
+      .then((val) => val ?? null)
+      .catch((e) => {
+        console.error(`❌ Error getting metadata for ${token}:`, e);
+        return null;
       })
-  })
-
+  );
 }
 
-
+// 🔹 Fetch Token Price from External APIs
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
-    //console.log("Getting token price for token " + token)
-    const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore)
-    //console.log("received raydium price of " + raydiumTokenPrice)
+    const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore);
 
-    if(!raydiumTokenPrice?.price){
-      //console.log("Getting pump price")
-      const pumpPrice = await getTokenPricePump(token)
-      if(pumpPrice?.price){
-        return pumpPrice
-      } else {
-        console.error("Failed to update price data for token: " + token)
-      }
-      
+    if (!raydiumTokenPrice?.price) {
+      const pumpPrice = await getTokenPricePump(token);
+      if (pumpPrice?.price) return pumpPrice;
+      console.error(`❌ Failed to get price data for token: ${token}`);
     } else {
-      console.log("Returning raydium price")
-      return raydiumTokenPrice
+      return raydiumTokenPrice;
     }
-    
-  } catch(e) {
-    console.error("Error getting price data for token " + token + ": " + e)
-    throw e
+  } catch (error) {
+    console.error(`❌ Error getting price data for ${token}:`, error);
   }
+  return undefined;
 }
 
+// 🔹 Store Token Price in Firestore
 export async function storeTokenPrice(
   token: string,
   price: PriceData,
@@ -95,195 +72,142 @@ export async function storeTokenPrice(
   timesToUpdateFirestore: number[]
 ) {
   try {
-    const tokenDocRef = doc(db, "uniqueTokens", token);
-
-    // 🔹 Check if the document exists
-    const docSnapshot = await getDoc(tokenDocRef);
+    const tokenDocRef = adminDB.collection("uniqueTokens").doc(token);
+    const docSnapshot = await tokenDocRef.get();
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-    if (!docSnapshot.exists()) {
-      console.log(`📄 Token ${token} does not exist. Creating document...`);
-      await setDoc(tokenDocRef, {
-        lastUpdated: new Date(),
-        tokenData: tokenData,
-        prices: [price], // Initialize with the first price
-      });
-      console.log(`✅ Created new Firestore document for token: ${token}`);
-    } else {
+    let updatedPrices = [];
+
+    if (docSnapshot.exists) {
       const tokenDataFromDB = docSnapshot.data();
-      let updatedPrices = tokenDataFromDB.prices || [];
+      updatedPrices = (tokenDataFromDB?.prices || []).filter((p: PriceData) => p.timestamp > oneHourAgo);
+    }
 
-      // 🔹 Filter out prices older than 1 hour
-      updatedPrices = updatedPrices.filter((p: PriceData) => p.timestamp > oneHourAgo);
-      
-      // 🔹 Append new price
-      updatedPrices.push(price);
+    updatedPrices.push(price);
 
-      // 🔹 Update Firestore document
-      console.log(`✏️ Updating existing document for token: ${token}`);
-      const updatePerformance = Date.now();
-      await updateDoc(tokenDocRef, {
+    await tokenDocRef.set(
+      {
         lastUpdated: new Date(),
         tokenData: tokenData,
         prices: updatedPrices,
-      });
-      const afterUpdatePerformance = Date.now();
-      timesToUpdateFirestore.push(afterUpdatePerformance - updatePerformance);
-    }
+      },
+      { merge: true }
+    );
 
     console.log(`✅ Price stored for ${token}: $${price.price}`);
-
+    timesToUpdateFirestore.push(Date.now() - oneHourAgo);
   } catch (error) {
     console.error(`❌ Error storing price for ${token}:`, error);
   }
 }
 
-// // 🔹 Function to Delete Prices Older Than 1 Hour
-// async function deleteOldPrices(token: string) {
-//   try {
-//     const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
-//     const tokenDocRef = doc(db, "uniqueTokens", token);
-//     const pricesCollectionRef = collection(tokenDocRef, "prices");
-
-//     const oldPricesQuery = query(pricesCollectionRef, orderBy("timestamp"));
-//     const querySnapshot = await getDocs(oldPricesQuery);
-
-//     querySnapshot.forEach(async (docSnap) => {
-//       if (docSnap.data().timestamp < oneHourAgo) {
-//         await deleteDoc(docSnap.ref);
-//         console.log(`🗑 Deleted old price data for ${token}`);
-//       }
-//     });
-//   } catch (error) {
-//     console.error(`❌ Error deleting old prices for ${token}:`, error);
-//   }
-// }
-
-// 🔹 Function to Fetch All Unique Tokens and Store in Firestore
+// 🔹 Fetch All Unique Tokens and Store in Firestore
 export async function updateUniqueTokens() {
   try {
+    // 🔹 Metrics Tracking
+    let totalUsers = 0;
+    let totalUniqueTokens = 0;
+    let totalUniqueWallets = 0;
+    let totalDeadTokensSkipped = 0;
+    let totalFailedToGetMetadata = 0;
+    let totalSucceededToGetMetadata = 0;
+    let totalFailedPrice = 0;
+    let totalSucceedPrice = 0;
+
     console.log("🔄 Updating unique tokens...");
-    const timesToUpdateFirestore: number[] = []
-    const timesToDeleteFirestore: number[] = []
-    const timesToGetTokenPrice: number[] = []
+    const timesToUpdateFirestore: number[] = [];
+    const timesToGetTokenPrice: number[] = [];
 
     // 🔹 1️⃣ Fetch All Users' Wallets
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    const uniqueTokensSet = new Set<string>(); // Use a Set to avoid duplicates
+    const usersSnapshot = await adminDB.collection("users").get();
+    const uniqueTokensSet = new Set<string>();
+    totalUsers = usersSnapshot.docs.length;
 
-    const uniqueWallets = new Set<string>();
-
-    usersSnapshot.forEach((userDoc) => {
+    usersSnapshot.docs.forEach((userDoc) => {
       const userData = userDoc.data();
-      if (userData.wallets && Array.isArray(userData.wallets)) {
-        userData.wallets.forEach((wallet) => uniqueWallets.add(wallet));
+      if (Array.isArray(userData.wallets)) {
+        totalUniqueWallets += userData.wallets.length;
+        userData.wallets.forEach((wallet) => uniqueTokensSet.add(wallet));
       }
     });
 
+    // 🔹 2️⃣ Fetch Token Data from Blockchain
+    await Promise.all(
+      Array.from(uniqueTokensSet).map((wallet) =>
+        blockchainTaskQueue.addTask(async () => {
+          const publicKey = new PublicKey(wallet);
+          const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
 
-    const walletPromises = Array.from(uniqueWallets).map((wallet) => 
-      blockchainTaskQueue.addTask(async () => {
-        const publicKey = new PublicKey(wallet);
-        const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
-        tokenAccountsForAddress.value.forEach((value) => {
-          const tokenAccountData: TokenAccountData = value.account.data.parsed;
-          if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 0) {
-            uniqueTokensSet.add(tokenAccountData.info.mint);
-          }
-        });
-      }, "Adding task to get all unique tokens across all wallets")
+          tokenAccountsForAddress.value.forEach((value) => {
+            const tokenAccountData: TokenAccountData = value.account.data.parsed;
+            if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 0) {
+              uniqueTokensSet.add(tokenAccountData.info.mint);
+            }
+          });
+        })
+      )
     );
 
-    await Promise.all(walletPromises);
-    console.log("Finished getting " + uniqueTokensSet.size + " unique tokens")
+    totalUniqueTokens = uniqueTokensSet.size;
+    console.log(`✅ Finished fetching ${totalUniqueTokens} unique tokens`);
 
-    const tokenSetTest = new Set<string>()
-    tokenSetTest.add("4h26eponcR8jc3N3EuQZ72ZCpurpGoszvFgGiekTpump")
+    // 🔹 3️⃣ Process Each Token
+    await Promise.all(
+      Array.from(uniqueTokensSet).map(async (token) => {
+        console.log(`🔹 Processing token: ${token}`);
+        const performanceStart = Date.now();
 
-    // 🔹 3️⃣ Fetch Token Prices Using the Queue
-    const tokensFailedToGetPrice: string[] = [];
-    const tokenPricePromises = Array.from(uniqueTokensSet).map(async (token) => {
-        console.log("===========Getting price for token: " + token + "============");
-        const performancePrice = Date.now();
-        const tokenFromFirestore: Token | undefined = await getToken(token);
-        const isTokenDead: boolean = await removeTokenIfDead(token, tokenFromFirestore)
-        if(isTokenDead){
-          return null;
-        }
-        let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
-        if(!tokenMetadata){
-          const newTokenMetadata = await getTokenMetadataFromBlockchain(token)
-          if(newTokenMetadata){
-            tokenMetadata = {
-              name: newTokenMetadata.name,
-              symbol: newTokenMetadata.symbol,
-              uri: newTokenMetadata.uri
-            }
-          } else {
-            console.error("Unable to grab token metadata from blockchain for token: " + token)
-          }
-        }
-        const data: GetPriceResponse | undefined = await getTokenPrice(token, tokenFromFirestore);
-        if(tokenMetadata && data){
-          data.tokenData.tokenMetadata = tokenMetadata
-        }
-        const afterPerformancePrice = Date.now();
-        const timeTakenToGetPrice = afterPerformancePrice - performancePrice;
+        const tokenFromFirestore = await getToken(token);
+        const isTokenDead = await setTokenDead(token, tokenFromFirestore);
 
-        timesToGetTokenPrice.push(timeTakenToGetPrice);
+        if (tokenFromFirestore?.isDead || isTokenDead) {
+          totalDeadTokensSkipped++;
+          return;
+        }
+
+        const tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata || (await getTokenMetadataFromBlockchain(token));
+
+        if (!tokenMetadata) {
+          totalFailedToGetMetadata++;
+        } else {
+          totalSucceededToGetMetadata++;
+        }
+
+        const data = await getTokenPrice(token, tokenFromFirestore);
+        if (data && tokenMetadata) data.tokenData.tokenMetadata = tokenMetadata;
+
+        timesToGetTokenPrice.push(Date.now() - performanceStart);
 
         if (data?.price) {
+          totalSucceedPrice++;
           await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
         } else {
-          tokensFailedToGetPrice.push(token);
+          totalFailedPrice++;
         }
-      }
+      })
     );
 
-    console.log("About to get all token prices with queue");
-    (await Promise.all(tokenPricePromises)).filter(Boolean);
-    console.log(chalk.green("SUCCESSFULLY GOT ALL TOKEN PRICES"))
+    // 🔹 Metrics Summary
+    const totalProcessed = totalSucceedPrice + totalFailedPrice;
+    const metadataFailureRate = (totalFailedToGetMetadata / totalUniqueTokens) * 100;
+    const priceFailureRate = (totalFailedPrice / totalProcessed) * 100;
 
-    if(tokensFailedToGetPrice.length){
-      console.error(`Failed to get price for ${tokensFailedToGetPrice.length}/${uniqueTokensSet.size} (${(tokensFailedToGetPrice.length / uniqueTokensSet.size) * 100}%) tokens: ${tokensFailedToGetPrice.join(",")}`)
-    }
+    const metricsSummary = `
+      ====== API METRICS SUMMARY ======
+      👤 Total Users Processed: ${totalUsers}
+      💰 Total Unique Tokens Found: ${totalUniqueTokens}
+      💼 Total Unique Wallets Checked: ${totalUniqueWallets}
+      ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
+      🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
+      ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
+      ❌ Total Price Fetch Failures: ${totalFailedPrice} (${priceFailureRate.toFixed(2)}%)
+      💵 Total Price Fetch Successes: ${totalSucceedPrice}
+    `;
 
-    const avgTimeToUpdateFirestore = timesToUpdateFirestore.reduce((acc, num) => acc + num, 0) / timesToUpdateFirestore.length
-    const avgTimeToDeleteFirestore = timesToDeleteFirestore.reduce((acc, num) => acc + num, 0) / timesToDeleteFirestore.length
-    const avgTimeToGetTokenPrice = timesToGetTokenPrice.reduce((acc, num) => acc + num, 0) / timesToGetTokenPrice.length
-    const maxTimeToUpdateFirestore = Math.max(...timesToUpdateFirestore)
-    const maxTimeToDeleteFirestore = Math.max(...timesToDeleteFirestore)
-    const maxTimeToGetTokenPrice = Math.max(...timesToGetTokenPrice)
+    console.log(chalk.green(metricsSummary));
 
-    console.log("=====API METRICS=====")
-    console.log("Update firestore: " + avgTimeToUpdateFirestore + " ms (avg) " + maxTimeToUpdateFirestore + " ms (max)")
-    console.log("Delete firestore: " + avgTimeToDeleteFirestore + " ms (avg) " + maxTimeToDeleteFirestore + " ms (max)")
-    console.log("Get token price: " + avgTimeToGetTokenPrice + " ms (avg) " + maxTimeToGetTokenPrice + " ms (max)")
-
-    console.log("✅ Unique tokens updated in Firestore.");
+    return "✅ Unique tokens updated successfully." + metricsSummary
   } catch (error) {
-    console.error("❌ Error updating unique tokens:", error);
+    throw Error("❌ Error updating unique tokens:" + error)
   }
 }
-
-// 🔹 Utility: Exponential Backoff with Jitter. Not in use but leaving here
-// async function getTokenPriceWithBackoff(token: string, tokenFromFirestore: Token | undefined, maxRetries = 5): Promise<GetPriceResponse | undefined> {
-//   const baseDelay = 100; // Initial delay in ms
-//   console.log(chalk.green("In backoff function"))
-//   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-//     try {
-//       // 🔹 Calculate exponential delay with random jitter
-//       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 10000;
-//       console.log(`⏳ Retrying ${token} in ${Math.round(delay)}ms...`);
-//       await new Promise((resolve) => setTimeout(resolve, delay));
-//       return await getTokenPrice(token, tokenFromFirestore);
-//     } catch (error) {
-//       console.error(`⚠️ Error fetching ${token} (Attempt ${attempt + 1}):`, error);
-
-//       if (attempt === maxRetries) {
-//         console.error(`❌ Max retries reached for ${token}, skipping.`);
-//         return undefined;
-//       }
-//     }
-//   }
-// }
