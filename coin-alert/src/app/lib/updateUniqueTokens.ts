@@ -158,9 +158,12 @@ export async function updateUniqueTokens() {
         const performanceStart = Date.now();
 
         const tokenFromFirestore = await getToken(token);
+        if(tokenFromFirestore?.isDead){
+          return
+        }
         const isTokenDead = await setTokenDead(token, tokenFromFirestore);
 
-        if (tokenFromFirestore?.isDead || isTokenDead) {
+        if (isTokenDead) {
           totalDeadTokensSkipped++;
           return;
         }
