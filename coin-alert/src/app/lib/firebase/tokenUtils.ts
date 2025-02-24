@@ -1,5 +1,5 @@
-import { deleteDoc, doc, FirestoreDataConverter, getDoc, Timestamp } from "firebase/firestore";
-import { db } from "../firebase/firebase";
+import { doc, FirestoreDataConverter, getDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { adminDB } from "./firebaseAdmin";
 
 export interface PriceData {
     price: number;
@@ -35,22 +35,24 @@ export interface Token {
     lastUpdated?: Date;
     prices?: PriceData[];
     tokenData?: TokenData;
+    isDead?: boolean;
 }
 
-export async function getTokenCached(token: string, tokenCache: Map<string, Token>){
+export async function getTokenCached(token: string, tokenCache: Map<string, Token>): Promise<[Token | undefined, string]> {
   if(tokenCache.has(token)){
-    return tokenCache.get(token)
+    return [tokenCache.get(token), "cache"]
   } 
   const tokenDb = await getToken(token)
   if(tokenDb){
     tokenCache.set(token, tokenDb)
-    return tokenDb
+    return [tokenDb, "db"]
   }
+  return [undefined, "not_found"]
 
 }
 
 
-export async function removeTokenIfDead(token: string, tokenDb: Token | undefined): Promise<boolean> {
+export async function setTokenDead(token: string, tokenDb: Token | undefined): Promise<boolean> {
   try {
     if (!tokenDb || !tokenDb.prices || tokenDb.prices.length < 2) {
       console.log(`🔹 Not enough price data to determine if ${token} is dead.`);
@@ -58,19 +60,20 @@ export async function removeTokenIfDead(token: string, tokenDb: Token | undefine
     }
 
     const prices = tokenDb.prices;
-    const fourtyFiveMinMs = 45 * 60 * 1000;
+    const fortyFiveMinMs = 45 * 60 * 1000;
 
-    // 🔹 Check if any two price entries are more than 60 minutes apart and identical
+    // 🔹 Check if any two price entries are more than 45 minutes apart and identical
     for (let i = 0; i < prices.length - 1; i++) {
       for (let j = i + 1; j < prices.length; j++) {
         const timeDifference = Math.abs(prices[j].timestamp - prices[i].timestamp);
-        if (timeDifference > fourtyFiveMinMs && prices[i].price === prices[j].price) {
-          console.log(`💀 Token ${token} detected as dead (same price > 45 min apart). Removing...`);
+        if (timeDifference > fortyFiveMinMs && prices[i].price === prices[j].price) {
+          console.log(`💀 Token ${token} detected as dead (same price > 45 min apart). Marking as dead...`);
 
-          // 🔹 Remove the token from Firestore
-          const tokenDocRef = doc(db, "uniqueTokens", token);
-          await deleteDoc(tokenDocRef);
-          console.log(`✅ Token ${token} successfully removed from Firestore.`);
+          // 🔹 Update Firestore to mark the token as dead
+          const tokenDocRef = adminDB.collection("uniqueTokens").doc(token)
+          await tokenDocRef.update({ isDead: true });
+
+          console.log(`✅ Token ${token} successfully marked as dead.`);
           return true;
         }
       }
@@ -79,7 +82,7 @@ export async function removeTokenIfDead(token: string, tokenDb: Token | undefine
     console.log(`🔹 Token ${token} is still active.`);
     return false;
   } catch (error) {
-    console.error(`❌ Error removing dead token ${token}:`, error);
+    console.error(`❌ Error marking token ${token} as dead:`, error);
     return false;
   }
 }
@@ -92,7 +95,8 @@ export const tokenConverter: FirestoreDataConverter<Token> = {
           timestamp: price.timestamp,
           price: price.price,
         })) || [],
-        tokenData: token?.tokenData
+        tokenData: token?.tokenData,
+        isDead: token.isDead || false
       };
     },
     fromFirestore(snapshot, options) {
@@ -103,7 +107,8 @@ export const tokenConverter: FirestoreDataConverter<Token> = {
           timestamp: typeof price.timestamp === "number" ? price.timestamp : (price.timestamp as Timestamp).toMillis(),
           price: price.price,
         })) || [] as PriceData[],
-        tokenData: data?.tokenData
+        tokenData: data?.tokenData,
+        isDead: data?.isDead || false
       };
     },
   };
@@ -113,11 +118,11 @@ export const tokenConverter: FirestoreDataConverter<Token> = {
 // 🔹 Fetch a Token from Firestore
 export async function getToken(tokenId: string): Promise<Token | undefined> {
   try {
-    const tokenDocRef = doc(db, "uniqueTokens", tokenId).withConverter(tokenConverter);
-    const tokenSnapshot = await getDoc(tokenDocRef);
+    const tokenDocRef = adminDB.collection("uniqueTokens").doc(tokenId);
+    const tokenSnapshot = await tokenDocRef.get();
 
-    if (tokenSnapshot.exists()) {
-      return tokenSnapshot.data(); // ✅ Typed as Token
+    if (tokenSnapshot.exists) {
+      return tokenSnapshot.data() as Token; // ✅ Explicitly cast to Token
     }
     
     return undefined;

@@ -1,7 +1,7 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { connection } from "../connection";
-import { AlarmConfig, AlarmType, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
+import { ALARM_CONFIGS_MAX, AlarmConfig, AlarmType, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
 import { PriceData, Token } from "../firebase/tokenUtils";
 import { AlarmPreset } from "../firebase/userUtils";
 import { blockchainTaskQueue } from "../taskQueue";
@@ -44,10 +44,13 @@ export async function getLastHourPrices(token: Token | undefined): Promise<Price
 }
 
 
-export function getAlarmConfig(alarmPreset: AlarmPreset){
+export function getAlarmConfig(alarmPreset: AlarmPreset, userId: string){
     // console.log("Using alarm config: ")
     // console.log(NOISIER_ALARM_CONFIGS)
-    // return ALARM_CONFIGS_MAX
+    if(userId == "D7gDyfspTANknhFTJwYlCEM9NLW2"){
+        return ALARM_CONFIGS_MAX
+    }
+    throw Error("where is jeebs? userId = " + userId)
     if(alarmPreset == "left"){
         return NOISIER_ALARM_CONFIGS
     } 

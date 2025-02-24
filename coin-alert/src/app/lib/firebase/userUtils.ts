@@ -1,6 +1,5 @@
-import { collection, doc, FirestoreDataConverter, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { AlarmType } from "../constants/alarmConstants";
-import { db } from "../firebase/firebase";
+import { adminDB } from "./firebaseAdmin";
 
 export interface RecentNotification {
   timestamp: number;
@@ -13,54 +12,27 @@ export interface RecentNotification {
 export type AlarmPreset = "left" | "right" | "center";
 
 export interface SirenUser {
-  uid: string;           // Firestore User ID (same as Firebase Auth UID)
+  uid: string;
   email?: string;
-  wallets: string[];     // List of wallet addresses
-  tokens?: string[];     // Optional FCM tokens for notifications
-  alarmPreset: AlarmPreset;   // Either left, center, or right 
+  wallets: string[];
+  tokens?: string[];
+  alarmPreset: AlarmPreset;
   isNotificationsOn: boolean;
-  recentNotifications?: Record<string, RecentNotification>; // Firestore stores as Object
+  recentNotifications?: Record<string, RecentNotification>;
 }
 
-// 🔹 Firestore Converter
-const userConverter: FirestoreDataConverter<SirenUser> = {
-  toFirestore(user: SirenUser) {
-    return {
-      uid: user.uid,
-      email: user.email,
-      wallets: user.wallets,
-      tokens: user.tokens || [],
-      alarmPreset: user.alarmPreset,
-      isNotificationsOn: user.isNotificationsOn,
-      recentNotifications: user.recentNotifications || {} // Store as Object
-    };
-  },
-  fromFirestore(snapshot, options) {
-    const data = snapshot.data(options);
-    return {
-      uid: snapshot.id,
-      email: data?.email,
-      wallets: data.wallets,
-      tokens: data.tokens || [],
-      alarmPreset: data.alarmPreset,
-      isNotificationsOn: data.isNotificationsOn,
-      recentNotifications: data.recentNotifications || {} // Convert back to Object
-    };
-  }
-};
-
-// 🔹 Fetch a User From Firestore
+// 🔹 Fetch a User From Firestore (Using Admin SDK)
 export async function getUser(uid: string): Promise<SirenUser | null> {
   try {
-    console.log("User uid to get from DB: " + uid);
-    const userDocRef = doc(db, "users", uid).withConverter(userConverter);
-    const userSnapshot = await getDoc(userDocRef);
+    console.log("Fetching user from Firestore: " + uid);
+    const userDocRef = adminDB.collection("users").doc(uid);
+    const userSnapshot = await userDocRef.get();
 
-    if (userSnapshot.exists()) {
-      return userSnapshot.data(); // ✅ Typed as User
+    if (!userSnapshot.exists) {
+      return null;
     }
 
-    return null;
+    return userSnapshot.data() as SirenUser;
   } catch (error) {
     console.error(`❌ Error fetching user ${uid}:`, error);
     return null;
@@ -70,29 +42,30 @@ export async function getUser(uid: string): Promise<SirenUser | null> {
 // 🔹 Fetch All Users from Firestore
 export async function getAllUsers(): Promise<SirenUser[]> {
   try {
-    const usersCollectionRef = collection(db, "users").withConverter(userConverter);
-    const usersSnapshot = await getDocs(usersCollectionRef);
+    const usersCollectionRef = adminDB.collection("users");
+    const usersSnapshot = await usersCollectionRef.get();
 
-    // ✅ Convert Firestore Documents into User Objects
-    const users: SirenUser[] = usersSnapshot.docs.map((doc) => doc.data());
-
+    const users: SirenUser[] = usersSnapshot.docs.map((doc) => {
+      console.log("doc data: " + JSON.stringify(doc.data()))
+      return doc.data() as SirenUser}
+    );
     console.log(`✅ Fetched ${users.length} users from Firestore`);
+
     return users;
   } catch (error) {
-    console.error("❌ Error fetching users:", error);
-    return []; // Return an empty array if there's an error
+    throw Error("❌ Error fetching users:" + error);
   }
 }
 
 // 🔹 Function to Update User Data
 export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
   try {
-    const userDocRef = doc(db, "users", uid).withConverter(userConverter);
+    const userDocRef = adminDB.collection("users").doc(uid);
 
     // 🔹 Fetch the current user document
-    const userSnapshot = await getDoc(userDocRef);
+    const userSnapshot = await userDocRef.get();
 
-    if (!userSnapshot.exists()) {
+    if (!userSnapshot.exists) {
       console.warn(`⚠️ User ${uid} does not exist. Creating a new user document...`);
       const newUser: SirenUser = {
         uid,
@@ -100,19 +73,19 @@ export async function updateUserData(uid: string, newData: Partial<SirenUser>) {
         tokens: newData.tokens || [],
         wallets: newData.wallets || [],
         alarmPreset: newData.alarmPreset || "center",
-        isNotificationsOn: newData.isNotificationsOn === undefined ? true : newData.isNotificationsOn,
-        recentNotifications: newData.recentNotifications || {}
+        isNotificationsOn: newData.isNotificationsOn ?? true,
+        recentNotifications: newData.recentNotifications || {},
       };
-      await setDoc(userDocRef, newUser);
+      await userDocRef.set(newUser);
       console.log(`✅ Created new user document for ${uid}.`);
       return;
     }
 
     // 🔹 Merge new data with existing user data
-    await updateDoc(userDocRef, newData);
+    await userDocRef.update(newData);
     console.log(`✅ Successfully updated user ${uid} in Firestore.`);
   } catch (error) {
-    console.error(`❌ Error updating user ${uid}:`, error);
+    throw Error(`❌ Error updating user ${uid}:` + error)
   }
 }
 
@@ -130,18 +103,18 @@ export async function updateRecentNotification(
   notification: RecentNotification
 ) {
   try {
-    const userDocRef = doc(db, "users", uid).withConverter(userConverter);
+    const userDocRef = adminDB.collection("users").doc(uid);
 
-    // 🔹 Fetch the current user document using the converter
-    const userSnapshot = await getDoc(userDocRef);
-    if (!userSnapshot.exists()) {
+    // 🔹 Fetch the current user document
+    const userSnapshot = await userDocRef.get();
+    if (!userSnapshot.exists) {
       console.warn(`⚠️ User ${uid} not found.`);
       return;
     }
 
     // 🔹 Get current user data
     const userData = userSnapshot.data() as SirenUser;
-    const recentNotifications = { ...userData.recentNotifications }; // Copy existing notifications
+    const recentNotifications = { ...userData.recentNotifications };
 
     // 🔹 Generate key in format "SOL_5"
     const key = `${token}_${minutes}`;
@@ -149,12 +122,11 @@ export async function updateRecentNotification(
     // 🔹 Update or insert new notification
     recentNotifications[key] = notification;
 
-    // console.log(` Updating recentNotifications for user ${uid} at ${minutes} minutes for token ${token}.`);
     // 🔹 Update Firestore document
-    await updateDoc(userDocRef, { recentNotifications });
+    await userDocRef.update({ recentNotifications });
 
     console.log(`✅ Updated recentNotifications for user ${uid} at ${minutes} minutes for token ${token}.`);
   } catch (error) {
-    throw new Error(`❌ Error updating recentNotifications for user ${uid}: ${error}`);
+    throw Error(`❌ Error updating recentNotifications for user ${uid}:` + error)
   }
 }
