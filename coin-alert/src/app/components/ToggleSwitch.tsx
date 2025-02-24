@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import "./ToggleSwitch.css"; // Import external CSS
 
 interface ToggleSwitchProps {
-  label: string; // Static text on the left
+  label?: string; // Static text on the left
   isOn: boolean; // External state that may change
   onToggle: (newState: boolean) => void; // Function to call when toggled
 }

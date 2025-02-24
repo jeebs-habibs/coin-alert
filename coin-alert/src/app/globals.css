@@ -2,6 +2,7 @@
   --background: #deddce;
   --foreground: #000d2f;
   --primary-color: #1b7982;
+  --primary-color-rgb: 27, 121, 130; /* Manually extract RGB */
   --secondary-color: #deddce;
   --danger-color: #db0000;
   --grey-color: #757575;

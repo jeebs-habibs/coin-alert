@@ -1,10 +1,12 @@
 'use client'
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "../lib/firebase/auth";
 import { useAuth } from "../providers/auth-provider";
 import { Button } from "./Button";
+
 
 export const AppHeader = () => {
     const router = useRouter();
@@ -43,6 +45,13 @@ export const AppHeader = () => {
     return (
       <header>
         <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+          <Image 
+            src="/sirenLogo.png" 
+            alt="Siren Logo"
+            width={50}  // Adjust as needed
+            height={50} // Adjust as needed
+            priority 
+          />
           {authContent}
         </div>
       </header>

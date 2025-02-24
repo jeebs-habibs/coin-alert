@@ -1,4 +1,4 @@
-.page {
+/* .page {
   --gray-rgb: 0, 0, 0;
   --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
   --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
@@ -13,7 +13,15 @@
   min-height: 100svh;
   padding: 80px;
   gap: 64px;
-  font-family: var(--font-geist-sans);
+} */
+
+
+.hr {
+  border: none;               /* Remove default border */
+  height: 2px;                /* Thin line */
+  background-color: rgb(var(--primary-color-rgb), .40); /* Use the primary color */
+  margin: 20px 0;             /* Add vertical spacing */
+  width: 100%;                /* Full width */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,11 +35,21 @@
   }
 }
 
+.notification {
+  display: flex;
+  align-items: center;  /* Align text and toggle vertically */
+  gap: 10px;  /* Space between elements */
+}
+
 .main {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 32px;
   grid-row-start: 2;
+  color: var(--primary-color)
+
 }
 
 .main ol {

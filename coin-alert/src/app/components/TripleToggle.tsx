@@ -76,7 +76,7 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
     const { switchPosition, animation } = this.state;
 
     return (
-        <div>
+        <div className="outsideDiv">
       <div className="main-container" style={{ position: "relative", display: "inline-block" }}>
         <div className={`switch ${animation} ${switchPosition}-position`}></div>
 

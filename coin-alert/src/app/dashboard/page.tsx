@@ -8,10 +8,10 @@ import { FaTrash } from "react-icons/fa";
 import { Button } from "../components/Button";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
+import styles from "../dashboard/page.module.css";
 import { db, messaging } from "../lib/firebase/firebase";
 import { SirenUser } from "../lib/firebase/userUtils";
 import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
-import styles from "../page.module.css";
 import { useAuth } from "../providers/auth-provider";
 
 async function unRegisterMultipleWorkers(){
@@ -27,7 +27,7 @@ async function unRegisterMultipleWorkers(){
         });
 
   } else {
-    console.log("Service worker already detected")
+    console.log("No service worker or serice worker registered already")
     //alert("ERROR: Failed to register service worker")
   }
 
@@ -238,10 +238,16 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-      <h1>Notification Settings</h1>
-      <ToggleSwitch label="Notifications on/off" isOn={isNotificationsOn === undefined ? true : isNotificationsOn} onToggle={(value) => setIsNotificationsOn(value)} />
+        <h1>Dashboard</h1>
+        <div className={styles.notification}>
+          <h2>Notifications</h2>
+          <ToggleSwitch isOn={isNotificationsOn === undefined ? true : isNotificationsOn} onToggle={(value) => setIsNotificationsOn(value)} />
+        </div>
+
       <div className={isNotificationsOn == false ? "disabled-div" : ""}>
       <TripleToggleSwitch labels={labels} onChange={(e: TogglePosition | undefined) => setNewAlarmPreset(e)} activePosition={newAlarmPreset}/>
+      <hr className={styles.hr} />
+
       <h1 style={{margin: "10px"}}>Wallet addresses</h1>
       {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">

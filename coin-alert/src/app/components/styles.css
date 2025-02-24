@@ -3,7 +3,7 @@ input[type="radio"] {
 }
 
 label {
-    color: white;
+    color: var(--primary-color);
     z-index: 10;
     cursor: pointer;
 }
@@ -13,17 +13,13 @@ h4 {
     font-weight: 500;
 }
 
-.black-font {
-    color: black !important;
-}
-
 .main-container {
     display: inline-block;
     vertical-align: middle;
     width: 250px;
     height: 50px;
     border-radius: 100px;
-    background-color: #4d4d4d;
+    background-color: rgba(var(--primary-color-rgb), 0.21);
     position: relative; /* Changed from absolute to relative */
     box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.5);
 }
@@ -31,12 +27,19 @@ h4 {
 .switch {
     height: 44px;
     width: 80px;
-    background-color: white;
+    background-color: rgba(var(--primary-color-rgb), 0.40);
     border-radius: 100px;
     position: absolute;
     left: 3px;
     top: 3px;
     transition: ease-in;
+}
+
+.outsideDiv {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 /*---------------- LEFT ------------------- */
@@ -180,7 +183,7 @@ h4 {
 
 
 .toggle-description {
-    margin-top: 10px;
+    margin-top: 15px;
     text-align: center;
     font-size: 14px;
 }
