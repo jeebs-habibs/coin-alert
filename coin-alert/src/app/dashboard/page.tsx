@@ -249,7 +249,7 @@ export default function Dashboard() {
       <TripleToggleSwitch labels={labels} onChange={(e: TogglePosition | undefined) => setNewAlarmPreset(e)} activePosition={newAlarmPreset}/>
       <hr className={styles.hr} />
 
-      <h1 style={{margin: "10px"}}>Wallet addresses</h1>
+      <h2 style={{margin: "10px"}}>Wallet addresses</h2>
       {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">
         <div className={styles.existingWallets}>
