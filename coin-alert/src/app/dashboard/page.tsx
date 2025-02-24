@@ -4,7 +4,7 @@ import { PublicKey } from "@solana/web3.js";
 import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
 import { useEffect, useState } from "react";
-import { FaTrash } from "react-icons/fa";
+import { FaMinus, FaPlus } from "react-icons/fa";
 import { Button } from "../components/Button";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
@@ -13,6 +13,7 @@ import { db, messaging } from "../lib/firebase/firebase";
 import { SirenUser } from "../lib/firebase/userUtils";
 import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
 import { useAuth } from "../providers/auth-provider";
+
 
 async function unRegisterMultipleWorkers(){
   if ('serviceWorker' in navigator && !(await navigator.serviceWorker.getRegistration())?.active) {
@@ -109,7 +110,7 @@ export default function Dashboard() {
   const handleAddWallet = async () => {
     if (!newWallet || !isValidSolanaAddress(newWallet) || wallets.includes(newWallet)) {
       setError("Error saving Solana wallet address")
-      console.error("Error saving Solana wallet address")
+      alert("Error saving Solana address. Please verify the address is valid.")
       return;
     }
 
@@ -251,29 +252,30 @@ export default function Dashboard() {
       <h1 style={{margin: "10px"}}>Wallet addresses</h1>
       {/* <p className="red-text">{error}</p> */}
       <div className="w-full max-w-md">
-        <div className="mb-4">
+        <div className={styles.existingWallets}>
           <input
             type="text"
             value={newWallet}
             onChange={(e) => setNewWallet(e.target.value)}
-            placeholder="Enter new wallet address"
-            className="textInput"
+            placeholder="Enter new address"
+            className={styles.textInput}
           />
-          <Button
+          <button
             disabled={!newWallet.length}
             onClick={handleAddWallet}
+            className="iconButton"
           >
-            Add Wallet
-          </Button>
+            <FaPlus size={30} color="#1b7982"/>
+          </button>
         </div>
 
         <div>
           {wallets.map((wallet) => (
-            <div key={wallet} className="flex justify-between items-center">
-              <span className="m-2">{shortenString(wallet)}</span>
-              <Button variant="danger" size="sm" onClick={() => handleRemoveWallet(wallet)}>
-              <FaTrash  />
-              </Button>
+            <div key={wallet} className={styles.existingWallets}>
+              <div className={styles.walletDisplay}>{shortenString(wallet)}</div>
+              <button className="iconButton" onClick={() => handleRemoveWallet(wallet)}>
+                <FaMinus size={30} color="red"/>
+              </button>
               
             </div>
           ))}

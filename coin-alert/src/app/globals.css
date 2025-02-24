@@ -54,6 +54,38 @@ a {
 }
 
 
+.iconButton {
+  display: flex; /* Enables flexbox */
+  align-items: center; /* Centers vertically */
+  justify-content: center; /* Centers horizontally */
+  border: none;
+  margin: 5px;
+  max-width: 150px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, filter 0.2s ease-in-out;
+  background-color: transparent;
+  padding: 8px; /* Adds padding to prevent squishing */
+  border-radius: 8px; /* Optional: Adds rounded corners */
+}
+
+/* Optional: Hover effect */
+.iconButton:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* If you want a fixed square button */
+.iconButton.square {
+  width: 50px;
+  height: 50px;
+}
+
+
+.iconButton:hover {
+  filter: brightness(1.15);
+  transform: scale(1.05);
+  transition: all .03s ease-in-out;
+}
+
 
 .textInput {
   padding: 10px 15px;

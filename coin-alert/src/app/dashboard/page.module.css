@@ -41,6 +41,36 @@
   gap: 10px;  /* Space between elements */
 }
 
+.existingWallets {
+  display: flex;
+  flex-direction: row;
+}
+
+.walletDisplay {
+  display: flex;
+  align-items: center; /* Centers vertically */
+  align-self: center;
+  justify-content: center; /* Centers horizontally (optional) */
+  width: 80%;
+  height: 30px;
+  border: #1a1a1a;
+  text-align: center;
+  align-items: center;
+  background-color: rgba(26, 188, 156, 0.12); /* 12% opacity primary color */
+  border-radius: 15px; /* Rounded corners */
+}
+
+.textInput {
+  width: 80%;
+  padding: 10px 15px;
+  align-self: center;
+  border: none;
+  color: var(--primary-color);
+  border-radius: 15px; /* Rounded corners */
+  outline: none;
+  transition: all 0.3s ease-in-out;
+  background-color: rgba(26, 188, 156, 0.12); /* 12% opacity primary color */
+}
 .main {
   display: flex;
   flex-direction: column;

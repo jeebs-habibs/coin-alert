@@ -21,7 +21,6 @@ h4 {
     border-radius: 100px;
     background-color: rgba(var(--primary-color-rgb), 0.21);
     position: relative; /* Changed from absolute to relative */
-    box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.5);
 }
 
 .switch {
@@ -178,7 +177,6 @@ h4 {
     font-size: 20px;
     white-space: nowrap;
     z-index: 999999;
-    box-shadow: 15px 15px 18px 1px rgba(0, 0, 0, 0.7);
 }
 
 
