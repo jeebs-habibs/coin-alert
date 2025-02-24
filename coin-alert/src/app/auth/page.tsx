@@ -16,7 +16,7 @@ export default function Auth(){
       <div className="main">
         {
           !auth.user ?       <div>
-          <h1 style={{margin: "10px"}}>Please sign in</h1>
+          <h2 style={{margin: "10px"}}>Please sign in</h2>
           <GoogleButton onClick={signInWithGoogle}>Sign In with Google</GoogleButton>
         </div> : <>      
         <Button variant="primary" onClick={() => router.push("/dashboard")}>My dashboard</Button>

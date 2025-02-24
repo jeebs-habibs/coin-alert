@@ -1,6 +1,6 @@
 :root {
   --background: #deddce;
-  --foreground: #000d2f;
+  --foreground: #020922;
   --primary-color: #1b7982;
   --primary-color-rgb: 27, 121, 130; /* Manually extract RGB */
   --secondary-color: #deddce;
@@ -17,7 +17,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000d2f;
+    --background: #020922;
     --foreground: #deddce;
   }
 }
