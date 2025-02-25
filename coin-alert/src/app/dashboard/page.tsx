@@ -249,9 +249,10 @@ export default function Dashboard() {
       <TripleToggleSwitch labels={labels} onChange={(e: TogglePosition | undefined) => setNewAlarmPreset(e)} activePosition={newAlarmPreset}/>
       <hr className={styles.hr} />
 
-      <h2 style={{margin: "10px"}}>Wallet addresses</h2>
+      
       {/* <p className="red-text">{error}</p> */}
-      <div className="w-full max-w-md">
+      <div className={styles.walletAddresses}>
+        <h2 style={{margin: "10px"}}>Wallet addresses</h2>
         <div className={styles.existingWallets}>
           <input
             type="text"
@@ -269,7 +270,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div>
           {wallets.map((wallet) => (
             <div key={wallet} className={styles.existingWallets}>
               <div className={styles.walletDisplay}>{shortenString(wallet)}</div>
@@ -279,7 +279,7 @@ export default function Dashboard() {
               
             </div>
           ))}
-        </div>
+        
         </div>
         </div>
         <div className="w-full max-w-md">
