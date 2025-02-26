@@ -65,13 +65,41 @@ Total writes: (AT) + SecondAPI(RNS) = 5000
 
 
 Future:
-- Get unique tokens from blockchain
+Every minute (or 2):
+- Get all users from database 
+- Get all unique tokens from blockchain
 - For each token, get token from db and check if its dead
 - If its dead, skip updating the price
+- If not dead, update price
 
+Reads: U + T
+Writes: AT
 
 Lets try and make 1 API
 
+If persistent server:
+- fetch user data from DB and cache it every 10 minutes
+- Every minute, update map of user -> (tokensHeld) from chain. From this, get all unique tokens held from all users
+- If token is dead, skip getting data for it. 
+- If not, get token metadata if not present in map of token -> tokenData , and get price and update map with last hour of prices
+- Loop through each user tokens and if a token price change breaches threshold (and no noti cooldown)
+
+Read U from Firestore every 10 minutes 
+Calling chain AT times per minute
+
+What does this save?
+- Only refreshing user data every 10 minutes rather than every minute. User data we need: wallets, notification settings...anything else?
+- No more reading Firestore for token data (save T reads per minute)
+- No more writing Firestore for token data (save AT writes per minute)
+- No more writing recent notifications to firestore (storing locally)
+
+Open questions:
+- If we extend dead check to a couple days, where will we store this price? Will we still need to store token price?
+    Maybe only check dead tokens once every few days? Idk
+- Do db savings outweight ec2 costs? https://aws.amazon.com/ec2/pricing/on-demand/  seems like 30-60$ a month avg
+
+
+50$ quicknode a month for live price fetching. $$ a month for databse with current structure vs $$ a month with 1 API vs $$ a month with dedicated server.
 
 
 ## Server decision

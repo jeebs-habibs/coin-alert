@@ -12,13 +12,22 @@ import { getTokenPricePump } from "./utils/pumpUtils";
 import { getTokenPriceRaydium } from "./utils/raydiumUtils";
 import { TokenAccountData } from "./utils/solanaUtils";
 
+// 🔹 Metrics Tracking
+let totalUsers = 0;
+let totalUniqueTokens = 0;
+let totalUniqueWallets = 0;
+let totalDeadTokensSkipped = 0;
+let totalFailedToGetMetadata = 0;
+let totalSucceededToGetMetadata = 0;
+let totalFailedPrice = 0;
+let totalSucceedPrice = 0;
 
 // 🔹 Fetch Metadata from Metaplex
 async function getTokenMetadataMetaplex(token: string) {
   const mint = publicKey(token);
   try {
     const asset = await fetchDigitalAsset(umi, mint);
-    console.log(chalk.green(`✅ Got metadata for token: ${token}`));
+    //console.log(chalk.green(`✅ Got metadata for token: ${token}`));
     return {
       name: asset.metadata.name,
       symbol: asset.metadata.symbol,
@@ -94,7 +103,7 @@ export async function storeTokenPrice(
       { merge: true }
     );
 
-    console.log(`✅ Price stored for ${token}: $${price.price}`);
+    //console.log(`✅ Price stored for ${token}: $${price.price}`);
     timesToUpdateFirestore.push(Date.now() - oneHourAgo);
   } catch (error) {
     console.error(`❌ Error storing price for ${token}:`, error);
@@ -104,15 +113,6 @@ export async function storeTokenPrice(
 // 🔹 Fetch All Unique Tokens and Store in Firestore
 export async function updateUniqueTokens() {
   try {
-    // 🔹 Metrics Tracking
-    let totalUsers = 0;
-    let totalUniqueTokens = 0;
-    let totalUniqueWallets = 0;
-    let totalDeadTokensSkipped = 0;
-    let totalFailedToGetMetadata = 0;
-    let totalSucceededToGetMetadata = 0;
-    let totalFailedPrice = 0;
-    let totalSucceedPrice = 0;
 
     console.log("🔄 Updating unique tokens...");
     const timesToUpdateFirestore: number[] = [];
@@ -154,7 +154,7 @@ export async function updateUniqueTokens() {
     // 🔹 3️⃣ Process Each Token
     await Promise.all(
       Array.from(uniqueTokensSet).map(async (token) => {
-        console.log(`🔹 Processing token: ${token}`);
+        //console.log(`🔹 Processing token: ${token}`);
         const performanceStart = Date.now();
 
         const tokenFromFirestore = await getToken(token);

@@ -3,9 +3,19 @@ import { getTokenCached, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+import chalk from "chalk";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
+// Metrics
+let numberOfNotisSkipped = 0
+let totalNumberOfTokensGottenFromDB = 0
+let totalNumberOfTokensGottenFromCache = 0
+let totalNumberOfUsers = 0
+let totalNumberOfWallets = 0
+let totalUsersSkipped = 0
+let totalNumberOfDeadTokens = 0
+let totalNotisSent = 0
 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
@@ -56,14 +66,7 @@ export async function GET(req: Request) {
 
   try {
 
-    // Metrics
-    let numberOfNotisSkipped = 0
-    let totalNumberOfTokensGottenFromDB = 0
-    let totalNumberOfTokensGottenFromCache = 0
-    let totalNumberOfUsers = 0
-    let totalNumberOfWallets = 0
-
-    console.log("🔄 Checking price alerts for users...");
+    //console.log("🔄 Checking price alerts for users...");
 
     const usersSnapshot = await getAllUsers();
     const notificationsToSend: (NotificationReturn | null)[] = [];
@@ -71,7 +74,12 @@ export async function GET(req: Request) {
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
       totalNumberOfUsers++
-      if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn) return; // Skip users with no wallets or with notis turned off
+
+      // Skip users with no wallets or with notis turned off
+      if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn){
+        totalUsersSkipped++ 
+        return
+      }
 
       //console.log(`👤 Checking tokens for user: ${JSON.stringify(user)} (${user.wallets.join(",")})`);
 
@@ -97,6 +105,7 @@ export async function GET(req: Request) {
           totalNumberOfTokensGottenFromCache++
         }
         if(tokenObj[0]?.isDead){
+          totalNumberOfDeadTokens++
           return null;
         }
         // const isTokenDead = await setTokenDead(token, tokenObj[0])
@@ -136,11 +145,11 @@ export async function GET(req: Request) {
           }
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
-          console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
+          //console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
           if (priceChange > config[1].criticalAlarmPercentage || priceChange < (config[1].criticalAlarmPercentage * -1)) {
-            console.log("Critical alert. Price changed "  + priceChange + " %, which is over/under threshold of " + config[1].criticalAlarmPercentage)
+            //console.log("Critical alert. Price changed "  + priceChange + " %, which is over/under threshold of " + config[1].criticalAlarmPercentage)
             alertType = "critical";
             alarmedConfig = config[1]
             percentChange = priceChange
@@ -151,7 +160,7 @@ export async function GET(req: Request) {
 
           // 🔹 4️⃣ If Change > 10%, Send Normal Alert
           if (priceChange > config[1].standardAlarmPercentage || priceChange < (config[1].standardAlarmPercentage * -1)) {
-            console.log("Normal alert. Price changed "  + priceChange + " %, which is over/under threshold of " + config[1].standardAlarmPercentage)
+            //console.log("Normal alert. Price changed "  + priceChange + " %, which is over/under threshold of " + config[1].standardAlarmPercentage)
             alertType = "normal";
             alarmedConfig = config[1]
             percentChange = priceChange
@@ -191,6 +200,7 @@ export async function GET(req: Request) {
     await Promise.all(
       notificationsToSend.map((notification) => {
         if(notification != null){
+          totalNotisSent++
           sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached, tokensCache.get(notification.token))
         }
       })
@@ -199,13 +209,17 @@ export async function GET(req: Request) {
     const endTime = Date.now()
     const timeInSeconds = (endTime - startTime) / 1000
     const metrics = `
+      time = ${timeInSeconds} seconds
       numberOfNotisSkipped = ${numberOfNotisSkipped}
       totalNumberOfTokensGottenFromDB = ${totalNumberOfTokensGottenFromDB}
       totalNumberOfTokensGottenFromCache = ${totalNumberOfTokensGottenFromCache}
       totalNumberOfUsers = ${totalNumberOfUsers}
       totalNumberOfWallets = ${totalNumberOfWallets}
+      totalNumberOfDeadTokens = ${totalNumberOfDeadTokens}
+      totalNotisSent = ${totalNotisSent}
+      totalUsersSkipped = ${totalUsersSkipped}
     `
-    console.log(`✅ Price alerts processed in ${timeInSeconds} seconds.`);
+    console.log(chalk.green("API METRICS \n" + metrics))
     return new Response(JSON.stringify({ message: "Alerts checked successfully in " + timeInSeconds + " seconds. \n ======Metrics===== \n " + metrics }), { status: 200 });
   } catch (error) {
     console.error("❌ Error checking price alerts:", error);

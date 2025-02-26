@@ -80,10 +80,10 @@ export async function sendNotification(
       : tokenSliced;
     const increaseOrDecrease = priceChange > 0 ? "up" : "down";
     const stonkEmoji = priceChange > 0 ? "📈" : "📉";
-    const alertEmoji = alertType === "critical" ? "🚨" : "🟡";
+    const alertEmoji = alertType === "critical" ? "🚨" : "";
 
     const notificationTitle = `${alertEmoji} ${symbolOrToken} ${increaseOrDecrease} ${priceChange.toFixed(2)}% in ${minutes} minutes`;
-    const notificationBody = `${stonkEmoji} ${tokenSliced} breached threshold of ${percentageBreached}.`;
+    const notificationBody = `${stonkEmoji} ${tokenSliced} breached threshold of ${percentageBreached}%`;
 
     for (const fcmToken of userData.tokens) {
       console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`);
