@@ -101,6 +101,10 @@ Open questions:
 
 50$ quicknode a month for live price fetching. $$ a month for databse with current structure vs $$ a month with 1 API vs $$ a month with dedicated server.
 
+looking at 110 a month
+
+if we sell it for .1 SOL a month, would need 10 active users a month to profit
+
 
 ## Server decision
 Problem statement: We are hitting daily firestore usage limit when running every 2 minutes for about 4 hours. We need a solution so we can scale more easily.

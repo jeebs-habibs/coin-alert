@@ -46,7 +46,7 @@ export async function getAllUsers(): Promise<SirenUser[]> {
     const usersSnapshot = await usersCollectionRef.get();
 
     const users: SirenUser[] = usersSnapshot.docs.map((doc) => {
-      console.log("doc data: " + JSON.stringify(doc.data()))
+      //console.log("doc data: " + JSON.stringify(doc.data()))
       return doc.data() as SirenUser}
     );
     console.log(`✅ Fetched ${users.length} users from Firestore`);
