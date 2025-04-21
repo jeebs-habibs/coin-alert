@@ -120,9 +120,10 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     // console.log("Sol vault amount: " + convertedSolAmount)
 
     const price = convertedTokenAmount == 0 ? 0 : convertedSolAmount/convertedTokenAmount
+    const marketCap = convertedTokenAmount * price
     if(price){
         return {
-            price: {price, timestamp: new Date().getTime()}, 
+            price: {price, marketCap, timestamp: new Date().getTime()}, 
             tokenData: {...finalTokenData, pool: "raydium"}
         }
     } else {

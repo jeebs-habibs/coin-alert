@@ -198,6 +198,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
         const returnVal: GetPriceResponse = {
             price: {
                 price: price, 
+                marketCap: pumpSwap.baseMint.toString() == token ? price * baseBalance : price * quoteBalance,
                 timestamp: new Date().getTime()
             }, 
             tokenData: { pool: "pump-swap"}
@@ -229,6 +230,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
         return {
             price: {
                 price: price, 
+                marketCap: price * virtualTokenReserves,
                 timestamp: new Date().getTime()
             }, 
             tokenData: { pool: "pump"}
