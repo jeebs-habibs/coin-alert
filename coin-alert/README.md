@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## TODO
+- Include MarketCap in notis
+- Dont notify if it contains word infinity in it
+- Clean up home page styling, make thresholds clearer and customizable
+- Add recent notis to dashboard 
+
+
+
+
+
 ## Issues
 
 ### Duplicate Notis
