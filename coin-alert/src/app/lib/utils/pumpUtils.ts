@@ -84,9 +84,7 @@ async function fetchPumpSwapAMM(mint: PublicKey): Promise<PumpPoolData | undefin
             }
         )) 
     }
-    console.log("found " + accounts.length + " pump swap pool accounts for token: " + mint.toString())
-    console.log("Account pubkey: " + accounts.at(0)?.pubkey)
-    // console.log("Raw data: " + accounts.at(0)?.account.data)
+
     const firstAccount = accounts.at(0)
     if(firstAccount == undefined || firstAccount == null){
         return undefined
@@ -96,11 +94,7 @@ async function fetchPumpSwapAMM(mint: PublicKey): Promise<PumpPoolData | undefin
 
 
     if(data){
-      console.log(data.slice(0, 10).toString('hex'));
-
-      console.log("Buffer length: " + data.length)
       const parsedData = pumpSwapSchema.decode(data)
-      console.log(JSON.stringify(parsedData))
       return {
         quoteVault: new PublicKey(parsedData.pool_quote_token_account),
         baseVault: new PublicKey(parsedData.pool_base_token_account),
@@ -203,7 +197,6 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
             }, 
             tokenData: { pool: "pump-swap"}
         }
-        console.log("Got price: " + JSON.stringify(returnVal) + " for token: " + token)
         return returnVal
     }
     const bondingCurveAccount = await getBondingCurveAddress(token)
