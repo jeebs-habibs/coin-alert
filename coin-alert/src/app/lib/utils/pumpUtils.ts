@@ -201,7 +201,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
     }
     const bondingCurveAccount = await getBondingCurveAddress(token)
 
-    const accountInfo = await connection.getParsedAccountInfo(bondingCurveAccount)
+    const accountInfo = await blockchainTaskQueue.addTask(() => connection.getParsedAccountInfo(bondingCurveAccount)) 
 
     const accountData = accountInfo.value?.data as Buffer;
     if (accountData) {
