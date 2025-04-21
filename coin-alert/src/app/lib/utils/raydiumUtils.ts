@@ -86,10 +86,10 @@ async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolD
 export async function getTokenPriceRaydium(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
     let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
     if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){
-        const timeBeforeFetchPoolAccounts = new Date().getTime()
+        // const timeBeforeFetchPoolAccounts = new Date().getTime()
         const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
-        const timeAfterFetchPoolAccounts = new Date().getTime()
-        const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
+        // const timeAfterFetchPoolAccounts = new Date().getTime()
+        // const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
         // console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
         finalTokenData = {
             ...finalTokenData, 
