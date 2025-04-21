@@ -1,12 +1,10 @@
+import { web3 } from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
+import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { connection } from "../connection";
 import { GetPriceResponse } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
-import { NATIVE_MINT } from "@solana/spl-token";
-import { web3 } from "@coral-xyz/anchor";
-import { parse } from "path";
-import { getToken } from "next-auth/jwt";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
 const PUMP_SWAP_PROGRAM = new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
@@ -193,7 +191,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
         if(baseBalance == null || quoteBalance == null){
             return undefined
         }
-        var price = 0
+        let price = 0
         if(quoteBalance != 0 && baseBalance != 0){
             price = pumpSwap.baseMint.toString() == token ? (quoteBalance/baseBalance) : (baseBalance/quoteBalance)
         }
