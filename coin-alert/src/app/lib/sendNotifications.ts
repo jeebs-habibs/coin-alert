@@ -1,5 +1,4 @@
-import { adminDB } from "../lib/firebase/firebaseAdmin";
-import { messaging } from "../lib/firebase/firebaseAdmin";
+import { adminDB, messaging } from "../lib/firebase/firebaseAdmin";
 import { AlarmType } from "./constants/alarmConstants";
 import { Token } from "./firebase/tokenUtils";
 import { updateRecentNotification } from "./firebase/userUtils";
@@ -87,10 +86,19 @@ export async function sendNotification(
 
     for (const fcmToken of userData.tokens) {
       console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`);
+      const image = tokenObj?.tokenData?.tokenMetadata?.image
+      const notification = image ? {
+        title: notificationTitle, 
+        body: notificationBody, 
+        imageUrl: image,
+      } :  {
+        title: notificationTitle, 
+        body: notificationBody, 
+      }
       await messaging
         .send({
           token: fcmToken,
-          notification: { title: notificationTitle, body: notificationBody },
+          notification,
           android: { priority: alertType === "critical" ? "high" : "normal" },
           apns: { payload: { aps: { sound: alertType === "critical" ? "emergency" : "default" } } },
         })

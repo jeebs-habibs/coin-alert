@@ -23,6 +23,30 @@ let totalFailedPrice = 0;
 let totalSucceedPrice = 0;
 let totalUniqueWallets = 0;
 
+interface URIMetadata {
+  name: string;
+  image: string;
+  symbol: string;
+  description: string;
+}
+
+async function fetchJsonFromUri(uri: string): Promise<URIMetadata> {
+  try {
+    const response = await fetch(uri);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch JSON from ${uri}: ${response.status} ${response.statusText}`);
+    }
+
+    const data: URIMetadata = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching JSON:", error);
+    throw error;
+  }
+}
+
+
 // 🔹 Fetch Metadata from Metaplex
 async function getTokenMetadataMetaplex(token: string) {
   const mint = publicKey(token);
@@ -44,11 +68,29 @@ async function getTokenMetadataMetaplex(token: string) {
 async function getTokenMetadataFromBlockchain(token: string) {
   const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
 
-  if (metaplexMetadata) return metaplexMetadata;
+  if (metaplexMetadata){
+    const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
+    return {
+      ...metaplexMetadata,
+      image: parsedMetadata.image
+    };
+  } 
 
   return blockchainTaskQueue.addTask(() =>
     getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID)
-      .then((val) => val ?? null)
+      .then(async (val) => {
+        if(val == null){
+          return null
+        }
+        
+        const parsedMetadata = await fetchJsonFromUri(val.uri)
+
+        return {
+          ...val,
+          image: parsedMetadata.image
+        }
+
+      })
       .catch((e) => {
         console.error(`❌ Error getting metadata for ${token}:`, e);
         return null;

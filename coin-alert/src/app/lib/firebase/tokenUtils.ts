@@ -13,6 +13,7 @@ export type PoolType = "pump" | "raydium" | "pump-swap"
 export interface TokenMetadata {
   symbol: string;
   name: string;
+  image?: string;
   uri: string
 }
 
