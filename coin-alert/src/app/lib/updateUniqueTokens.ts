@@ -21,6 +21,7 @@ let totalFailedToGetMetadata = 0;
 let totalSucceededToGetMetadata = 0;
 let totalFailedPrice = 0;
 let totalSucceedPrice = 0;
+let totalUniqueWallets = 0;
 
 // 🔹 Fetch Metadata from Metaplex
 async function getTokenMetadataMetaplex(token: string) {
@@ -121,12 +122,21 @@ export async function updateUniqueTokens() {
     // 🔹 1️⃣ Fetch All Users' Wallets
     const usersSnapshot = await adminDB.collection("users").get();
     const uniqueTokensSet = new Set<string>();
+    const uniqueWalletSet = new Set<string>();
     totalUsers = usersSnapshot.docs.length;
+
+    usersSnapshot.docs.forEach((userDoc) => {
+      const userData = userDoc.data();
+      if (Array.isArray(userData.wallets)) {
+        totalUniqueWallets += userData.wallets.length;
+        userData.wallets.forEach((wallet) => uniqueWalletSet.add(wallet));
+      }
+    });
 
 
     // 🔹 2️⃣ Fetch Token Data from Blockchain
     await Promise.all(
-      Array.from(uniqueTokensSet).map((wallet) =>
+      Array.from(uniqueWalletSet).map((wallet) =>
         blockchainTaskQueue.addTask(async () => {
           const publicKey = new PublicKey(wallet);
           const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
@@ -192,6 +202,7 @@ export async function updateUniqueTokens() {
     const metricsSummary = `
       ====== API METRICS SUMMARY ======
       👤 Total Users Processed: ${totalUsers}
+          Total Unique Wallets Processed: ${totalUniqueWallets}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
       ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
       ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
