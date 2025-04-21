@@ -198,7 +198,8 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
         const returnVal: GetPriceResponse = {
             price: {
                 price: price, 
-                timestamp: new Date().getTime()
+                timestamp: new Date().getTime(),
+                pool: "pump-swap"
             }, 
             tokenData: { pool: "pump-swap"}
         }
@@ -229,7 +230,8 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
         return {
             price: {
                 price: price, 
-                timestamp: new Date().getTime()
+                timestamp: new Date().getTime(),
+                pool: "pump"
             }, 
             tokenData: { pool: "pump"}
         }

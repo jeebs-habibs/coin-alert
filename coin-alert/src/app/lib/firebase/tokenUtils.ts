@@ -3,6 +3,7 @@ import { adminDB } from "./firebaseAdmin";
 
 export interface PriceData {
     price: number;
+    pool?: PoolType;
     timestamp: number;
     signatures?: string[];
 }
