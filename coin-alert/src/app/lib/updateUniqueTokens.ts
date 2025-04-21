@@ -15,8 +15,8 @@ import { TokenAccountData } from "./utils/solanaUtils";
 // 🔹 Metrics Tracking
 let totalUsers = 0;
 let totalUniqueTokens = 0;
-let totalUniqueWallets = 0;
 let totalDeadTokensSkipped = 0;
+let totalDeadTokensSkippedFirestore = 0;
 let totalFailedToGetMetadata = 0;
 let totalSucceededToGetMetadata = 0;
 let totalFailedPrice = 0;
@@ -123,13 +123,6 @@ export async function updateUniqueTokens() {
     const uniqueTokensSet = new Set<string>();
     totalUsers = usersSnapshot.docs.length;
 
-    usersSnapshot.docs.forEach((userDoc) => {
-      const userData = userDoc.data();
-      if (Array.isArray(userData.wallets)) {
-        totalUniqueWallets += userData.wallets.length;
-        userData.wallets.forEach((wallet) => uniqueTokensSet.add(wallet));
-      }
-    });
 
     // 🔹 2️⃣ Fetch Token Data from Blockchain
     await Promise.all(
@@ -159,6 +152,7 @@ export async function updateUniqueTokens() {
 
         const tokenFromFirestore = await getToken(token);
         if(tokenFromFirestore?.isDead){
+          totalDeadTokensSkippedFirestore++
           return
         }
         const isTokenDead = await setTokenDead(token, tokenFromFirestore);
@@ -199,8 +193,8 @@ export async function updateUniqueTokens() {
       ====== API METRICS SUMMARY ======
       👤 Total Users Processed: ${totalUsers}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
-      💼 Total Unique Wallets Checked: ${totalUniqueWallets}
       ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
+      ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
       ❌ Total Price Fetch Failures: ${totalFailedPrice} (${priceFailureRate.toFixed(2)}%)
