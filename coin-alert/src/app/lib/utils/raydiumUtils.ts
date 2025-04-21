@@ -68,7 +68,7 @@ async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolD
         )) 
     }
 
-    console.log("found " + accounts.length + " pool accounts for token: " + mint.toString())
+    //console.log("found " + accounts.length + " pool accounts for token: " + mint.toString())
 
     
     return accounts.map((account) => {
@@ -90,7 +90,7 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
         const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
         const timeAfterFetchPoolAccounts = new Date().getTime()
         const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
-        console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
+        // console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
         finalTokenData = {
             ...finalTokenData, 
             baseVault: poolAccounts[0]?.baseVault?.toString(),
@@ -104,7 +104,7 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
 
 
     if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId){
-        console.log("ERROR: No Raydium pool found for token: " + token)
+        //console.log("ERROR: No Raydium pool found for token: " + token)
         return undefined
     }
 
