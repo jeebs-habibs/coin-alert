@@ -1,4 +1,4 @@
-const MAX_REQUESTS_PER_SECOND = 15;
+const MAX_REQUESTS_PER_SECOND = 13;
 const REQUEST_INTERVAL = 1000 / MAX_REQUESTS_PER_SECOND; // Delay between requests in ms
 
 class TaskQueue {
