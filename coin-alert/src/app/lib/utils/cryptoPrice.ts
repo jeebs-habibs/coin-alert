@@ -51,7 +51,7 @@ async function getCryptoPriceBySymbolDB(symbol: string): Promise<CryptoDataDb | 
 const ONE_HOUR = 1000 * 60 * 60
 
 
-export async function getCryptoPrice(symbol: String): Promise<CryptoPriceResponse | undefined> {
+export async function getCryptoPrice(symbol: string): Promise<CryptoPriceResponse | undefined> {
 
     const dbPrice = await getCryptoPriceBySymbolDB("SOL")
     if(dbPrice && (Date.now() - dbPrice.timestamp) < ONE_HOUR){
