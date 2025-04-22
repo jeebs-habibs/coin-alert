@@ -4,6 +4,7 @@ import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/u
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 import chalk from "chalk";
+import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -70,6 +71,14 @@ export async function GET(req: Request) {
 
     const usersSnapshot = await getAllUsers();
     const notificationsToSend: (NotificationReturn | null)[] = [];
+
+    var solPriceUsd = undefined
+    if(usersSnapshot.length){
+      const solPrice = await getCryptoPrice("SOL")
+      if(solPrice){
+        solPriceUsd = solPrice.priceUsd
+      }
+    }
 
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
