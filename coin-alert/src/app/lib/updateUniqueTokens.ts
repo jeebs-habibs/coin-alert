@@ -30,7 +30,7 @@ interface URIMetadata {
   description: string;
 }
 
-async function fetchJsonFromUri(uri: string): Promise<URIMetadata> {
+async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
   try {
     const response = await fetch(uri);
 
@@ -42,7 +42,7 @@ async function fetchJsonFromUri(uri: string): Promise<URIMetadata> {
     return data;
   } catch (error) {
     console.error("Error fetching JSON:", error);
-    throw error;
+    return undefined
   }
 }
 
@@ -72,7 +72,7 @@ async function getTokenMetadataFromBlockchain(token: string) {
     const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
     return {
       ...metaplexMetadata,
-      image: parsedMetadata.image
+      image: parsedMetadata?.image
     };
   } 
 
@@ -87,7 +87,7 @@ async function getTokenMetadataFromBlockchain(token: string) {
 
         return {
           ...val,
-          image: parsedMetadata.image
+          image: parsedMetadata?.image
         }
 
       })
