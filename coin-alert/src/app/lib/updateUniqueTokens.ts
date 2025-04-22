@@ -171,7 +171,7 @@ export async function updateUniqueTokens() {
       const userData = userDoc.data();
       if (Array.isArray(userData.wallets)) {
         totalUniqueWallets += userData.wallets.length;
-        console.log(JSON.stringify(userData.wallet))
+        console.log("User wallets: " + JSON.stringify(userData.wallets))
         userData.wallets.forEach((wallet) => uniqueWalletSet.add(wallet));
       }
     });
