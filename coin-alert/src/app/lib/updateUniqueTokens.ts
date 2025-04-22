@@ -171,6 +171,7 @@ export async function updateUniqueTokens() {
       const userData = userDoc.data();
       if (Array.isArray(userData.wallets)) {
         totalUniqueWallets += userData.wallets.length;
+        console.log(JSON.stringify(userData.wallet))
         userData.wallets.forEach((wallet) => uniqueWalletSet.add(wallet));
       }
     });
@@ -244,7 +245,7 @@ export async function updateUniqueTokens() {
     const metricsSummary = `
       ====== API METRICS SUMMARY ======
       👤 Total Users Processed: ${totalUsers}
-          Total Unique Wallets Processed: ${totalUniqueWallets}
+        Total Unique Wallets Processed: ${totalUniqueWallets}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
       ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
       ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
