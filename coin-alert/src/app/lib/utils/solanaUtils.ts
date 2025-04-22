@@ -1,5 +1,7 @@
 import { TokenAmount } from "@solana/web3.js";
 
+export const BILLION = 1000000000
+
 export interface TokenAccountData {
     info: TokenAccountInfo
     "type": string;

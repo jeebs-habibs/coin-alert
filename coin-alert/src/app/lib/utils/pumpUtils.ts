@@ -5,6 +5,7 @@ import { PublicKey } from "@solana/web3.js";
 import { connection } from "../connection";
 import { GetPriceResponse } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
+import { BILLION } from "./solanaUtils";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
 const PUMP_SWAP_PROGRAM = new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
@@ -192,7 +193,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
         const returnVal: GetPriceResponse = {
             price: {
                 price: price, 
-                marketCapSol: pumpSwap.baseMint.toString() == token ? (baseBalance * price) : quoteBalance * price,
+                marketCapSol: BILLION * price,
                 timestamp: new Date().getTime(),
                 pool: "pump-swap"
             }, 
@@ -226,7 +227,7 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
                 price: price, 
                 timestamp: new Date().getTime(),
                 pool: "pump",
-                marketCapSol: virtualTokenReserves * price
+                marketCapSol: BILLION * price
             }, 
             tokenData: { pool: "pump"}
         }

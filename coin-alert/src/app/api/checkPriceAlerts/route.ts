@@ -134,6 +134,7 @@ export async function GET(req: Request) {
         // } 
 
         const latestPrice = priceHistory[0]?.price;
+        const latestPriceMarketCapUsd = priceHistory[0]?.marketCapSol && solPriceUsd ? priceHistory[0].marketCapSol * solPriceUsd : undefined
         let alertType: "normal" | "critical" | null = null;
         let alarmedConfig: AlarmConfig | null = null
         const minuteToAlarmConfig = getAlarmConfig(user.alarmPreset)
@@ -194,7 +195,7 @@ export async function GET(req: Request) {
             minutes,
             alarmedConfig,
             percentageBreached: percentageBreached,
-            marketCapUsd: solPriceUsd ? latestPrice * solPriceUsd : undefined
+            marketCapUsd: latestPriceMarketCapUsd
           };
           return notification
         }

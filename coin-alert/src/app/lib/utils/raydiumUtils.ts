@@ -9,6 +9,7 @@ import { connection } from "../connection";
 import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
 import { LAMPORTS_IN_SOL, MILLION } from "./solanaConstants";
+import { BILLION } from "./solanaUtils";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 
@@ -125,7 +126,7 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
             price: {
                 price, 
                 timestamp: new Date().getTime(),
-                marketCapSol: convertedTokenAmount * price
+                marketCapSol: BILLION * price
             }, 
             tokenData: {...finalTokenData, pool: "raydium"}
         }
