@@ -55,6 +55,7 @@ export async function getCryptoPrice(symbol: string): Promise<CryptoPriceRespons
 
     const dbPrice = await getCryptoPriceBySymbolDB("SOL")
     if(dbPrice && (Date.now() - dbPrice.timestamp) < ONE_HOUR){
+        console.log("Returning " + symbol + " price from db: " + JSON.stringify(dbPrice))
         return dbPrice
     }
 
@@ -76,7 +77,8 @@ export async function getCryptoPrice(symbol: string): Promise<CryptoPriceRespons
   
       const data = await response.json();
       const typedResponse: CryptoPriceResponse = { priceUsd: data.data?.SOL?.quote?.USD?.price, timestamp: Date.now() }
-      updateCryptoPriceById("SOL", typedResponse)
+      updateCryptoPriceById(symbol, typedResponse)
+      console.log("Fetched price from CMC: " + JSON.stringify(typedResponse))
       return typedResponse
     } catch (error) {
       console.error(error);

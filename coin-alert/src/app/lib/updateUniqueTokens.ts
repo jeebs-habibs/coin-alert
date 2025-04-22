@@ -169,7 +169,6 @@ export async function updateUniqueTokens() {
     usersSnapshot.docs.forEach((userDoc) => {
       const userData = userDoc.data();
       if (Array.isArray(userData.wallets)) {
-        console.log("User wallets: " + JSON.stringify(userData.wallets))
         userData.wallets.forEach((wallet) => uniqueWalletSet.add(wallet));
       }
     });
