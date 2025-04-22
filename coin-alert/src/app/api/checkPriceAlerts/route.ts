@@ -1,9 +1,10 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getTokenCached, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
+import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
-import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 import chalk from "chalk";
+import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -70,6 +71,14 @@ export async function GET(req: Request) {
 
     const usersSnapshot = await getAllUsers();
     const notificationsToSend: (NotificationReturn | null)[] = [];
+
+    let solPriceUsd = undefined
+    if(usersSnapshot.length){
+      const solPrice = await getCryptoPrice("SOL")
+      if(solPrice){
+        solPriceUsd = solPrice.priceUsd
+      }
+    }
 
     // 🔹 1️⃣ Process All Users in Parallel
     const userPromises = usersSnapshot.map(async (user: SirenUser) => {
@@ -184,7 +193,8 @@ export async function GET(req: Request) {
             alertType,
             minutes,
             alarmedConfig,
-            percentageBreached: percentageBreached
+            percentageBreached: percentageBreached,
+            marketCapUsd: solPriceUsd ? latestPrice * solPriceUsd : undefined
           };
           return notification
         }
@@ -204,7 +214,7 @@ export async function GET(req: Request) {
       notificationsToSend.map((notification) => {
         if(notification != null){
           totalNotisSent++
-          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached, tokensCache.get(notification.token))
+          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached, tokensCache.get(notification.token), notification?.marketCapUsd)
         }
       })
     );

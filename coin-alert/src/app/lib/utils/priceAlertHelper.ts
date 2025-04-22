@@ -14,7 +14,8 @@ export interface NotificationReturn {
     alertType: AlarmType
     minutes: number
     alarmedConfig: AlarmConfig | null
-    percentageBreached: number
+    percentageBreached: number,
+    marketCapUsd?: number;
 }
 
 export async function getLastHourPrices(token: Token | undefined): Promise<PriceData[]> {

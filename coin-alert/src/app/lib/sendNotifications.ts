@@ -21,6 +21,18 @@ async function getAllFCMTokens(): Promise<string[]> {
   return tokens;
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '') + 'B';
+  } else if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M';
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(2).replace(/\.00$/, '') + 'k';
+  } else {
+    return num.toString();
+  }
+}
+
 // Function to send notifications to all users
 export async function sendNotificationsToAllUsers() {
   const tokens = await getAllFCMTokens();
@@ -56,7 +68,8 @@ export async function sendNotification(
   alertType: AlarmType,
   minutes: number,
   percentageBreached: number,
-  tokenObj: Token | undefined
+  tokenObj: Token | undefined,
+  marketCapUsd?: number 
 ) {
   try {
     const userDocRef = adminDB.collection("users").doc(userId);
@@ -80,9 +93,10 @@ export async function sendNotification(
     const increaseOrDecrease = priceChange > 0 ? "up" : "down";
     const stonkEmoji = priceChange > 0 ? "📈" : "📉";
     const alertEmoji = alertType === "critical" ? "🚨" : "";
+    const marketCap = marketCapUsd ? ` to MC of $${formatNumber(marketCapUsd)},` : ""
 
     const notificationTitle = `${alertEmoji} ${symbolOrToken} ${increaseOrDecrease} ${priceChange.toFixed(2)}% in ${minutes} minutes`;
-    const notificationBody = `${stonkEmoji} ${tokenSliced} breached threshold of ${percentageBreached}%`;
+    const notificationBody = `${stonkEmoji}${marketCap} breached threshold of ${percentageBreached}%`;
 
     for (const fcmToken of userData.tokens) {
       console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`);
