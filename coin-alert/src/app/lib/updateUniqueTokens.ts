@@ -21,7 +21,6 @@ let totalFailedToGetMetadata = 0;
 let totalSucceededToGetMetadata = 0;
 let totalFailedPrice = 0;
 let totalSucceedPrice = 0;
-let totalUniqueWallets = 0;
 
 interface URIMetadata {
   name: string;
@@ -170,7 +169,6 @@ export async function updateUniqueTokens() {
     usersSnapshot.docs.forEach((userDoc) => {
       const userData = userDoc.data();
       if (Array.isArray(userData.wallets)) {
-        totalUniqueWallets += userData.wallets.length;
         console.log("User wallets: " + JSON.stringify(userData.wallets))
         userData.wallets.forEach((wallet) => uniqueWalletSet.add(wallet));
       }
@@ -245,7 +243,7 @@ export async function updateUniqueTokens() {
     const metricsSummary = `
       ====== API METRICS SUMMARY ======
       👤 Total Users Processed: ${totalUsers}
-        Total Unique Wallets Processed: ${totalUniqueWallets}
+        Total Unique Wallets Processed: ${uniqueWalletSet.size}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
       ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
       ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
