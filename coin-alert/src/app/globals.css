@@ -125,7 +125,9 @@ a {
   display: flex;
   justify-content: center;
   padding-bottom: 10px;
+  padding-top: 10px;
   color: grey;
+  background-color: var(--background);
 }
 
 .wrapper {

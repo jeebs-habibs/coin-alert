@@ -4,63 +4,85 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "./components/Button";
 import { useAuth } from "./providers/auth-provider";
+import styles from "./page.module.css";
 
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  
 
   useEffect(() => {
-    if(user && !loading){
-      router.push("/dashboard")
+    if (user && !loading) {
+      router.push("/dashboard");
     }
-  })
+  }, [user, loading, router]);
 
   return (
-    <div className="page">
-      <main className="main">
+    <div className={styles.landingContainer}>
+      <main className={styles.landingMain}>
+        {loading ? (
+          <div className={styles.loadingContainer}>
+            <h1 className={styles.loadingText}>Loading...</h1>
+          </div>
+        ) : (
+          <div className={styles.contentSections}>
+            {/* Hero Section */}
+            <section className={styles.heroSection}>
+              <h1 className={styles.heroTitle}>
+                Welcome to <span className={styles.heroTitleHighlight}>Siren</span>
+              </h1>
+              <p className={styles.heroDescription}>
+                A mobile app to notify you on changes in your memecoins. No wallet connection required!
+              </p>
+              <Button
+                onClick={() => router.push("/auth")}
+                size="lg"
+                variant="primary"
+              >
+                Get Started
+              </Button>
+            </section>
 
-{
-  loading ? <h1>loading...</h1> :  <>
-  <h1 className="largeHeading">
-    Welcome to Siren
-  </h1>
-  <p>A mobile app to notify you on changes in your memecoins. No wallet connection required!</p>
-  <h2>How it works</h2>
-  <ol>
-    <li>
-      Sign up via Google
-    </li>
-    <li>
-      Enter up to 3 wallet addresses
-    </li>
-    <li>
-      Set up your notification preferences
-    </li>
-    <li>
-      App app to your home screen on IOS to receive notifications
-    </li>
-  </ol>
-  <Button
-    onClick={() => router.push("/auth")}
-    variant="primary">
-    Get started
-  </Button>
-  <h2>Setting up notifications</h2>
-  <p>Siren will alert you on all devices when your coins change drastically in price. Below are checks to ensure your devices are properly set up to receive notifications.</p>
-  <h3>Web/Mac/Windows</h3>
-  <p>For web browsers, navigate to Settings → Notifications and confirm notifications are enabled. You can enable notifications only for Siren if you so choose.</p>
-  <p>Go to your system settings and confirm notifications are enabled for your browser.</p>
-  <p>If on Mac you may be in Focus, Do Not Disturb or some other mode that is preventing you to enable notifications.</p>
+            {/* How It Works Section */}
+            <section className={styles.howItWorksSection}>
+              <div className={styles.card}>
+                <h2 className={styles.howItWorks}>How It Works</h2>
+                <ol className={styles.orderedList}>
+                  <li>Sign up via Google</li>
+                  <li>Enter up to 3 wallet addresses</li>
+                  <li>Set up your notification preferences</li>
+                  <li>Add app to your home screen on iOS to receive notifications</li>
+                </ol>
+              </div>
+            </section>
 
-  <h3>Mobile</h3>
-  <p>On IOS, view this page on Safari and click the share icon. Click Add to Home Screen. Upon re-opening the app you will be prompted to enable notifications. Select yes. You can customize notifications anytime in your notification settings under the Siren app.</p>
-  </>
-}
-       
-
+            {/* Notifications Setup Section */}
+            <section className={styles.notificationsSection}>
+              <h2 className={styles.sectionTitle}>Setting Up Notifications</h2>
+              <p className={styles.sectionDescription}>
+                Siren alerts you on all devices when your coins change drastically in price. Follow these steps to ensure your devices are set up correctly.
+              </p>
+              <div className={styles.card}>
+                <h3 className={styles.subsectionTitle}>Web/Mac/Windows</h3>
+                <p className={styles.subsectionText}>
+                  In your browser, go to <strong>Settings → Notifications</strong> and confirm notifications are enabled. You can enable notifications only for Siren if preferred.
+                </p>
+                <p className={styles.subsectionText}>
+                  Check your system settings to ensure notifications are enabled for your browser.
+                </p>
+                <p className={styles.subsectionText}>
+                  On Mac, ensure you’re not in Focus, Do Not Disturb, or another mode that may block notifications.
+                </p>
+              </div>
+              <div className={styles.card}>
+                <h3 className={styles.subsectionTitle}>Mobile</h3>
+                <p className={styles.subsectionText}>
+                  On iOS, open this page in Safari, tap the <strong>Share</strong> icon, and select <strong>Add to Home Screen</strong>. When you reopen the app, you’ll be prompted to enable notifications—select <strong>Yes</strong>. Customize notifications anytime in your device’s <strong>Notification Settings</strong> under the Siren app.
+                </p>
+              </div>
+            </section>
+          </div>
+        )}
       </main>
-
     </div>
   );
 }

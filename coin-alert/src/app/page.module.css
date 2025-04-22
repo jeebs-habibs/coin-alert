@@ -1,3 +1,4 @@
+/* Existing styles */
 .page {
   --gray-rgb: 0, 0, 0;
   --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
@@ -105,7 +106,6 @@ a.secondary {
   flex-shrink: 0;
 }
 
-/* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
   a.primary:hover {
     background: var(--button-primary-hover);
@@ -161,5 +161,234 @@ a.secondary {
 @media (prefers-color-scheme: dark) {
   .logo {
     filter: invert();
+  }
+}
+
+/* New classes for the redesigned landing page */
+.landingContainer {
+  min-height: 100vh;
+  background: var(--background)
+}
+
+
+
+.landingMain {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 256px;
+}
+
+.loadingText {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--grey-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .loadingText {
+    color: #a3a3a3;
+  }
+}
+
+.contentSections {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.heroSection {
+  text-align: center;
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.heroTitle {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--foreground);
+    line-height: 1.2;
+}
+
+.heroTitleHighlight {
+  color: var(--primary-color);
+}
+
+.heroDescription {
+  margin-top: 16px;
+  margin-bottom: 10px;;
+  font-size: 18px;
+  color: #156b73;
+}
+
+@media (prefers-color-scheme: dark) {
+  .heroDescription {
+    color: #a3a3a3;
+  }
+}
+
+.getStartedButton {
+  margin-top: 32px;
+  display: inline-block;
+  padding: 12px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--foreground);
+  background-color: var(--primary-color);
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.getStartedButton:hover {
+  background-color: #156b73; /* Slightly darker than --primary-color */
+}
+
+@media (prefers-color-scheme: dark) {
+  .getStartedButton {
+    color: var(--foreground);
+    background-color: var(--primary-color);
+  }
+
+  .getStartedButton:hover {
+    background-color: #2a96a1; /* Lighter for dark mode */
+  }
+}
+
+.howItWorksSection,
+.notificationsSection {
+  max-width: 896px;
+  margin: 0 auto;
+}
+
+.card {
+  background-color: #f5f5f5; /* Slightly darker than --background for contrast */
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 32px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    background-color: #1e293b; /* Darker card for contrast */
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+  }
+
+
+  
+}
+
+.card + .card {
+  margin-top: 24px;
+}
+
+.sectionTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 24px;
+}
+
+
+.howItWorks {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 24px;
+}
+
+
+.sectionDescription {
+  font-size: 16px;
+  color: var(--grey-color);
+  margin-bottom: 32px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sectionDescription {
+    color: #a3a3a3;
+  }
+}
+
+.subsectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 16px;
+}
+
+.subsectionText {
+  font-size: 16px;
+  color: var(--grey-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .subsectionText {
+    color: #a3a3a3;
+  }
+}
+
+.subsectionText + .subsectionText {
+  margin-bottom: 8px;
+}
+
+.orderedList {
+  list-style-type: decimal;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 16px;
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .orderedList {
+    color: #d1d5db;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 36px;
+  }
+
+  .heroDescription {
+    font-size: 16px_receive_notifications;
+  }
+
+  .sectionTitle {
+    font-size: 24px;
+  }
+
+  .landingMain {
+    padding: 32px 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .landingContainer {
+    padding: 16px;
+  }
+
+  .heroTitle {
+    font-size: 28px;
+  }
+
+  .getStartedButton {
+    padding: 10px 24px;
+    font-size: 16px;
+  }
+
+  .card {
+    padding: 24px;
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React from "react";
+import React, { CSSProperties } from "react";
 import "./buttonStyles.css";
 
 interface ButtonProps {
@@ -8,12 +8,14 @@ interface ButtonProps {
   disabled?: boolean;
   variant?: "primary" | "secondary" | "danger" | "grey";
   onClick?: () => void;
+  style?: CSSProperties
   children: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
   size = "md",
   disabled = false,
+  style,
   variant = "primary",
   onClick,
   children,
@@ -23,6 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
       className={`button ${size} ${variant} ${disabled ? "disabled" : ""}`}
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
+      style={style}
     >
       {children}
     </button>
