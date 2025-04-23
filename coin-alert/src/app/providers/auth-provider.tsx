@@ -1,7 +1,7 @@
 "use client";
 
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase/firebase";
 import { SirenUser } from "../lib/firebase/userUtils";
@@ -22,37 +22,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       setUser(authUser);
-
+  
       if (authUser != null) {
         const userDocRef = doc(db, "users", authUser.uid);
-
+  
         try {
-          // 🔹 Fetch user data immediately on first load
+          // Fetch user data
           const docSnap = await getDoc(userDocRef);
           if (docSnap.exists()) {
             setUserData(docSnap.data() as SirenUser);
+          } else {
+            // Create a new user document if it doesn't exist
+            const newUserData: SirenUser = {
+              uid: authUser.uid,
+              email: authUser.email || "",
+              wallets: [],
+              alarmPreset: "center",
+              isNotificationsOn: true
+              // Add other default fields as needed
+            };
+            await setDoc(userDocRef, newUserData);
+            setUserData(newUserData);
           }
-
-          // 🔹 Listen for real-time changes
+  
+          // Listen for real-time changes
           const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
               setUserData(docSnap.data() as SirenUser);
             }
           });
-
-          setLoading(false); // ✅ Ensure loading state is set to false
-          return unsubscribeFirestore; // Cleanup Firestore listener
+  
+          setLoading(false);
+          return unsubscribeFirestore;
         } catch (error) {
-          console.error("❌ Error fetching user data:", error);
-          setLoading(false); // ✅ Prevent infinite loading
+          console.error("❌ Error fetching or creating user data:", error);
+          setLoading(false);
         }
       } else {
         setUserData(null);
-        setLoading(false); // ✅ Make sure loading stops when user is null
+        setLoading(false);
       }
     });
-
-    return () => unsubscribeAuth(); // Cleanup auth listener
+  
+    return () => unsubscribeAuth();
   }, []);
 
   return (
