@@ -3,6 +3,18 @@ export interface AlarmConfig {
     criticalAlarmPercentage: number;
   }
   
+export function convertAlarmConfigToString(alarmConfigMap: Map<number, AlarmConfig>): string[] {
+    const descriptions: string[] = [];
+    
+    for (const [minutes, config] of alarmConfigMap) {
+      descriptions.push(
+        `Alarm if price changes by >${config.standardAlarmPercentage}% in ${minutes} minute${minutes === 1 ? '' : 's'}`
+      );
+    }
+    
+    return descriptions
+  }
+
 export type AlarmType = "normal" | "critical" | null 
   
 export const STANDARD_ALARM_CONFIGS = new Map<number, AlarmConfig>([

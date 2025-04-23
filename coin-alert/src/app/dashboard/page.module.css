@@ -20,7 +20,7 @@
   border: none;               /* Remove default border */
   height: 2px;                /* Thin line */
   background-color: rgb(var(--primary-color-rgb), .40); /* Use the primary color */
-  margin: 20px 0;             /* Add vertical spacing */
+  margin: 5px 0;             /* Add vertical spacing */
   width: 100%;                /* Full width */
 }
 

@@ -1,0 +1,95 @@
+/* ToggleDescription.css */
+.toggle-description-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers children (desc, button) horizontally */
+  }
+  
+  /* Description text */
+  .toggle-description {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 12px 0; /* Bottom margin for spacing */
+    text-align: center; /* Ensure text is centered */
+  }
+  
+  /* Text-based toggle button */
+  .toggle-rules-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #535e74; /* Blue for link-like appearance */
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  
+  .toggle-rules-button:hover {
+    color: #0b3647; /* Darker blue on hover */
+  }
+  
+
+  
+  /* Chevron icon */
+  .chevron-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .chevron-icon.rotated {
+    transform: rotate(180deg);
+  }
+  
+  /* Card for alarm rules */
+  .alarm-rules-card {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-top: 6px;
+    padding: 0;
+    transition: all 0.3s ease;
+    width: 100%; /* Ensure card spans container width */
+  }
+  
+  .alarm-rules-card.visible {
+    max-height: 500px; /* Adjust based on content */
+    opacity: 1;
+    padding: 16px;
+  }
+  
+  /* Individual alarm rule */
+  .alarm-rule {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #1f2937;
+    line-height: 1.5;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .toggle-description-container {
+      padding: 12px;
+    }
+  
+    .toggle-description {
+      font-size: 16px;
+    }
+  
+    .toggle-rules-button {
+      font-size: 14px;
+    }
+  
+    .alarm-rule {
+      font-size: 13px;
+    }
+  }

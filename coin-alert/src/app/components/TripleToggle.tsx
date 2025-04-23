@@ -1,15 +1,17 @@
 import React, { Component } from "react";
 import "./styles.css";
+import ToggleDescription from "./ToggleDescription";
 
-interface LabelInfo {
+export interface LabelInfo {
   title: string;
   value: string | number | boolean;
   desc?: string;
+  alarmInfo?: string[]
 }
 
 export type TogglePosition = "left" | "right" | "center"
 
-interface Labels {
+export interface Labels {
   left: LabelInfo;
   center: LabelInfo;
   right: LabelInfo;
@@ -28,6 +30,8 @@ interface TripleToggleSwitchState {
 }
 
 class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggleSwitchState> {
+
+
   static defaultProps: Partial<TripleToggleSwitchProps> = {
     labels: {
       left: { title: "left", value: "left", desc: "Left description" },
@@ -52,6 +56,8 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
       this.setState({ switchPosition: this.props.activePosition || "center" });
     }
   }
+  
+
   
   getSwitchAnimation = (value: "left" | "center" | "right") => {
     const { switchPosition } = this.state;
@@ -100,9 +106,7 @@ class TripleToggleSwitch extends Component<TripleToggleSwitchProps, TripleToggle
         ))}
 
       </div>
-              <p className="toggle-description">
-              {labels?.[switchPosition]?.desc}
-            </p>
+             <ToggleDescription labelInfo={labels?.[switchPosition]}/>
             </div>
     );
   }

@@ -13,6 +13,7 @@ import { db, messaging } from "../lib/firebase/firebase";
 import { SirenUser } from "../lib/firebase/userUtils";
 import { areStringListsEqual, shortenString } from "../lib/utils/solanaUtils";
 import { useAuth } from "../providers/auth-provider";
+import { convertAlarmConfigToString, NOISIER_ALARM_CONFIGS, QUIETER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../lib/constants/alarmConstants";
 
 
 async function unRegisterMultipleWorkers(){
@@ -223,16 +224,19 @@ export default function Dashboard() {
       title: "Quieter",
       value: "left",
       desc: "You will be notified on larger price swings",
+      alarmInfo: convertAlarmConfigToString(QUIETER_ALARM_CONFIGS)
     },
     right: {
       title: "Noisier",
       value: "right",
       desc: "You will be notified on smaller price swings",
+      alarmInfo: convertAlarmConfigToString(NOISIER_ALARM_CONFIGS),
     },
     center: {
       title: "Standard",
       value: "center",
       desc: "Standard alarm sensitivity",
+      alarmInfo: convertAlarmConfigToString(STANDARD_ALARM_CONFIGS),
     },
   };
 
