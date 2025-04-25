@@ -7,3 +7,9 @@ As of now our biggest bottleneck is quicknode 15 requests per second. For 50$ a 
 What we need to answer: How long are we currently taking? How can we speed it up for testing with andrew?
 
 Lets solve testing, then solve scale problem after we have proven the idea.
+
+Conclusion
+- Still when i run it locally it takes forever. NEED BALLPARK FOR HOW LONG IT TAKES NOW.
+- Quicknode is rate limiting a bunch of shit, and i wont be able to get it on minutely cadence as of now
+- Can maybe create a lambda and update coin prices every 15 minutes or so while using redis.
+- Maybe a separate hourly job that just sets pool data, another one that fetches prices from pool, and another to send notifications.
