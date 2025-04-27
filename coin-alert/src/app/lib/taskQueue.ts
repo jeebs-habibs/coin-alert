@@ -34,12 +34,16 @@ class TaskQueue {
     this.isProcessing = true;
 
     //console.log("Processing queue")
+    
     while (this.queue.length > 0) {
       const task = this.queue.shift();
       if (task) {
         try {
-          //console.log(`Processing task`);
-          await task(); // Changed to await to ensure task completion before delay
+          console.log(`Processing task`);
+          //const beforeTaskTime = Date.now()
+          task();
+          // const afterTaskTime = Date.now()
+          // console.log("Processed task in " + (afterTaskTime - beforeTaskTime)/1000 + " seconds.")
         } catch (error) {
           console.error(`❌ Error processing task:`, error);
         }
@@ -54,4 +58,6 @@ class TaskQueue {
 
 // Export as a singleton so all files share the same queue
 export const blockchainTaskQueue = new TaskQueue(15);
+
+export const heliusPoolQueue = new TaskQueue(3);
 

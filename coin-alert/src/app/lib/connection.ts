@@ -10,7 +10,7 @@ if(!process.env.HELIUS_ENDPOINT?.length){
 }
 
 export const connection = new Connection(process.env.RPC_ENDPOINT)
-export const heliusConnection = new  Connection(process.env.HELIUS_ENDPOINT)
+export const heliusConnection = new Connection(process.env.RPC_ENDPOINT)
 
 export const umi = createUmi(process.env.RPC_ENDPOINT)
 

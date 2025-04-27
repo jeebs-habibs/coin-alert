@@ -18,9 +18,11 @@ let totalUniqueTokens = 0;
 let totalDeadTokensSkipped = 0;
 let totalDeadTokensSkippedFirestore = 0;
 let totalFailedToGetMetadata = 0;
+let totalMetadataFetchSkipped = 0;
 let totalSucceededToGetMetadata = 0;
 let totalFailedPrice = 0;
 let totalSucceedPrice = 0;
+let totalUncachedPoolData = 0;
 
 interface URIMetadata {
   name: string;
@@ -68,11 +70,10 @@ async function getTokenMetadataFromBlockchain(token: string) {
   const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
 
   if (metaplexMetadata){
-    const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
-    return {
-      ...metaplexMetadata,
-      image: parsedMetadata?.image
-    };
+      // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
+
+    //const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
+    return metaplexMetadata
   } 
 
   return blockchainTaskQueue.addTask(() =>
@@ -81,13 +82,16 @@ async function getTokenMetadataFromBlockchain(token: string) {
         if(val == null){
           return null
         }
-        
-        const parsedMetadata = await fetchJsonFromUri(val.uri)
 
-        return {
-          ...val,
-          image: parsedMetadata?.image
-        }
+        return val
+        
+        // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
+        // const parsedMetadata = await fetchJsonFromUri(val.uri)
+
+        // return {
+        //   ...val,
+        //   image: parsedMetadata?.image
+        // }
 
       })
       .catch((e) => {
@@ -201,7 +205,7 @@ export async function updateUniqueTokens() {
         //console.log(`🔹 Processing token: ${token}`);
         const performanceStart = Date.now();
 
-        const tokenFromFirestore = await getToken(token);
+        const tokenFromFirestore: Token | undefined = await getToken(token);
         if(tokenFromFirestore?.isDead){
           totalDeadTokensSkippedFirestore++
           return
@@ -213,21 +217,35 @@ export async function updateUniqueTokens() {
           return;
         }
 
-        const tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata || (await getTokenMetadataFromBlockchain(token));
-
-        if (!tokenMetadata) {
-          totalFailedToGetMetadata++;
-        } else {
-          totalSucceededToGetMetadata++;
+        let blockchainMetadataFailures = 0
+        let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
+        if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 3){
+          const metadataFromBlockchain = await getTokenMetadataFromBlockchain(token)
+          if(metadataFromBlockchain){
+            tokenMetadata = metadataFromBlockchain
+            totalSucceededToGetMetadata++;
+          } else {
+            totalFailedToGetMetadata++
+            blockchainMetadataFailures = 1
+          }
+        }
+        if((tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 3){
+          totalMetadataFetchSkipped++
         }
 
         const data = await getTokenPrice(token, tokenFromFirestore);
         if (data && tokenMetadata) data.tokenData.tokenMetadata = tokenMetadata;
 
+
         timesToGetTokenPrice.push(Date.now() - performanceStart);
 
         if (data?.price) {
           totalSucceedPrice++;
+          data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
+ 
+          if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
+            totalUncachedPoolData++
+          }
           await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
         } else {
           totalFailedPrice++;
@@ -249,6 +267,8 @@ export async function updateUniqueTokens() {
       ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
+         Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped}
+          Total uncached pool data: ${totalUncachedPoolData}
       ❌ Total Price Fetch Failures: ${totalFailedPrice} (${priceFailureRate.toFixed(2)}%)
       💵 Total Price Fetch Successes: ${totalSucceedPrice}
     `;

@@ -25,6 +25,7 @@ export async function GET(req: Request) {
   //     }
   // })
   
+    console.log("✅ Unique tokens updated successfully in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds.")
     return NextResponse.json({ message: "✅ Unique tokens updated successfully in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds." + tokenUpdateResp });
   } catch (error) {
     console.error("❌ Error updating tokens:", error);

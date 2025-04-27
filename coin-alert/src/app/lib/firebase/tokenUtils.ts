@@ -26,6 +26,7 @@ export interface TokenData {
   quoteMint?: string;
   marketPoolId?: string;
   tokenMetadata?: TokenMetadata;
+  metadataFetchFailures?: number;
 }
 
 export interface GetPriceResponse {

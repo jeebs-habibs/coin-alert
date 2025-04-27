@@ -1,9 +1,9 @@
 import * as borsh from "@coral-xyz/borsh";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { connection } from "../connection";
+import { connection, heliusConnection } from "../connection";
 import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
-import { blockchainTaskQueue } from "../taskQueue";
+import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
 import { BILLION, PoolData } from "./solanaUtils";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
@@ -32,7 +32,8 @@ async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number 
 
 // Define a function to fetch and decode OpenBook accounts
 async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
-    let accounts = await blockchainTaskQueue.addTask(() => connection.getProgramAccounts(
+    console.log("Getting pump pool accounts")
+    let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(PUMP_SWAP_PROGRAM),
         {
         filters: [
@@ -55,7 +56,7 @@ async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
     ));
 
     if(!accounts?.length){
-        accounts = await blockchainTaskQueue.addTask(() => connection.getProgramAccounts(
+        accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
             new PublicKey(PUMP_SWAP_PROGRAM),
             {
             filters: [
