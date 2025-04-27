@@ -103,7 +103,7 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
     const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore);
 
     if (!raydiumTokenPrice?.price) {
-      const pumpPrice = await getTokenPricePump(token);
+      const pumpPrice = await getTokenPricePump(token, tokenFromFirestore);
       if (pumpPrice?.price) return pumpPrice;
       console.error(`❌ Failed to get price data for token: ${token}`);
     } else {

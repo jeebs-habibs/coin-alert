@@ -1,11 +1,10 @@
-import { web3 } from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { connection } from "../connection";
-import { GetPriceResponse } from "../firebase/tokenUtils";
+import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
-import { BILLION } from "./solanaUtils";
+import { BILLION, PoolData } from "./solanaUtils";
 
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
 const PUMP_SWAP_PROGRAM = new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
@@ -23,13 +22,6 @@ const pumpSwapSchema = borsh.struct([
     borsh.u64("lp_supply"),        // 8 bytes
 ]);
 
-interface PumpPoolData{
-    quoteVault: web3.PublicKey;
-    baseVault: web3.PublicKey;
-    baseMint: web3.PublicKey;
-    quoteMint: web3.PublicKey;
-    pubKey: web3.PublicKey;
-}
 
 async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number | null> {
     const account = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(accountPubkey))
@@ -39,7 +31,7 @@ async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number 
   
 
 // Define a function to fetch and decode OpenBook accounts
-async function fetchPumpSwapAMM(mint: PublicKey): Promise<PumpPoolData | undefined>{
+async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
     let accounts = await blockchainTaskQueue.addTask(() => connection.getProgramAccounts(
         new PublicKey(PUMP_SWAP_PROGRAM),
         {
@@ -176,19 +168,36 @@ async function getBondingCurveAddress(token: string){
     return bondingCurve
 }
 
-export async function getTokenPricePump(token: string): Promise<GetPriceResponse | undefined>{
+export async function getTokenPricePump(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined>{
+
+    let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
+    if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){
+        // const timeBeforeFetchPoolAccounts = new Date().getTime()
+        const pumpSwap = await fetchPumpSwapAMM(new PublicKey(token))
+        // const timeAfterFetchPoolAccounts = new Date().getTime()
+        // const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
+        // console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
+        finalTokenData = {
+            ...finalTokenData, 
+            baseVault: pumpSwap?.baseVault?.toString(),
+            baseMint: pumpSwap?.baseMint?.toString(),
+            quoteVault: pumpSwap?.quoteVault?.toString(),
+            quoteMint: pumpSwap?.quoteMint?.toString(),
+            marketPoolId: pumpSwap?.pubKey?.toString(),
+        }
+    }
     
-    const pumpSwap = await fetchPumpSwapAMM(new PublicKey(token))
+   
     //console.log("Pump swap pool " + JSON.stringify(pumpSwap))
-    if(pumpSwap){
-        const baseBalance = await getTokenAccountBalance(pumpSwap.baseVault)
-        const quoteBalance = await getTokenAccountBalance(pumpSwap.quoteVault)
+    if(finalTokenData && finalTokenData.baseVault && finalTokenData.quoteVault && finalTokenData.baseMint){
+        const baseBalance = await getTokenAccountBalance(new PublicKey(finalTokenData.baseVault))
+        const quoteBalance = await getTokenAccountBalance(new PublicKey(finalTokenData?.quoteVault))
         if(baseBalance == null || quoteBalance == null){
             return undefined
         }
         let price = 0
         if(quoteBalance != 0 && baseBalance != 0){
-            price = pumpSwap.baseMint.toString() == token ? (quoteBalance/baseBalance) : (baseBalance/quoteBalance)
+            price = finalTokenData?.baseMint.toString() == token ? (quoteBalance/baseBalance) : (baseBalance/quoteBalance)
         }
         const returnVal: GetPriceResponse = {
             price: {
@@ -197,10 +206,11 @@ export async function getTokenPricePump(token: string): Promise<GetPriceResponse
                 timestamp: new Date().getTime(),
                 pool: "pump-swap"
             }, 
-            tokenData: { pool: "pump-swap"}
+            tokenData: { ...finalTokenData, pool: "pump-swap"}
         }
         return returnVal
     }
+    
     const bondingCurveAccount = await getBondingCurveAddress(token)
 
     const accountInfo = await blockchainTaskQueue.addTask(() => connection.getParsedAccountInfo(bondingCurveAccount)) 

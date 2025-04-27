@@ -1,4 +1,3 @@
-import { web3 } from "@coral-xyz/anchor";
 import {
     LIQUIDITY_STATE_LAYOUT_V4
 } from "@raydium-io/raydium-sdk";
@@ -9,20 +8,12 @@ import { connection } from "../connection";
 import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { blockchainTaskQueue } from "../taskQueue";
 import { LAMPORTS_IN_SOL, MILLION } from "./solanaConstants";
-import { BILLION } from "./solanaUtils";
+import { BILLION, PoolData } from "./solanaUtils";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 
-interface RaydiumPoolData {
-    quoteVault: web3.PublicKey;
-    baseVault: web3.PublicKey;
-    baseMint: web3.PublicKey;
-    quoteMint: web3.PublicKey;
-    pubKey: web3.PublicKey;
-}
-
 // Define a function to fetch and decode OpenBook accounts
-async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<RaydiumPoolData[]> {
+async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<PoolData[]> {
     let accounts = await blockchainTaskQueue.addTask(() => connection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
         {
