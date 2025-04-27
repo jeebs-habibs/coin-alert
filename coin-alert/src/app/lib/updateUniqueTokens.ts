@@ -183,7 +183,8 @@ export async function updateUniqueTokens() {
 
           tokenAccountsForAddress.value.forEach((value) => {
             const tokenAccountData: TokenAccountData = value.account.data.parsed;
-            if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 0) {
+            if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50) {
+              //console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
               uniqueTokensSet.add(tokenAccountData.info.mint);
             }
           });

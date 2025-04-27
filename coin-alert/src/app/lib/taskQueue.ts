@@ -1,22 +1,27 @@
-const MAX_REQUESTS_PER_SECOND = 13;
-const REQUEST_INTERVAL = 1000 / MAX_REQUESTS_PER_SECOND; // Delay between requests in ms
-
 class TaskQueue {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private queue: (() => Promise<any>)[] = [];
   private isProcessing = false;
+  private requestInterval: number;
+
+  constructor(maxRequestsPerSecond: number) {
+    if (maxRequestsPerSecond <= 0) {
+      throw new Error('maxRequestsPerSecond must be greater than 0');
+    }
+    this.requestInterval = 1000 / maxRequestsPerSecond; // Delay between requests in ms
+  }
 
   addTask<T>(task: () => Promise<T>, message?: string): Promise<T> {
-    if(message){
+    if (message) {
       //console.log(message)
     }
     return new Promise((resolve, reject) => {
       //console.log(`🔹 Task added to queue. Queue length: ${this.queue.length + 1}`);
 
-      // � Store the task reference without calling it
+      // Store the task reference without calling it
       this.queue.push(() => task().then(resolve).catch(reject));
 
-      // 🔥 Ensure the queue starts processing if it’s not already
+      // Ensure the queue starts processing if it’s not already
       if (!this.isProcessing) {
         //console.log("Initiating queue processing")
         this.processQueue();
@@ -34,11 +39,11 @@ class TaskQueue {
       if (task) {
         try {
           //console.log(`Processing task`);
-          task();
+          await task(); // Changed to await to ensure task completion before delay
         } catch (error) {
           console.error(`❌ Error processing task:`, error);
         }
-        await new Promise((resolve) => setTimeout(resolve, REQUEST_INTERVAL));
+        await new Promise((resolve) => setTimeout(resolve, this.requestInterval));
       }
     }
 
@@ -48,4 +53,5 @@ class TaskQueue {
 }
 
 // Export as a singleton so all files share the same queue
-export const blockchainTaskQueue = new TaskQueue();
+export const blockchainTaskQueue = new TaskQueue(15);
+
