@@ -1,6 +1,7 @@
 import * as borsh from "@coral-xyz/borsh";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
+import chalk from "chalk";
 import { connection, heliusConnection } from "../connection";
 import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
 import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
@@ -32,7 +33,7 @@ async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number 
 
 // Define a function to fetch and decode OpenBook accounts
 async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
-    console.log("Getting pump pool accounts")
+    console.log("Getting pump pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(PUMP_SWAP_PROGRAM),
         {
@@ -186,6 +187,8 @@ export async function getTokenPricePump(token: string, tokenFromFirestore: Token
             quoteMint: pumpSwap?.quoteMint?.toString(),
             marketPoolId: pumpSwap?.pubKey?.toString(),
         }
+    } else {
+        console.log(chalk.green("Skipping pump price fetch for token: " + token))
     }
     
    

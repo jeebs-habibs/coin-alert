@@ -3,7 +3,7 @@ import { publicKey } from "@metaplex-foundation/umi";
 import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { GetPriceResponse, PriceData, setTokenDead, Token, TokenData } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, PoolType, PriceData, setTokenDead, Token, TokenData, updateToken } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { getToken } from "./firebase/tokenUtils";
@@ -22,6 +22,7 @@ let totalMetadataFetchSkipped = 0;
 let totalSucceededToGetMetadata = 0;
 let totalFailedPrice = 0;
 let totalSucceedPrice = 0;
+let totalSkippedPrice = 0;
 let totalUncachedPoolData = 0;
 
 interface URIMetadata {
@@ -29,6 +30,11 @@ interface URIMetadata {
   image: string;
   symbol: string;
   description: string;
+}
+
+function isValidMint(mint: string): boolean {
+  const validEndings = ["bonk", "pump", "ray", "moon"];
+  return validEndings.some(ending => mint.endsWith(ending));
 }
 
 async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
@@ -104,6 +110,33 @@ async function getTokenMetadataFromBlockchain(token: string) {
 // 🔹 Fetch Token Price from External APIs
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
+
+    let poolType: PoolType | undefined = tokenFromFirestore?.tokenData?.pool
+    if(poolType == undefined){
+      // 1. Bonding curve
+      const bondingCurvePrice = 
+      // 2. If completed, check pump swap
+      // 3. If cant find bonding curve account, check raydium
+    } else {
+      if(poolType == "pump"){
+        // Check bonding curve
+        // If completed, check pump swap
+      } 
+      else if(poolType == "raydium"){
+        //Check if pool data is in db and call general function to get price
+      }
+      else if(poolType == "pump-swap"){
+        //Check if pool data is in db and call general function to get price
+      }
+    }
+    // If raydium pool is defined in db, check that
+    // If pump-swap pool is defined in db, check that
+    //  
+    // If bonding curve check pump bonding curve account. if marked as completed then look for pump swap
+
+    // If no data in db, start with pump bonding curve -> pump swap -> raydium
+
+
     const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore);
 
     if (!raydiumTokenPrice?.price) {
@@ -187,7 +220,7 @@ export async function updateUniqueTokens() {
 
           tokenAccountsForAddress.value.forEach((value) => {
             const tokenAccountData: TokenAccountData = value.account.data.parsed;
-            if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50) {
+            if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
               //console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
               uniqueTokensSet.add(tokenAccountData.info.mint);
             }
@@ -217,6 +250,11 @@ export async function updateUniqueTokens() {
           return;
         }
 
+        if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) > 2){
+          totalSkippedPrice++
+          return;
+        }
+
         let blockchainMetadataFailures = 0
         let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
         if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 3){
@@ -234,22 +272,36 @@ export async function updateUniqueTokens() {
         }
 
         const data = await getTokenPrice(token, tokenFromFirestore);
-        if (data && tokenMetadata) data.tokenData.tokenMetadata = tokenMetadata;
-
-
-        timesToGetTokenPrice.push(Date.now() - performanceStart);
-
-        if (data?.price) {
-          totalSucceedPrice++;
-          data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
- 
-          if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
-            totalUncachedPoolData++
-          }
-          await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
-        } else {
+        if(!data){
           totalFailedPrice++;
+          let tokenData = tokenFromFirestore?.tokenData || {}
+          tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
+
+          let updatedToken: Token = {
+            ...tokenFromFirestore,
+            tokenData
+          }
+          
+          updateToken(token, updatedToken)
+          
+        } else {
+          if (tokenMetadata) data.tokenData.tokenMetadata = tokenMetadata;
+
+          timesToGetTokenPrice.push(Date.now() - performanceStart);
+  
+          if (data?.price) {
+            totalSucceedPrice++;
+            data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
+   
+            if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
+              totalUncachedPoolData++
+            }
+            await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
+          } else {
+            totalFailedPrice++;
+          }
         }
+ 
       })
     );
 
@@ -261,14 +313,15 @@ export async function updateUniqueTokens() {
     const metricsSummary = `
       ====== API METRICS SUMMARY ======
       👤 Total Users Processed: ${totalUsers}
-        Total Unique Wallets Processed: ${uniqueWalletSet.size}
+      👛 Total Unique Wallets Processed: ${uniqueWalletSet.size} // Added 👛 for wallets
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
       ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
       ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
-         Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped}
-          Total uncached pool data: ${totalUncachedPoolData}
+      ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} // Added ⏭️ for skipped
+      🗄️ Total uncached pool data: ${totalUncachedPoolData} // Added 🗄️ for data/cache
+      🚫 Total skipped prices: ${totalSkippedPrice} // Added 🚫 for skipped
       ❌ Total Price Fetch Failures: ${totalFailedPrice} (${priceFailureRate.toFixed(2)}%)
       💵 Total Price Fetch Successes: ${totalSucceedPrice}
     `;

@@ -14,6 +14,7 @@ const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24w
 
 // Define a function to fetch and decode OpenBook accounts
 async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<PoolData[]> {
+    console.log("Getting raydium pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
         {
@@ -79,7 +80,6 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
     let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
     if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){
         // const timeBeforeFetchPoolAccounts = new Date().getTime()
-        console.log("Getting raydium pool accounts")
         const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
         // const timeAfterFetchPoolAccounts = new Date().getTime()
         // const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
@@ -93,6 +93,8 @@ export async function getTokenPriceRaydium(token: string, tokenFromFirestore: To
             marketPoolId: poolAccounts[0]?.pubKey?.toString(),
 
         }
+    } else {
+        console.log("Skipping raydium price fetch for token: " + token)
     }
 
 

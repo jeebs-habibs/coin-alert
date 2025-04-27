@@ -19,6 +19,7 @@ export interface TokenMetadata {
 }
 
 export interface TokenData {
+  priceFetchFailures?: number;
   pool?: PoolType
   baseVault?: string;
   baseMint?: string;
@@ -133,5 +134,27 @@ export async function getToken(tokenId: string): Promise<Token | undefined> {
   } catch (error) {
     console.error(`❌ Error fetching token ${tokenId}:`, error);
     return undefined;
+  }
+}
+
+// 🔹 Update a Token in Firestore with fields from another Token object
+export async function updateToken(tokenId: string, updateData: Partial<Token>): Promise<boolean> {
+  try {
+    const tokenDocRef = adminDB.collection("uniqueTokens").doc(tokenId);
+    
+    // Convert the update data to Firestore format
+    const convertedData = tokenConverter.toFirestore({
+      ...updateData,
+      lastUpdated: updateData.lastUpdated || new Date(), // Update timestamp if not provided
+    } as Token);
+
+    // Update only the provided fields
+    await tokenDocRef.set(convertedData, { merge: true });
+
+    console.log(`✅ Token ${tokenId} successfully updated.`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error updating token ${tokenId}:`, error);
+    return false;
   }
 }
