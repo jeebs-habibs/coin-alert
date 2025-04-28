@@ -30,7 +30,6 @@ function areStringListsEqual(list1: string[], list2: string[]): boolean {
   return sortedList1.every((value, index) => value === sortedList2[index]);
 }
 
-
 async function unRegisterMultipleWorkers(){
   if ('serviceWorker' in navigator && !(await navigator.serviceWorker.getRegistration())?.active) {
     navigator.serviceWorker.register('/firebase-messaging-sw.js')

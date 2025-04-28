@@ -74,7 +74,7 @@ async function calculateTokenPrice(token: string, poolData: PoolData, poolType: 
   }
 }
 
-function isValidMint(mint: string): boolean {
+export function isValidMint(mint: string): boolean {
   const validEndings = ["pump"];
   return validEndings.some(ending => mint.endsWith(ending));
 }
