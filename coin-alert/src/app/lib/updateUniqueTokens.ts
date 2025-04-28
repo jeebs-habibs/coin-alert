@@ -30,7 +30,7 @@ let totalUncachedPoolData = 0;
 //   description: string;
 // }
 
-function isValidMint(mint: string): boolean {
+export function isValidMint(mint: string): boolean {
   const validEndings = ["pump"];
   return validEndings.some(ending => mint.endsWith(ending));
 }
@@ -339,6 +339,7 @@ export async function updateUniqueTokens() {
             if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
               totalUncachedPoolData++
             }
+            console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
             await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
           } else {
             totalFailedPrice++;
@@ -356,15 +357,15 @@ export async function updateUniqueTokens() {
     const metricsSummary = `
       ====== API METRICS SUMMARY ======
       👤 Total Users Processed: ${totalUsers}
-      👛 Total Unique Wallets Processed: ${uniqueWalletSet.size} // Added 👛 for wallets
+      👛 Total Unique Wallets Processed: ${uniqueWalletSet.size}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
       ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
       ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
-      ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} // Added ⏭️ for skipped
-      🗄️ Total uncached pool data: ${totalUncachedPoolData} // Added 🗄️ for data/cache
-      🚫 Total skipped prices: ${totalSkippedPrice} // Added 🚫 for skipped
+      ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} 
+      🗄️ Total uncached pool data: ${totalUncachedPoolData} 
+      🚫 Total skipped prices: ${totalSkippedPrice}
       ❌ Total Price Fetch Failures: ${totalFailedPrice} (${priceFailureRate.toFixed(2)}%)
       💵 Total Price Fetch Successes: ${totalSucceedPrice}
     `;

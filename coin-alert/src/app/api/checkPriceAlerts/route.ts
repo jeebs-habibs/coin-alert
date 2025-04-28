@@ -2,9 +2,15 @@ import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getTokenCached, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
-import { calculatePriceChange, getAlarmConfig, getLastHourPrices, getTokensFromBlockchain, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
+import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import chalk from "chalk";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+import { blockchainTaskQueue } from "@/app/lib/taskQueue";
+import { connection } from "@/app/lib/connection";
+import { PublicKey } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
+import { isValidMint } from "@/app/lib/updateUniqueTokens";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -54,7 +60,6 @@ function isTokenMinuteAfterCooldown(
   return elapsedTime > minutes; // ✅ Return true if notification is older than cooldown
 }
 
-
 // 🔹 Main API Function
 export async function GET(req: Request) {
 
@@ -96,9 +101,18 @@ export async function GET(req: Request) {
       const allTokensSet = new Set<string>();
       const tokenPromises = user.wallets.map(async (wallet) => {
         totalNumberOfWallets++
-        const tokens = await getTokensFromBlockchain(wallet);
-        console.log("Address " + wallet + " has " + tokens.length + " unique tokens held")
-        tokens.forEach((token) => allTokensSet.add(token));
+        const walletPubkey = new PublicKey(wallet)
+        const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(walletPubkey, { programId: TOKEN_PROGRAM_ID }));
+
+        console.log("Address " + wallet + " has " + tokenAccountsForAddress.value.length + " unique tokens held")
+        tokenAccountsForAddress.value.forEach((value) => {
+          const tokenAccountData: TokenAccountData = value.account.data.parsed;
+          if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
+            //console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
+            allTokensSet.add(tokenAccountData.info.mint);
+          }
+        })
+
       });
 
       await Promise.all(tokenPromises);
@@ -121,7 +135,7 @@ export async function GET(req: Request) {
         // if(isTokenDead){
         //   return null
         // }
-        const priceHistory = await getLastHourPrices(tokenObj[0]);
+        const priceHistory = await getLastHourPrices(tokenObj[0], token);
 
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {

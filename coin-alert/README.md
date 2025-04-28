@@ -4,6 +4,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - For coins still on pump bonding curve, we keep checking both raydium and pump. This is wasting a crazy amount of time.
 
 
+Sending 7Phgw0InXPbqaE8Yf1qc8xzpnI13 a notification:  4ti..pump up 17.19% in 1 minutes to token fs1h_fmGyaHm8Kh5etVKoG:APA91bFWo_Et1TZ4UD1GVornJWqSvYjp74eU2Bv-HPfWpX9WA0UkgU58378H317we7xTdGaxkADvNornS67z2kiem6OiHBBLJxLn5q9zqV9aldxaeZy-pBQ
+Sending 7Phgw0InXPbqaE8Yf1qc8xzpnI13 a notification:  $TROLL up 16.47% in 1 minutes to token fs1h_fmGyaHm8Kh5etVKoG:APA91bFWo_Et1TZ4UD1GVornJWqSvYjp74eU2Bv-HPfWpX9WA0UkgU58378H317we7xTdGaxkADvNornS67z2kiem6OiHBBLJxLn5q9zqV9aldxaeZy-pBQ
+
+...
+
+Sending 7Phgw0InXPbqaE8Yf1qc8xzpnI13 a notification:  4ti..pump up 17.19% in 7 minutes to token fs1h_fmGyaHm8Kh5etVKoG:APA91bFWo_Et1TZ4UD1GVornJWqSvYjp74eU2Bv-HPfWpX9WA0UkgU58378H317we7xTdGaxkADvNornS67z2kiem6OiHBBLJxLn5q9zqV9aldxaeZy-pBQ
+Sending 7Phgw0InXPbqaE8Yf1qc8xzpnI13 a notification:  $TROLL up 16.47% in 1 minutes to token fs1h_fmGyaHm8Kh5etVKoG:APA91bFWo_Et1TZ4UD1GVornJWqSvYjp74eU2Bv-HPfWpX9WA0UkgU58378H317we7xTdGaxkADvNornS67z2kiem6OiHBBLJxLn5q9zqV9aldxaeZy-pBQ✅ Sent normal alert for 4tiEMEM6CYUofbEAHwRcuRwT9Wyp9kCFpQgme9eLpump to 7Phgw0InXPbqaE8Yf1qc8xzpnI13
+
+ARE WE DEDUPING NOTIS?!?!?!
 
 - Dont notify if it contains word infinity in it
 - Add recent notis to dashboard 

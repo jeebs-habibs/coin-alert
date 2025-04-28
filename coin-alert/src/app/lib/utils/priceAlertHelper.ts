@@ -1,11 +1,6 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { PublicKey } from "@solana/web3.js";
-import { connection } from "../connection";
 import { AlarmConfig, AlarmType, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
 import { PriceData, Token } from "../firebase/tokenUtils";
 import { AlarmPreset } from "../firebase/userUtils";
-import { blockchainTaskQueue } from "../taskQueue";
-import { TokenAccountData } from "./solanaUtils";
 
 export interface NotificationReturn {
     userId: string,
@@ -18,13 +13,12 @@ export interface NotificationReturn {
     marketCapUsd?: number;
 }
 
-export async function getLastHourPrices(token: Token | undefined): Promise<PriceData[]> {
+export async function getLastHourPrices(token: Token | undefined, tokenMint: string): Promise<PriceData[]> {
     try {
         if(!token){
             return []
         }
         const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
-        console.log("One hour ago (ms): " + oneHourAgo);
 
         if (!token?.prices || !Array.isArray(token.prices)) {
         console.warn(`⚠️ No price history found for token`);
@@ -36,7 +30,7 @@ export async function getLastHourPrices(token: Token | undefined): Promise<Price
         .filter((entry: PriceData) => entry.timestamp > oneHourAgo)
         .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
 
-        console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${token}`);
+        console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${tokenMint}`);
         return lastHourPrices;
     } catch (error) {
         console.error(`❌ Error fetching prices for ${token}:`, error);
@@ -62,25 +56,6 @@ export function getAlarmConfig(alarmPreset: AlarmPreset){
     }
     return STANDARD_ALARM_CONFIGS
 }
-
-
-// 🔹 Placeholder: Fetch Tokens Owned by User (Implement This Later)
-export async function getTokensFromBlockchain(walletAddress: string): Promise<string[]> {
-    const publicKey = new PublicKey(walletAddress);
-    const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })) 
-    const tokensHeldByAddress = tokenAccountsForAddress.value.filter((val) => {
-        const tokenAccountData: TokenAccountData = val.account.data.parsed
-        if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 0) {
-        return true
-        } else {
-        return false
-        }
-    }).map((val) => {
-        const tokenAccountData: TokenAccountData = val.account.data.parsed
-        return tokenAccountData.info.mint
-    })
-    return tokensHeldByAddress
-    }
 
 // 🔹 Check Price Change Percentage
 export function calculatePriceChange(oldPrice: number, newPrice: number): number {
