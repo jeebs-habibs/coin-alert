@@ -33,6 +33,7 @@ export interface TokenData {
 export interface GetPriceResponse {
   price: PriceData;
   tokenData: TokenData;
+  complete?: boolean;
   err?: string;
 }
 

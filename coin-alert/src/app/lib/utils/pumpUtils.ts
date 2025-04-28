@@ -1,9 +1,8 @@
 import * as borsh from "@coral-xyz/borsh";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import chalk from "chalk";
 import { connection, heliusConnection } from "../connection";
-import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
+import { GetPriceResponse } from "../firebase/tokenUtils";
 import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
 import { BILLION, PoolData } from "./solanaUtils";
 
@@ -22,17 +21,10 @@ const pumpSwapSchema = borsh.struct([
     borsh.publicKey("pool_quote_token_account"), // 32 bytes
     borsh.u64("lp_supply"),        // 8 bytes
 ]);
-
-
-async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number | null> {
-    const account = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(accountPubkey))
-    return account.value.uiAmount
-
-}
   
 
 // Define a function to fetch and decode OpenBook accounts
-async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
+export async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
     console.log("Getting pump pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(PUMP_SWAP_PROGRAM),
@@ -170,51 +162,8 @@ async function getBondingCurveAddress(token: string){
     return bondingCurve
 }
 
-export async function getTokenPricePump(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined>{
 
-    let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
-    if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){
-        // const timeBeforeFetchPoolAccounts = new Date().getTime()
-        const pumpSwap = await fetchPumpSwapAMM(new PublicKey(token))
-        // const timeAfterFetchPoolAccounts = new Date().getTime()
-        // const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
-        // console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
-        finalTokenData = {
-            ...finalTokenData, 
-            baseVault: pumpSwap?.baseVault?.toString(),
-            baseMint: pumpSwap?.baseMint?.toString(),
-            quoteVault: pumpSwap?.quoteVault?.toString(),
-            quoteMint: pumpSwap?.quoteMint?.toString(),
-            marketPoolId: pumpSwap?.pubKey?.toString(),
-        }
-    } else {
-        console.log(chalk.green("Skipping pump price fetch for token: " + token))
-    }
-    
-   
-    //console.log("Pump swap pool " + JSON.stringify(pumpSwap))
-    if(finalTokenData && finalTokenData.baseVault && finalTokenData.quoteVault && finalTokenData.baseMint){
-        const baseBalance = await getTokenAccountBalance(new PublicKey(finalTokenData.baseVault))
-        const quoteBalance = await getTokenAccountBalance(new PublicKey(finalTokenData?.quoteVault))
-        if(baseBalance == null || quoteBalance == null){
-            return undefined
-        }
-        let price = 0
-        if(quoteBalance != 0 && baseBalance != 0){
-            price = finalTokenData?.baseMint.toString() == token ? (quoteBalance/baseBalance) : (baseBalance/quoteBalance)
-        }
-        const returnVal: GetPriceResponse = {
-            price: {
-                price: price, 
-                marketCapSol: BILLION * price,
-                timestamp: new Date().getTime(),
-                pool: "pump-swap"
-            }, 
-            tokenData: { ...finalTokenData, pool: "pump-swap"}
-        }
-        return returnVal
-    }
-    
+export async function getPriceFromBondingCurve(token: string):  Promise<GetPriceResponse | undefined> {
     const bondingCurveAccount = await getBondingCurveAddress(token)
 
     const accountInfo = await blockchainTaskQueue.addTask(() => connection.getParsedAccountInfo(bondingCurveAccount)) 
@@ -243,7 +192,8 @@ export async function getTokenPricePump(token: string, tokenFromFirestore: Token
                 pool: "pump",
                 marketCapSol: BILLION * price
             }, 
-            tokenData: { pool: "pump"}
+            tokenData: { pool: "pump"},
+            complete: parsedData.complete
         }
     }
 }

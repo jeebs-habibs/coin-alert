@@ -1,16 +1,14 @@
-import { fetchDigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
-import { publicKey } from "@metaplex-foundation/umi";
 import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { GetPriceResponse, PoolType, PriceData, setTokenDead, Token, TokenData, updateToken } from "../lib/firebase/tokenUtils";
-import { connection, umi } from "./connection";
+import { connection } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
-import { getTokenPricePump } from "./utils/pumpUtils";
-import { getTokenPriceRaydium } from "./utils/raydiumUtils";
-import { TokenAccountData } from "./utils/solanaUtils";
+import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
+import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
+import { calculateTokenPrice, PoolData, TokenAccountData } from "./utils/solanaUtils";
 
 // 🔹 Metrics Tracking
 let totalUsers = 0;
@@ -25,70 +23,66 @@ let totalSucceedPrice = 0;
 let totalSkippedPrice = 0;
 let totalUncachedPoolData = 0;
 
-interface URIMetadata {
-  name: string;
-  image: string;
-  symbol: string;
-  description: string;
-}
+// interface URIMetadata {
+//   name: string;
+//   image: string;
+//   symbol: string;
+//   description: string;
+// }
 
 function isValidMint(mint: string): boolean {
-  const validEndings = ["bonk", "pump", "ray", "moon"];
+  const validEndings = ["pump"];
   return validEndings.some(ending => mint.endsWith(ending));
 }
 
-async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
-  try {
-    const response = await fetch(uri);
+// async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
+//   try {
+//     const response = await fetch(uri);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch JSON from ${uri}: ${response.status} ${response.statusText}`);
-    }
+//     if (!response.ok) {
+//       throw new Error(`Failed to fetch JSON from ${uri}: ${response.status} ${response.statusText}`);
+//     }
 
-    const data: URIMetadata = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching JSON:", error);
-    return undefined
-  }
-}
+//     const data: URIMetadata = await response.json();
+//     return data;
+//   } catch (error) {
+//     console.error("Error fetching JSON:", error);
+//     return undefined
+//   }
+// }
 
 
 // 🔹 Fetch Metadata from Metaplex
-async function getTokenMetadataMetaplex(token: string) {
-  const mint = publicKey(token);
-  try {
-    const asset = await fetchDigitalAsset(umi, mint);
-    //console.log(chalk.green(`✅ Got metadata for token: ${token}`));
-    return {
-      name: asset.metadata.name,
-      symbol: asset.metadata.symbol,
-      uri: asset.metadata.uri,
-    };
-  } catch (error) {
-    console.error(`❌ Error getting Metaplex metadata for ${token}:`, error);
-    return null;
-  }
-}
+// async function getTokenMetadataMetaplex(token: string) {
+//   const mint = publicKey(token);
+//   try {
+//     const asset = await fetchDigitalAsset(umi, mint);
+//     //console.log(chalk.green(`✅ Got metadata for token: ${token}`));
+//     return {
+//       name: asset.metadata.name,
+//       symbol: asset.metadata.symbol,
+//       uri: asset.metadata.uri,
+//     };
+//   } catch (error) {
+//     console.error(`❌ Error getting Metaplex metadata for ${token}:`, error);
+//     return null;
+//   }
+// }
 
 // 🔹 Get Metadata from Blockchain (Fallback)
 async function getTokenMetadataFromBlockchain(token: string) {
-  const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
+  // const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
 
-  if (metaplexMetadata){
-      // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
+  // if (metaplexMetadata){
+  //     // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
 
-    //const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
-    return metaplexMetadata
-  } 
+  //   //const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
+  //   return metaplexMetadata
+  // } 
 
   return blockchainTaskQueue.addTask(() =>
     getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID)
       .then(async (val) => {
-        if(val == null){
-          return null
-        }
-
         return val
         
         // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
@@ -107,44 +101,93 @@ async function getTokenMetadataFromBlockchain(token: string) {
   );
 }
 
+function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData): GetPriceResponse {
+  const finalResponse: GetPriceResponse = {
+    ...priceResponse,
+    tokenData: {
+      baseMint: poolData.baseMint.toString(),
+      baseVault: poolData.baseVault.toString(),
+      quoteMint: poolData.quoteMint.toString(),
+      quoteVault: poolData.quoteVault.toString(),
+      marketPoolId: poolData.pubKey.toString()
+    }
+  }
+  return finalResponse
+}
+
 // 🔹 Fetch Token Price from External APIs
 async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
   try {
-
-    let poolType: PoolType | undefined = tokenFromFirestore?.tokenData?.pool
-    if(poolType == undefined){
+    const poolType: PoolType | undefined = tokenFromFirestore?.tokenData?.pool
+    if(!poolType){
       // 1. Bonding curve
-      const bondingCurvePrice = 
-      // 2. If completed, check pump swap
+      const bondingCurvePrice = await getPriceFromBondingCurve(token)
+      if(bondingCurvePrice?.complete == false && bondingCurvePrice?.price){
+        return bondingCurvePrice
+      }
+      if(bondingCurvePrice?.complete){
+        // 2. If completed, check pump swap
+        const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
+        if(pumpPoolData){
+          const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
+          if(priceResponse){
+            return decoratePoolData(priceResponse, pumpPoolData)
+          }
+        }
+      }
+
       // 3. If cant find bonding curve account, check raydium
+      const raydiumPoolData: PoolData | undefined = await fetchRaydiumPoolAccountsFromToken(new PublicKey(token))
+      if(raydiumPoolData){
+        const priceResponse = await calculateTokenPrice(token, raydiumPoolData, "raydium")
+          if(priceResponse){
+            return decoratePoolData(priceResponse, raydiumPoolData)
+          }
+      }
+
+      return undefined
     } else {
       if(poolType == "pump"){
         // Check bonding curve
-        // If completed, check pump swap
+        const bondingCurvePrice = await getPriceFromBondingCurve(token)
+        if(bondingCurvePrice?.complete){
+          // If completed, check pump swap
+          const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
+          if(pumpPoolData){
+            const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
+            if(priceResponse){
+              return decoratePoolData(priceResponse, pumpPoolData)
+            }
+          }
+        } 
+        if(bondingCurvePrice?.complete == false){
+          return bondingCurvePrice
+        }
       } 
-      else if(poolType == "raydium"){
-        //Check if pool data is in db and call general function to get price
+      if(!tokenFromFirestore?.tokenData?.baseMint || !tokenFromFirestore.tokenData.baseVault || !tokenFromFirestore.tokenData.quoteMint || !tokenFromFirestore.tokenData.quoteVault || !tokenFromFirestore.tokenData.marketPoolId){
+        return undefined
       }
-      else if(poolType == "pump-swap"){
-        //Check if pool data is in db and call general function to get price
+      const poolData: PoolData = {
+        baseMint: new PublicKey(tokenFromFirestore?.tokenData?.baseMint),
+        baseVault: new PublicKey(tokenFromFirestore.tokenData.baseVault),
+        quoteMint: new PublicKey(tokenFromFirestore.tokenData.quoteMint),
+        quoteVault: new PublicKey(tokenFromFirestore.tokenData.quoteVault),
+        pubKey: new PublicKey(tokenFromFirestore.tokenData.marketPoolId)
       }
-    }
-    // If raydium pool is defined in db, check that
-    // If pump-swap pool is defined in db, check that
-    //  
-    // If bonding curve check pump bonding curve account. if marked as completed then look for pump swap
-
-    // If no data in db, start with pump bonding curve -> pump swap -> raydium
-
-
-    const raydiumTokenPrice = await getTokenPriceRaydium(token, tokenFromFirestore);
-
-    if (!raydiumTokenPrice?.price) {
-      const pumpPrice = await getTokenPricePump(token, tokenFromFirestore);
-      if (pumpPrice?.price) return pumpPrice;
-      console.error(`❌ Failed to get price data for token: ${token}`);
-    } else {
-      return raydiumTokenPrice;
+      if(poolType == "raydium"){
+        //Check if pool data is in db and call general function to get price
+        const priceResponse = await calculateTokenPrice(token, poolData, "raydium")
+        if(priceResponse){
+          return decoratePoolData(priceResponse, poolData)
+        }
+      }
+      if(poolType == "pump-swap"){
+        //Check if pool data is in db and call general function to get price
+        const priceResponse = await calculateTokenPrice(token, poolData, "pump-swap")
+        if(priceResponse){
+          return decoratePoolData(priceResponse, poolData)
+        }
+      }
     }
   } catch (error) {
     console.error(`❌ Error getting price data for ${token}:`, error);
@@ -274,10 +317,10 @@ export async function updateUniqueTokens() {
         const data = await getTokenPrice(token, tokenFromFirestore);
         if(!data){
           totalFailedPrice++;
-          let tokenData = tokenFromFirestore?.tokenData || {}
+          const tokenData = tokenFromFirestore?.tokenData || {}
           tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
 
-          let updatedToken: Token = {
+          const updatedToken: Token = {
             ...tokenFromFirestore,
             tokenData
           }

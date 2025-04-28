@@ -4,16 +4,14 @@ import {
 
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { connection, heliusConnection } from "../connection";
-import { GetPriceResponse, Token, TokenData } from "../firebase/tokenUtils";
-import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
-import { LAMPORTS_IN_SOL, MILLION } from "./solanaConstants";
-import { BILLION, PoolData } from "./solanaUtils";
+import { heliusConnection } from "../connection";
+import { heliusPoolQueue } from "../taskQueue";
+import { PoolData } from "./solanaUtils";
 
 const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 
 // Define a function to fetch and decode OpenBook accounts
-async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<PoolData[]> {
+export async function fetchRaydiumPoolAccountsFromToken(mint: PublicKey): Promise<PoolData | undefined> {
     console.log("Getting raydium pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
@@ -62,69 +60,16 @@ async function fetchPoolAccountsFromToken(mint: PublicKey): Promise<PoolData[]> 
     }
 
     //console.log("found " + accounts.length + " pool accounts for token: " + mint.toString())
-
-    
-    return accounts.map((account) => {
-        const data = LIQUIDITY_STATE_LAYOUT_V4.decode(account.account.data)
+    if(accounts[0].account.data){
+        const data = LIQUIDITY_STATE_LAYOUT_V4.decode(accounts[0].account.data)
         return {
             quoteVault: data.quoteVault,
             baseVault: data.baseVault,
             baseMint: data.baseMint,
             quoteMint: data.quoteMint,
-            pubKey: account.pubkey
-        }
-    });
-}
-
-export async function getTokenPriceRaydium(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
-    let finalTokenData: TokenData = tokenFromFirestore?.tokenData || {}
-    if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId || !finalTokenData?.baseMint || !finalTokenData?.quoteMint){
-        // const timeBeforeFetchPoolAccounts = new Date().getTime()
-        const poolAccounts = await fetchPoolAccountsFromToken(new PublicKey(token))
-        // const timeAfterFetchPoolAccounts = new Date().getTime()
-        // const timeTakenToFetchPoolAccounts = timeAfterFetchPoolAccounts - timeBeforeFetchPoolAccounts
-        // console.log("got raydium pool accounts in " + timeTakenToFetchPoolAccounts + " ms")
-        finalTokenData = {
-            ...finalTokenData, 
-            baseVault: poolAccounts[0]?.baseVault?.toString(),
-            baseMint: poolAccounts[0]?.baseMint?.toString(),
-            quoteVault: poolAccounts[0]?.quoteVault?.toString(),
-            quoteMint: poolAccounts[0]?.quoteMint?.toString(),
-            marketPoolId: poolAccounts[0]?.pubKey?.toString(),
-
-        }
-    } else {
-        console.log("Skipping raydium price fetch for token: " + token)
+            pubKey: accounts[0].pubkey
+        }    
     }
+    return undefined
 
-
-    if(!finalTokenData?.baseVault || !finalTokenData?.quoteVault || !finalTokenData?.marketPoolId){
-        //console.log("ERROR: No Raydium pool found for token: " + token)
-        return undefined
-    }
-
-    const tokenVault = finalTokenData?.baseMint == token ? finalTokenData.baseVault : finalTokenData.quoteVault
-    const solVault = finalTokenData?.baseMint == NATIVE_MINT.toString() ? finalTokenData.baseVault : finalTokenData.quoteVault
-
-    const tokenVaultAmount = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(new PublicKey(tokenVault))) 
-    const solVaultAmount = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(new PublicKey(solVault)))
-    const convertedTokenAmount = parseFloat(tokenVaultAmount.value.amount)/MILLION
-    const convertedSolAmount = parseFloat(solVaultAmount.value.amount)/LAMPORTS_IN_SOL
-
-    // console.log("Token Vault: " + convertedTokenAmount)
-    // console.log("Sol vault amount: " + convertedSolAmount)
-
-    const price = convertedTokenAmount == 0 ? 0 : convertedSolAmount/convertedTokenAmount
-    if(price){
-        return {
-            price: {
-                price, 
-                timestamp: new Date().getTime(),
-                marketCapSol: BILLION * price
-            }, 
-            tokenData: {...finalTokenData, pool: "raydium"}
-        }
-    } else {
-        console.error("No Raydium price data found for token: " + token)
-    }
 }

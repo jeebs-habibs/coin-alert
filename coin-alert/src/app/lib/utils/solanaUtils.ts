@@ -1,5 +1,8 @@
 import { web3 } from "@coral-xyz/anchor";
-import { TokenAmount } from "@solana/web3.js";
+import { PublicKey, TokenAmount } from "@solana/web3.js";
+import { connection } from "../connection";
+import { GetPriceResponse, PoolType } from "../firebase/tokenUtils";
+import { blockchainTaskQueue } from "../taskQueue";
 
 export const BILLION = 1000000000
 
@@ -40,3 +43,46 @@ export function areStringListsEqual(list1: string[], list2: string[]): boolean {
   }
 
   
+async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number | null> {
+    const account = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(accountPubkey))
+    return account.value.uiAmount
+
+}
+
+export async function calculateTokenPrice(token: string, poolData: PoolData, poolType: PoolType): Promise<GetPriceResponse | undefined> {
+    if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint) {
+      console.log(`ERROR: Insufficient token data for ${poolType} price calculation for token: ${token}`);
+      return undefined;
+    }
+
+    if(!poolData?.quoteVault){
+      return undefined
+    }
+  
+    const baseBalance = await getTokenAccountBalance(new PublicKey(poolData?.baseVault))
+    const quoteBalance = await getTokenAccountBalance(new PublicKey(poolData?.quoteVault))
+    if (baseBalance == null || quoteBalance == null) {
+      console.error(`Failed to fetch balances for ${poolType} token: ${token}`);
+      return undefined;
+    }
+  
+    let price = 0;
+    if (quoteBalance !== 0 && baseBalance !== 0) {
+      price = poolData.baseMint.toString() === token ? (quoteBalance / baseBalance) : (baseBalance / quoteBalance);
+    }
+  
+    if (price) {
+      return {
+        price: {
+          price,
+          marketCapSol: BILLION * price,
+          timestamp: new Date().getTime(),
+          pool: poolType,
+        },
+        tokenData: { pool: poolType },
+      };
+    } else {
+      console.error(`No ${poolType} price data found for token: ${token}`);
+      return undefined;
+    }
+  }
