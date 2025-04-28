@@ -39,7 +39,7 @@ class TaskQueue {
       const task = this.queue.shift();
       if (task) {
         try {
-          console.log(`Processing task`);
+          //console.log(`Processing task`);
           //const beforeTaskTime = Date.now()
           task();
           // const afterTaskTime = Date.now()
