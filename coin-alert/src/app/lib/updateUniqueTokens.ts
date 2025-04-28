@@ -282,19 +282,19 @@ export async function updateUniqueTokens() {
         const performanceStart = Date.now();
 
         const tokenFromFirestore: Token | undefined = await getToken(token);
-        if(tokenFromFirestore?.isDead){
-          totalDeadTokensSkippedFirestore++
-          return
+        if(tokenFromFirestore?.isDead == true){
+          totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
+          return;
         }
         const isTokenDead = await setTokenDead(token, tokenFromFirestore);
 
         if (isTokenDead) {
-          totalDeadTokensSkipped++;
+          totalDeadTokensSkipped = totalDeadTokensSkipped + 1
           return;
         }
 
         if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) > 2){
-          totalSkippedPrice++
+          totalSkippedPrice = totalSkippedPrice + 1
           return;
         }
 
