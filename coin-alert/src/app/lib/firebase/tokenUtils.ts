@@ -38,7 +38,6 @@ export interface GetPriceResponse {
 }
 
 export interface Token {
-    lastUpdated?: Date;
     prices?: PriceData[];
     tokenData?: TokenData;
     isDead?: boolean;
@@ -96,7 +95,6 @@ export async function setTokenDead(token: string, tokenDb: Token | undefined): P
 export const tokenConverter: FirestoreDataConverter<Token> = {
     toFirestore(token: Token) {
       return {
-        lastUpdated: token.lastUpdated instanceof Date ? token.lastUpdated.getTime() : token.lastUpdated,
         prices: token?.prices?.map((price) => ({
           timestamp: price.timestamp,
           price: price.price,
@@ -108,7 +106,6 @@ export const tokenConverter: FirestoreDataConverter<Token> = {
     fromFirestore(snapshot, options) {
       const data = snapshot.data(options);
       return {
-        lastUpdated: typeof data.lastUpdated === "number" ? new Date(data.lastUpdated) : (data.lastUpdated as Timestamp).toDate(),
         prices: data?.prices?.map((price: PriceData) => ({
           timestamp: typeof price.timestamp === "number" ? price.timestamp : (price.timestamp as Timestamp).toMillis(),
           price: price.price,
@@ -146,7 +143,6 @@ export async function updateToken(tokenId: string, updateData: Partial<Token>): 
     // Convert the update data to Firestore format
     const convertedData = tokenConverter.toFirestore({
       ...updateData,
-      lastUpdated: updateData.lastUpdated || new Date(), // Update timestamp if not provided
     } as Token);
 
     // Update only the provided fields

@@ -6,7 +6,7 @@ export interface CryptoPriceResponse {
 }
 
 
-interface CryptoDataDb {
+export interface CryptoDataDb {
     priceUsd: number;
     timestamp: number;
 }
@@ -28,7 +28,7 @@ async function updateCryptoPriceById(symbol: string, cryptoData: CryptoDataDb): 
     }
   }
   
-async function getCryptoPriceBySymbolDB(symbol: string): Promise<CryptoDataDb | undefined> {
+export async function getCryptoPriceBySymbolDB(symbol: string): Promise<CryptoDataDb | undefined> {
     try {
       const docRef = adminDB.collection('cryptoPrices').doc(symbol);
       const docSnap = await docRef.get();

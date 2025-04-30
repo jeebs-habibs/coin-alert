@@ -24,9 +24,12 @@ module.exports = {
           {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
-          }
+          },
         ],
       },
-    ]
+    ];
   },
-}
+  images: {
+    domains: ['ipfs.io'],
+  },
+};

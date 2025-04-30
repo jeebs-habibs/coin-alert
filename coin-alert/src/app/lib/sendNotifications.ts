@@ -127,6 +127,9 @@ export async function sendNotification(
             minutes: minutes,
             percentChange: priceChange,
             alertType: alertType,
+            image: image,
+            notificationTitle: notificationTitle,
+            notificationBody: notificationBody
           });
         });
     }

@@ -262,7 +262,6 @@ export async function storeTokenPrice(
 
     await tokenDocRef.set(
       {
-        lastUpdated: new Date(),
         tokenData: tokenData,
         prices: updatedPrices,
       },

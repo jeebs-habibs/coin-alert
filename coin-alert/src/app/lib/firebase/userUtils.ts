@@ -7,6 +7,10 @@ export interface RecentNotification {
   minutes: number;
   percentChange: number;
   alertType: AlarmType;
+  notificationTitle?: string;
+  notificationBody?: string;
+  image?: string;
+
 }
 
 export type AlarmPreset = "left" | "right" | "center";
@@ -16,6 +20,7 @@ export interface SirenUser {
   email?: string;
   wallets: string[];
   tokens?: string[];
+  trackedTokens?: string[];
   alarmPreset: AlarmPreset;
   isNotificationsOn: boolean;
   recentNotifications?: Record<string, RecentNotification>;

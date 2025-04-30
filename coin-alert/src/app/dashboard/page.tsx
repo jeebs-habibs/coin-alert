@@ -1,326 +1,223 @@
 "use client";
 
-import { PublicKey } from "@solana/web3.js";
-import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { getToken } from "firebase/messaging";
-import { useEffect, useState } from "react";
-import { FaMinus, FaPlus } from "react-icons/fa";
-import { Button } from "../components/Button";
-import ToggleSwitch from "../components/ToggleSwitch";
-import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
-import styles from "../dashboard/page.module.css";
-import { convertAlarmConfigToString, NOISIER_ALARM_CONFIGS, QUIETER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../lib/constants/alarmConstants";
-import { db, messaging } from "../lib/firebase/firebase";
-import { SirenUser } from "../lib/firebase/userUtils";
+import Image from "next/image";
+import styles from "./page.module.css";
 import { useAuth } from "../providers/auth-provider";
+import { useEffect, useState, useMemo } from "react";
+import { PriceData, Token } from "../lib/firebase/tokenUtils";
+import { getTokenAction } from "../actions/getTokenAction";
+import { getCryptoPriceAction } from "../actions/getCryptoPrice";
+import { CryptoDataDb } from "../lib/utils/cryptoPrice";
+import { useRouter } from "next/navigation";
 
-function shortenString(input: string): string {
-  if (input.length <= 6) {
-    return input; // Return the original string if it's too short
-  }
-  return `${input.slice(0, 3)}...${input.slice(-3)}`;
-}
+// Simple in-memory cache
+const cache = {
+  solPrice: { data: undefined as CryptoDataDb | undefined, timestamp: 0 },
+  tokens: new Map<string, Token | undefined>(),
+  CACHE_DURATION: 5 * 60 * 1000, // Cache for 5 minutes
+};
 
-function areStringListsEqual(list1: string[], list2: string[]): boolean {
-  if (list1.length !== list2.length) return false;
+// Helper function to format timestamp as relative time
+const formatRelativeTime = (timestamp: number) => {
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  const diffMinutes = Math.round(diffMs / 60000);
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+};
 
-  const sortedList1 = [...list1].sort();
-  const sortedList2 = [...list2].sort();
+// Updated getMarketCapUSDFromPrices
+function getMarketCapUSDFromPrices(prices: PriceData[], solPriceUSD: number): number {
+  if (!prices || prices.length === 0 || !solPriceUSD) return 0;
 
-  return sortedList1.every((value, index) => value === sortedList2[index]);
-}
+  const latestPrice = prices
+    .filter((data) => typeof data.marketCapSol === "number")
+    .sort((a, b) => b.timestamp - a.timestamp)[0];
 
-async function unRegisterMultipleWorkers(){
-  if ('serviceWorker' in navigator && !(await navigator.serviceWorker.getRegistration())?.active) {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then((registration) => {
-            console.log('Service Worker registered:', registration);
-            //alert("Service worker registered")
-        })
-        .catch((error) => {
-            console.error('Service Worker registration failed:', error);
-            //alert("Service worker registration failed")
-        });
+  if (!latestPrice || typeof latestPrice.marketCapSol !== "number") return 0;
 
-  } else {
-    console.log("No service worker or serice worker registered already")
-    //alert("ERROR: Failed to register service worker")
-  }
-
-}
-
-async function updateUserData(uid: string, newData: Partial<SirenUser>) {
-  try {
-    const userDocRef = doc(db, "users", uid)
-    // 🔹 Fetch the current user document
-    const userSnapshot = await getDoc(userDocRef);
-
-    if (!userSnapshot.exists) {
-      console.warn(`⚠️ User ${uid} does not exist. Creating a new user document...`);
-      const newUser: SirenUser = {
-        uid,
-        email: newData.email || "unknown@example.com",
-        tokens: newData.tokens || [],
-        wallets: newData.wallets || [],
-        alarmPreset: newData.alarmPreset || "center",
-        isNotificationsOn: newData.isNotificationsOn ?? true,
-        recentNotifications: newData.recentNotifications || {},
-      };
-      await setDoc(userDocRef, newUser);
-      console.log(`✅ Created new user document for ${uid}.`);
-      return;
-    }
-
-    // 🔹 Merge new data with existing user data
-    await updateDoc(userDocRef, newData);
-    console.log(`✅ Successfully updated user ${uid} in Firestore.`);
-  } catch (error) {
-    throw Error(`❌ Error updating user ${uid}:` + error)
-  }
+  const marketCapUSD = latestPrice.marketCapSol * solPriceUSD;
+  return Number(marketCapUSD.toFixed(2));
 }
 
 export default function Dashboard() {
-  const [wallets, setWallets] = useState<string[]>([]);
-  const [newWallet, setNewWallet] = useState<string>("");
-  const [isNotificationsOn, setIsNotificationsOn] = useState<boolean>(true)
-  const [newAlarmPreset, setNewAlarmPreset] = useState<TogglePosition | undefined>("center")
-  const {user, userData, loading} = useAuth();
-  const [error, setError] = useState("");
-  // const [notificationError, setNotificationError] = useState("")
-  console.log(error)
+  const { user, userData, loading } = useAuth();
+  
+  const router = useRouter();
 
   useEffect(() => {
-    unRegisterMultipleWorkers()
-  });
-
-    // 🔹 Function to Validate Solana Address
-    const isValidSolanaAddress = (address: string): boolean => {
-      try {
-        new PublicKey(address);
-        return true;
-      } catch {
-        return false;
-      }
-    };
-  
-    useEffect(() => {
-      if (userData) {
-        // Fetch user data
-          if (userData?.wallets) {
-            setWallets(userData.wallets);
-          }
-          if(userData?.alarmPreset){
-            console.log("Set alarm preset to " + userData.alarmPreset)
-            setNewAlarmPreset(userData.alarmPreset)
-          }
-          if(userData?.isNotificationsOn != undefined){
-            setIsNotificationsOn(userData.isNotificationsOn)
-          } else {
-            setIsNotificationsOn(true)
-          }
-  
-      }
-    }, [userData]);
-
-  const handleAddWallet = async () => {
-    if (!newWallet || !isValidSolanaAddress(newWallet) || wallets.includes(newWallet)) {
-      setError("Error saving Solana wallet address")
-      alert("Error saving Solana address. Please verify the address is valid.")
-      return;
+    if (user == null && !loading) {
+      router.push("/");
     }
+  }, [user, loading, router]);
 
-    const updatedWallets = [...wallets, newWallet];
-    setWallets(updatedWallets);
-    setNewWallet("");
-  };
+  const [mintToTokenData, setMintToTokenData] = useState<Map<string, Token | undefined>>(new Map());
+  const [solPrice, setSolPrice] = useState<CryptoDataDb | undefined>(cache.solPrice.data);
 
-  const handleRemoveWallet = async (wallet: string) => {
-    const updatedWallets = wallets.filter((w) => w !== wallet);
-    setWallets(updatedWallets);
-  };
-  
-  const saveTokenToFirestore = async (token: string) => {
-    try {
-      if (!loading && !user) {
-        console.log("User is not authenticated. Cannot save token.");
-        return;
-      }
+  // Memoize notifications to prevent recalculating on every render
+  const notifications = useMemo(() => {
+    if (!userData?.recentNotifications) return [];
+    return Object.entries(userData.recentNotifications)
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10);
+  }, [userData?.recentNotifications]);
 
-      if(user != null){
-        //console.log("Updating FCM tokens for User: " + user.uid)
-        const userDocRef = doc(db, "users", user.uid);
-
-        await updateDoc(userDocRef, {
-          tokens: arrayUnion(token), // Adds the token only if it doesn’t already exist
-        });
-  
-        console.log("✅ FCM token saved to Firestore!");
-      } else {
-        console.log("Cannot save FCM token since user is null")
-      }
-
-
-    } catch (error) {
-      const e = "❌ Error saving FCM token to Firestore:" +error
-      console.error(e);
-      // setNotificationError(e)
-    }
-  };
-
+  // Fetch SOL price and token metadata once on page load
   useEffect(() => {
-    const requestPermissionAndSaveToken = async () => {
-      if (!messaging) return;
-  
+    const fetchData = async () => {
       try {
-        // 🔹 Only ask for permission if it's "default" (not granted or denied)
-        if (Notification.permission === "default") {
-          console.log("Requesting notification permission...");
-          const permission = await Notification.requestPermission();
-  
-          if (permission !== "granted") {
-            console.log("❌ Notification permission denied.");
-            return;
+        // Fetch SOL price if not cached
+        let solPriceData = cache.solPrice.data;
+        if (!solPriceData) {
+          solPriceData = await getCryptoPriceAction("SOL");
+          cache.solPrice = { data: solPriceData, timestamp: Date.now() };
+          setSolPrice(solPriceData);
+        }
+
+        // Get unique token addresses from notifications and tracked tokens
+        const tokenAddresses = [
+          ...new Set([
+            ...(notifications.map((n) => n.id.split("_")[0])),
+            ...(userData?.trackedTokens || []),
+          ]),
+        ];
+
+        // Fetch only uncached tokens
+        const tokensToFetch = tokenAddresses.filter((token) => !cache.tokens.has(token));
+        const newMap = new Map<string, Token | undefined>();
+        if (tokensToFetch.length > 0) {
+          const fetchPromises = tokensToFetch.map(async (token) => {
+            try {
+              const tokenData = await getTokenAction(token);
+              cache.tokens.set(token, tokenData);
+              return { token, tokenData };
+            } catch (error) {
+              console.error(`Failed to fetch metadata for token ${token}:`, error);
+              return { token, tokenData: undefined };
+            }
+          });
+
+          const results = await Promise.all(fetchPromises);
+          results.forEach(({ token, tokenData }) => {
+            newMap.set(token, tokenData);
+          });
+        }
+
+        // Add cached tokens to the map
+        tokenAddresses.forEach((token) => {
+          if (!newMap.has(token)) {
+            newMap.set(token, cache.tokens.get(token));
           }
-          console.log("✅ Notifications are allowed.");
-        } else {
-          console.log(`🔹 Notifications already ${Notification.permission}, skipping request.`);
-        }
-  
-        // 🔹 Get the FCM token
-        const fcmToken = await getToken(messaging, {
-          vapidKey: process.env.VAPID_KEY,
         });
-  
-        if (fcmToken) {
-          console.log("📩 FCM Token:", fcmToken);
-          saveTokenToFirestore(fcmToken);
-        }
+
+        setMintToTokenData(newMap);
       } catch (error) {
-        console.error("❌ Error getting FCM token:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
-  
-    requestPermissionAndSaveToken();
-  }); // 🔹 Runs only once when the component mounts
-  
 
-
-  function saveChanges(){
-    // this function will save new changes to database
-    if(user != null && user.uid){
-      updateUserData(user.uid, {...userData, uid: user.uid, wallets: wallets, alarmPreset: newAlarmPreset, isNotificationsOn: isNotificationsOn})
-    } else {
-      console.error("Error saving data, user is not defined.")
+    if (!loading && userData) {
+      fetchData();
     }
-
-  }
-
-  function didUserDataChange(){
-    if(!userData){
-      return true
-    }
-    // console.log("userData.wallets" + userData.wallets.join(","))
-    // console.log("wallets" + wallets.join(","))
-    // console.log("newAlarmPreset: " + newAlarmPreset)
-    // console.log("userData.alarmPreset: " + userData.alarmPreset)
-    // console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
-    return (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
-  }
-
-  if (loading) return <p>Loading...</p>;
-
-  if (!user) {
-    return <h1>You must be signed in to view this page.</h1>;
-  }
-
-  const labels = {
-    left: {
-      title: "Quieter",
-      value: "left",
-      desc: "You will be notified on larger price swings",
-      alarmInfo: convertAlarmConfigToString(QUIETER_ALARM_CONFIGS)
-    },
-    right: {
-      title: "Noisier",
-      value: "right",
-      desc: "You will be notified on smaller price swings",
-      alarmInfo: convertAlarmConfigToString(NOISIER_ALARM_CONFIGS),
-    },
-    center: {
-      title: "Standard",
-      value: "center",
-      desc: "Standard alarm sensitivity",
-      alarmInfo: convertAlarmConfigToString(STANDARD_ALARM_CONFIGS),
-    },
-  };
+  }, [loading, userData, notifications]);
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <h1>Dashboard</h1>
-        <div className={styles.notification}>
-          <h2>Notifications</h2>
-          <ToggleSwitch isOn={isNotificationsOn === undefined ? true : isNotificationsOn} onToggle={(value) => setIsNotificationsOn(value)} />
+    <div className={styles.container}>
+      {/* Your Tracked Assets Section */}
+      <section className={styles.assetsSection}>
+        <h1 className={styles.sectionTitle}>Your Tracked Assets</h1>
+        <div className={styles.tokenList}>
+          {userData?.trackedTokens ? (
+            userData.trackedTokens.map((token, index) => {
+              const tokenFromDb = mintToTokenData.get(token);
+              const imageSrc = tokenFromDb?.tokenData?.tokenMetadata?.image || "/placeholder.jpg";
+              return (
+                <div key={index} className={styles.tokenRowWrapper}>
+                  <div className={styles.tokenRow}>
+                    <div className={styles.tokenInfo}>
+                      <Image
+                        src={imageSrc}
+                        alt={`${tokenFromDb?.tokenData?.tokenMetadata?.symbol || token} logo`}
+                        width={70}
+                        height={70}
+                        className={styles.notificationImage}
+                      />
+                      <div>
+                        <p className={styles.tokenSymbol}>
+                          {tokenFromDb?.tokenData?.tokenMetadata?.symbol || token}
+                        </p>
+                        <p className={styles.tokenLabel}>Market Cap</p>
+                      </div>
+                    </div>
+                    <p className={styles.tokenMarketCap}>
+                      $
+                      {(getMarketCapUSDFromPrices(tokenFromDb?.prices || [], solPrice?.priceUsd || 0) / 1_000_000).toLocaleString()}
+                      M
+                    </p>
+                  </div>
+                  {index < (userData?.trackedTokens?.length || 0) - 1 && (
+                    <hr className={styles.tokenSeparator} />
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className={styles.emptyState}>Your top 5 memecoin holdings will be displayed here</p>
+          )}
         </div>
+      </section>
 
-      <div className={isNotificationsOn == false ? "disabled-div" : ""}>
-      <TripleToggleSwitch labels={labels} onChange={(e: TogglePosition | undefined) => setNewAlarmPreset(e)} activePosition={newAlarmPreset}/>
-      <hr className={styles.hr} />
-
-      
-      {/* <p className="red-text">{error}</p> */}
-      <div className={styles.walletAddresses}>
-        <h2 style={{margin: "10px"}}>Wallet addresses</h2>
-        <div className={styles.existingWallets}>
-          <input
-            type="text"
-            value={newWallet}
-            onChange={(e) => setNewWallet(e.target.value)}
-            placeholder="Enter new address"
-            className={styles.textInput}
-          />
-          <button
-            disabled={!newWallet.length}
-            onClick={handleAddWallet}
-            className="iconButton"
-          >
-            <FaPlus size={30} color="#1b7982"/>
-          </button>
+      {/* Recent Notifications Section */}
+      <section className={styles.watchListSection}>
+        <h1 className={styles.sectionTitle}>Recent Notifications</h1>
+        <div className={styles.notificationsContainer}>
+          {notifications.length > 0 ? (
+            notifications.map((notification) => {
+              const metadata = mintToTokenData.get(notification.id.split("_")[0])?.tokenData?.tokenMetadata || {
+                symbol: "Unknown",
+                image: null,
+              };
+              const imageSrc = metadata.image || "/placeholder.jpg";
+              return (
+                <div key={notification.id} className={styles.notificationRowWrapper}>
+                  <div
+                    className={`${styles.notificationRow} ${
+                      notification.percentChange >= 0 ? styles.positive : styles.negative
+                    }`}
+                    aria-label={`Notification for ${metadata.symbol}: ${notification.alertType} alert`}
+                  >
+                    <Image
+                      src={imageSrc}
+                      alt={`${metadata.symbol} logo`}
+                      width={70}
+                      height={70}
+                      className={styles.notificationImage}
+                    />
+                    <div className={styles.notificationContent}>
+                      <p className={styles.notificationHeader}>{metadata.symbol}</p>
+                      <p className={styles.notificationText}>
+                        {notification.alertType} Alert: {notification.percentageBreached}% Breached (
+                        {notification.percentChange >= 0 ? "+" : ""}
+                        {notification.percentChange.toFixed(0)}% in {notification.minutes} min)
+                      </p>
+                      <p className={styles.notificationTimestamp}>
+                        {formatRelativeTime(notification.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className={styles.emptyState}>No recent notifications</p>
+          )}
         </div>
-
-          {wallets.map((wallet) => (
-            <div key={wallet} className={styles.existingWallets}>
-              <div className={styles.walletDisplay}>{shortenString(wallet)}</div>
-              <button className="iconButton" onClick={() => handleRemoveWallet(wallet)}>
-                <FaMinus size={30} color="red"/>
-              </button>
-              
-            </div>
-          ))}
-        
-        </div>
-        </div>
-        <div className="w-full max-w-md">
-        <Button variant="grey" disabled={!didUserDataChange()} onClick={() => 
-          {
-            if(userData){
-              setWallets(userData.wallets)
-              setNewAlarmPreset(userData.alarmPreset)
-              setIsNotificationsOn(userData.isNotificationsOn === undefined ? true : userData.isNotificationsOn)
-            }
-          }}>
-          Reset Changes
-        </Button>
-        <Button variant="primary" disabled={!didUserDataChange()} onClick={saveChanges}>
-          Save Changes
-        </Button>
-        {/* <p>FCM Token {fcmToken}</p>
-        <button onClick={() => console.log("User wants notis lfg")}>Allow notifications</button> */}
-        {/* <p>{notificationError}</p> */}
-    
-      </div>
-      </main>
-      
+      </section>
     </div>
   );
 }
