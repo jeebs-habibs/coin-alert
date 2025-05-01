@@ -1,14 +1,16 @@
-import { getTokenMetadata, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { GetPriceResponse, PoolType, PriceData, setTokenDead, Token, TokenData, updateToken } from "../lib/firebase/tokenUtils";
-import { connection } from "./connection";
+import { GetPriceResponse, PoolType, PriceData, setTokenDead, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
+import { connection, umi } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
+import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata'
+import { publicKey } from "@metaplex-foundation/umi";
 
 // 🔹 Metrics Tracking
 let totalUsers = 0;
@@ -23,17 +25,16 @@ let totalSucceedPrice = 0;
 let totalSkippedPrice = 0;
 let totalUncachedPoolData = 0;
 
-// interface URIMetadata {
-//   name: string;
-//   image: string;
-//   symbol: string;
-//   description: string;
-// }
+interface URIMetadata {
+  name?: string;
+  image?: string;
+  symbol?: string;
+  description?: string;
+}
 
 async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number | null> {
   const account = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(accountPubkey))
   return account.value.uiAmount
-
 }
 
 async function calculateTokenPrice(token: string, poolData: PoolData, poolType: PoolType): Promise<GetPriceResponse | undefined> {
@@ -79,70 +80,58 @@ export function isValidMint(mint: string): boolean {
   return validEndings.some(ending => mint.endsWith(ending));
 }
 
-// async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
-//   try {
-//     const response = await fetch(uri);
+async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
+  try {
+    const response = await fetch(uri);
 
-//     if (!response.ok) {
-//       throw new Error(`Failed to fetch JSON from ${uri}: ${response.status} ${response.statusText}`);
-//     }
+    if (!response.ok) {
+      console.error(`Failed to fetch JSON from ${uri}: ${response.status} ${response.statusText}`);
+      return undefined
+    }
 
-//     const data: URIMetadata = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error("Error fetching JSON:", error);
-//     return undefined
-//   }
-// }
+    const data: URIMetadata = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching JSON:", error);
+    return undefined
+  }
+}
 
 
 // 🔹 Fetch Metadata from Metaplex
-// async function getTokenMetadataMetaplex(token: string) {
-//   const mint = publicKey(token);
-//   try {
-//     const asset = await fetchDigitalAsset(umi, mint);
-//     //console.log(chalk.green(`✅ Got metadata for token: ${token}`));
-//     return {
-//       name: asset.metadata.name,
-//       symbol: asset.metadata.symbol,
-//       uri: asset.metadata.uri,
-//     };
-//   } catch (error) {
-//     console.error(`❌ Error getting Metaplex metadata for ${token}:`, error);
-//     return null;
-//   }
-// }
+async function getTokenMetadataMetaplex(token: string) {
+  const mint = publicKey(token);
+  try {
+    const asset = await fetchDigitalAsset(umi, mint);
+    //console.log(chalk.green(`✅ Got metadata for token: ${token}`));
+    return {
+      name: asset.metadata.name,
+      symbol: asset.metadata.symbol,
+      uri: asset.metadata.uri
+    };
+  } catch (error) {
+    console.error(`❌ Error getting Metaplex metadata for ${token}:`, error);
+    return null;
+  }
+}
 
 // 🔹 Get Metadata from Blockchain (Fallback)
-async function getTokenMetadataFromBlockchain(token: string) {
-  // const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
+async function getTokenMetadataFromBlockchain(token: string): Promise<TokenMetadata | undefined> {
+  const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
 
-  // if (metaplexMetadata){
-  //     // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
-
-  //   //const parsedMetadata = await fetchJsonFromUri(metaplexMetadata.uri)
-  //   return metaplexMetadata
-  // } 
-
-  return blockchainTaskQueue.addTask(() =>
-    getTokenMetadata(connection, new PublicKey(token), "confirmed", TOKEN_PROGRAM_ID)
-      .then(async (val) => {
-        return val
-        
-        // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
-        // const parsedMetadata = await fetchJsonFromUri(val.uri)
-
-        // return {
-        //   ...val,
-        //   image: parsedMetadata?.image
-        // }
-
-      })
-      .catch((e) => {
-        console.error(`❌ Error getting metadata for ${token}:`, e);
-        return null;
-      })
-  );
+  if (metaplexMetadata){
+      // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
+    const parsedMetadata: URIMetadata | undefined = await fetchJsonFromUri(metaplexMetadata.uri)
+    const tokenMetadata: TokenMetadata = {
+      image: parsedMetadata?.image,
+      description: parsedMetadata?.description,
+      name: parsedMetadata?.name,
+      symbol: parsedMetadata?.symbol,
+      uri: metaplexMetadata.uri
+    }
+    return tokenMetadata
+  } 
+  return undefined
 }
 
 function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData): GetPriceResponse {
@@ -343,7 +332,7 @@ export async function updateUniqueTokens() {
 
         let blockchainMetadataFailures = 0
         let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
-        if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 3){
+        if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 7){
           const metadataFromBlockchain = await getTokenMetadataFromBlockchain(token)
           if(metadataFromBlockchain){
             tokenMetadata = metadataFromBlockchain
@@ -352,8 +341,7 @@ export async function updateUniqueTokens() {
             totalFailedToGetMetadata++
             blockchainMetadataFailures = 1
           }
-        }
-        if((tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 3){
+        } else {
           totalMetadataFetchSkipped++
         }
 

@@ -9,6 +9,8 @@ import { getTokenAction } from "../actions/getTokenAction";
 import { getCryptoPriceAction } from "../actions/getCryptoPrice";
 import { CryptoDataDb } from "../lib/utils/cryptoPrice";
 import { useRouter } from "next/navigation";
+import { shortenString } from "../lib/utils/stringUtils";
+import { RecentNotification } from "../lib/firebase/userUtils";
 
 // Simple in-memory cache
 const cache = {
@@ -30,6 +32,9 @@ const formatRelativeTime = (timestamp: number) => {
   return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
 };
 
+function getBackupNotificationBody(notification: RecentNotification): string {
+  return `${notification.alertType} Alert: ${notification.percentageBreached}% threshold breached (${notification.percentChange >= 0 ? '+' : ''}${notification.percentChange.toFixed(0)}% in ${notification.minutes} min)`;
+}
 // Updated getMarketCapUSDFromPrices
 function getMarketCapUSDFromPrices(prices: PriceData[], solPriceUSD: number): number {
   if (!prices || prices.length === 0 || !solPriceUSD) return 0;
@@ -177,19 +182,20 @@ export default function Dashboard() {
         <h1 className={styles.sectionTitle}>Recent Notifications</h1>
         <div className={styles.notificationsContainer}>
           {notifications.length > 0 ? (
-            notifications.map((notification) => {
-              const metadata = mintToTokenData.get(notification.id.split("_")[0])?.tokenData?.tokenMetadata || {
+            notifications.map((notification, idx) => {
+              const tokenMint = notification.id.split("_")[0]
+              const metadata = mintToTokenData.get(tokenMint)?.tokenData?.tokenMetadata || {
                 symbol: "Unknown",
                 image: null,
               };
-              const imageSrc = metadata.image || "/placeholder.jpg";
+              const imageSrc = notification.image || "/placeholder.jpg";
               return (
-                <div key={notification.id} className={styles.notificationRowWrapper}>
+                <div key={`${notification.id}-${idx}`} className={styles.notificationRowWrapper}>
                   <div
                     className={`${styles.notificationRow} ${
                       notification.percentChange >= 0 ? styles.positive : styles.negative
                     }`}
-                    aria-label={`Notification for ${metadata.symbol}: ${notification.alertType} alert`}
+                    aria-label={`Notification for ${notification.notificationTitle}: ${notification.alertType} alert`}
                   >
                     <Image
                       src={imageSrc}
@@ -199,11 +205,9 @@ export default function Dashboard() {
                       className={styles.notificationImage}
                     />
                     <div className={styles.notificationContent}>
-                      <p className={styles.notificationHeader}>{metadata.symbol}</p>
+                      <p className={styles.notificationHeader}>{notification?.notificationTitle || `${metadata.symbol} (${shortenString(tokenMint)})`}</p>
                       <p className={styles.notificationText}>
-                        {notification.alertType} Alert: {notification.percentageBreached}% Breached (
-                        {notification.percentChange >= 0 ? "+" : ""}
-                        {notification.percentChange.toFixed(0)}% in {notification.minutes} min)
+                        {notification.notificationBody || getBackupNotificationBody(notification)}
                       </p>
                       <p className={styles.notificationTimestamp}>
                         {formatRelativeTime(notification.timestamp)}

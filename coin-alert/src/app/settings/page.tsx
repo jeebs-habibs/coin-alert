@@ -15,22 +15,7 @@ import { SirenUser } from "../lib/firebase/userUtils";
 import { useAuth } from "../providers/auth-provider";
 import { signOut } from "../lib/firebase/auth";
 import { useRouter } from "next/navigation";
-
-function shortenString(input: string): string {
-  if (input.length <= 6) {
-    return input; // Return the original string if it's too short
-  }
-  return `${input.slice(0, 3)}...${input.slice(-3)}`;
-}
-
-function areStringListsEqual(list1: string[], list2: string[]): boolean {
-  if (list1.length !== list2.length) return false;
-
-  const sortedList1 = [...list1].sort();
-  const sortedList2 = [...list2].sort();
-
-  return sortedList1.every((value, index) => value === sortedList2[index]);
-}
+import { areStringListsEqual, shortenString } from "../lib/utils/stringUtils";
 
 async function unRegisterMultipleWorkers(){
   if ('serviceWorker' in navigator && !(await navigator.serviceWorker.getRegistration())?.active) {

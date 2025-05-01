@@ -12,10 +12,11 @@ export interface PriceData {
 export type PoolType = "pump" | "raydium" | "pump-swap"
 
 export interface TokenMetadata {
-  symbol: string;
-  name: string;
+  symbol?: string;
+  name?: string;
   image?: string;
-  uri: string
+  uri?: string;
+  description?: string;
 }
 
 export interface TokenData {
