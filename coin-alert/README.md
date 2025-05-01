@@ -3,6 +3,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ## TODO
 - Re-investigate logic checking when to send noti. I got a noti for an increase over 7 minute threshold but it was like 14 minutes after it went up. This should be been an earlier alarm. Do we need a threshold between 1 and 7?
 - Better deduping, getting notis for the same token 3 minutes apart, not very useful
+- Add Raydium launch pad
+- Add tracked tokens to dashboard
+- Should only send 1 notification for a given coin at a time.
 
 
 Sending 7Phgw0InXPbqaE8Yf1qc8xzpnI13 a notification:  4ti..pump up 17.19% in 1 minutes to token fs1h_fmGyaHm8Kh5etVKoG:APA91bFWo_Et1TZ4UD1GVornJWqSvYjp74eU2Bv-HPfWpX9WA0UkgU58378H317we7xTdGaxkADvNornS67z2kiem6OiHBBLJxLn5q9zqV9aldxaeZy-pBQ
