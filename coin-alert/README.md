@@ -1,7 +1,8 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## TODO
-- For coins still on pump bonding curve, we keep checking both raydium and pump. This is wasting a crazy amount of time.
+- Re-investigate logic checking when to send noti. I got a noti for an increase over 7 minute threshold but it was like 14 minutes after it went up. This should be been an earlier alarm. Do we need a threshold between 1 and 7?
+- Better deduping, getting notis for the same token 3 minutes apart, not very useful
 
 
 Sending 7Phgw0InXPbqaE8Yf1qc8xzpnI13 a notification:  4ti..pump up 17.19% in 1 minutes to token fs1h_fmGyaHm8Kh5etVKoG:APA91bFWo_Et1TZ4UD1GVornJWqSvYjp74eU2Bv-HPfWpX9WA0UkgU58378H317we7xTdGaxkADvNornS67z2kiem6OiHBBLJxLn5q9zqV9aldxaeZy-pBQ
