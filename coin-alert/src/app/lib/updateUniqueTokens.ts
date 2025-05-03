@@ -1,16 +1,19 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { GetPriceResponse, PoolType, PriceData, setTokenDead, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, getTokenCached, PoolType, PriceData, setTokenDead, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
-import { getToken } from "./firebase/tokenUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata'
 import { publicKey } from "@metaplex-foundation/umi";
+import { TrackedToken } from "./firebase/userUtils";
+import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
+
+const tokensCache: Map<string, Token> = new Map<string, Token>()
 
 // 🔹 Metrics Tracking
 let totalUsers = 0;
@@ -228,6 +231,46 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
   return undefined;
 }
 
+// Function to update trackedTokens in Firestore, preserving isNotificationsOn
+async function updateUserTrackedTokens(
+  userTokenMap: Map<string, Set<TrackedToken>>,
+  usersSnapshot: QuerySnapshot<DocumentData>
+) {
+  for (const [userId, tokenSet] of userTokenMap) {
+    try {
+      console.log("Updating user: " + userId + " with trackedTokens: ")
+      tokenSet.forEach((a) => console.log(a))
+      const userRef = adminDB.collection("users").doc(userId);
+      const userDoc = usersSnapshot.docs.find((doc) => doc.id === userId);
+      const userData = userDoc?.data() || {};
+
+      // Get existing trackedTokens from Firestore (or empty array if none)
+      const existingTokens: TrackedToken[] = Array.isArray(userData.trackedTokens)
+        ? userData.trackedTokens
+        : [];
+
+      // Convert new tokenSet to array and merge isNotificationsOn from existing tokens
+      const newTokens = Array.from(tokenSet);
+      const updatedTokens: TrackedToken[] = newTokens.map((newToken) => {
+        const existingToken = existingTokens.find((token) => token.mint === newToken.mint);
+        return {
+          mint: newToken.mint,
+          tokensOwned: newToken.tokensOwned,
+          isNotificationsOn: existingToken ? existingToken?.isNotificationsOn : newToken.isNotificationsOn,
+        };
+      });
+
+      // Update Firestore with new trackedTokens
+      await userRef.update({
+        trackedTokens: updatedTokens
+      });
+    } catch (error) {
+      console.error(`Error updating trackedTokens for user ${userId}:`, error);
+    }
+  }
+  console.log(`Updated trackedTokens for ${userTokenMap.size} users.`);
+}
+
 // 🔹 Store Token Price in Firestore
 export async function storeTokenPrice(
   token: string,
@@ -272,37 +315,69 @@ export async function updateUniqueTokens() {
     const timesToUpdateFirestore: number[] = [];
     const timesToGetTokenPrice: number[] = [];
 
-    // 🔹 1️⃣ Fetch All Users' Wallets
-    const usersSnapshot = await adminDB.collection("users").get();
-    const uniqueTokensSet = new Set<string>();
+    // 🔹 1️⃣ Fetch All Users' Wallets and Initialize Token Tracking
+    const usersSnapshot: QuerySnapshot<DocumentData> = await adminDB.collection("users").get();
+    const userTokenMap = new Map<string, Set<TrackedToken>>(); // Map<userId, Set<TrackedToken>>
     const uniqueWalletSet = new Set<string>();
-    totalUsers = usersSnapshot.docs.length;
+    const uniqueTokensSet = new Set<string>();
+    totalUsers = usersSnapshot.docs.length; // Assuming totalUsers is defined elsewhere
 
+    // Initialize userTokenMap for each user
     usersSnapshot.docs.forEach((userDoc) => {
+      const userId = userDoc.id;
       const userData = userDoc.data();
+      userTokenMap.set(userId, new Set<TrackedToken>());
       if (Array.isArray(userData.wallets)) {
-        userData.wallets.forEach((wallet) => uniqueWalletSet.add(wallet));
+        userData.wallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
       }
     });
 
-
-    // 🔹 2️⃣ Fetch Token Data from Blockchain
+    // 🔹 2️⃣ Fetch Token Data from Blockchain and Associate with Users
     await Promise.all(
       Array.from(uniqueWalletSet).map((wallet) =>
         blockchainTaskQueue.addTask(async () => {
-          const publicKey = new PublicKey(wallet);
-          const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
+          try {
+            const publicKey = new PublicKey(wallet);
+            const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, {
+              programId: TOKEN_PROGRAM_ID,
+            });
 
-          tokenAccountsForAddress.value.forEach((value) => {
-            const tokenAccountData: TokenAccountData = value.account.data.parsed;
-            if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
-              //console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
-              uniqueTokensSet.add(tokenAccountData.info.mint);
-            }
-          });
+            // Find users with this wallet
+            const usersWithWallet = usersSnapshot.docs.filter((userDoc) => {
+              const userData = userDoc.data();
+              return Array.isArray(userData.wallets) && userData.wallets.includes(wallet);
+            });
+
+            // Process token accounts
+            for(const value of  tokenAccountsForAddress.value){
+              const tokenAccountData: TokenAccountData = value.account.data.parsed;
+              if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
+                const tokenMint = tokenAccountData.info.mint;
+                const tokenObj = await getTokenCached(tokenMint, tokensCache)
+                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.prices?.length || 0) > 0){
+                  uniqueTokensSet.add(tokenMint);
+                  const walletTokenInfo: TrackedToken = {
+                    mint: tokenMint,
+                    tokensOwned: tokenAccountData.info.tokenAmount.uiAmount ?? 0,
+                    isNotificationsOn: true,
+                  };
+                  // Add token to each user's set
+                  usersWithWallet.forEach((userDoc) => {
+                    userTokenMap.get(userDoc.id)!.add(walletTokenInfo);
+                  });
+                }
+
+              }
+            };
+          } catch (error) {
+            console.error(`Error processing wallet ${wallet}:`, error);
+          }
         })
       )
     );
+
+    // 🔹 3️⃣ Update Firestore with Tracked Tokens
+    await updateUserTrackedTokens(userTokenMap, usersSnapshot);
 
     totalUniqueTokens = uniqueTokensSet.size;
     console.log(`✅ Finished fetching ${totalUniqueTokens} unique tokens`);
@@ -313,7 +388,7 @@ export async function updateUniqueTokens() {
         //console.log(`🔹 Processing token: ${token}`);
         const performanceStart = Date.now();
 
-        const tokenFromFirestore: Token | undefined = await getToken(token);
+        const tokenFromFirestore: Token | undefined = (await getTokenCached(token, tokensCache))[0]
         if(tokenFromFirestore?.isDead == true){
           totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
           return;

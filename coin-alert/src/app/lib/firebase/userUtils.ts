@@ -1,5 +1,6 @@
 import { AlarmType } from "../constants/alarmConstants";
 import { adminDB } from "./firebaseAdmin";
+import { TokenMetadata } from "./tokenUtils";
 
 export interface RecentNotification {
   timestamp: number;
@@ -10,7 +11,13 @@ export interface RecentNotification {
   notificationTitle?: string;
   notificationBody?: string;
   image?: string;
+}
 
+export interface TrackedToken {
+  mint: string;
+  isNotificationsOn: boolean;
+  tokensOwned: number;
+  metadata?: TokenMetadata
 }
 
 export type AlarmPreset = "left" | "right" | "center";
@@ -20,7 +27,7 @@ export interface SirenUser {
   email?: string;
   wallets: string[];
   tokens?: string[];
-  trackedTokens?: string[];
+  trackedTokens?: TrackedToken[];
   alarmPreset: AlarmPreset;
   isNotificationsOn: boolean;
   recentNotifications?: Record<string, RecentNotification>;

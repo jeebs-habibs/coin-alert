@@ -8,9 +8,13 @@ import { PriceData, Token } from "../lib/firebase/tokenUtils";
 import { getTokenAction } from "../actions/getTokenAction";
 import { getCryptoPriceAction } from "../actions/getCryptoPrice";
 import { CryptoDataDb } from "../lib/utils/cryptoPrice";
-import { useRouter } from "next/navigation";
-import { shortenString } from "../lib/utils/stringUtils";
-import { RecentNotification } from "../lib/firebase/userUtils";
+import { formatNumber, shortenString } from "../lib/utils/stringUtils";
+import { RecentNotification, TrackedToken } from "../lib/firebase/userUtils";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase/firebase";
+import TokenMetricDisplay from "../components/TokenMetricDisplay";
+import { BILLION } from "../lib/utils/solanaUtils";
+import { FaChevronDown } from "react-icons/fa";
 
 // Simple in-memory cache
 const cache = {
@@ -33,35 +37,43 @@ const formatRelativeTime = (timestamp: number) => {
 };
 
 function getBackupNotificationBody(notification: RecentNotification): string {
-  return `${notification.alertType} Alert: ${notification.percentageBreached}% threshold breached (${notification.percentChange >= 0 ? '+' : ''}${notification.percentChange.toFixed(0)}% in ${notification.minutes} min)`;
+  return `${notification.alertType} Alert: ${notification.percentageBreached}% threshold breached (${
+    notification.percentChange >= 0 ? "+" : ""
+  }${notification.percentChange.toFixed(0)}% in ${notification.minutes} min)`;
 }
+
+export interface TokenPriceData {
+  solPrice: number;
+  usdPrice: number;
+  solMarketCap: number;
+  usdMarketCap: number;
+}
+
 // Updated getMarketCapUSDFromPrices
-function getMarketCapUSDFromPrices(prices: PriceData[], solPriceUSD: number): number {
-  if (!prices || prices.length === 0 || !solPriceUSD) return 0;
+function getMarketCapUSDFromPrices(prices: PriceData[], solPriceUSD: number): TokenPriceData | undefined {
+  if (!prices || prices.length === 0 || !solPriceUSD) return undefined;
 
   const latestPrice = prices
     .filter((data) => typeof data.marketCapSol === "number")
     .sort((a, b) => b.timestamp - a.timestamp)[0];
 
-  if (!latestPrice || typeof latestPrice.marketCapSol !== "number") return 0;
+  if (!latestPrice || typeof latestPrice.marketCapSol !== "number") return undefined;
 
   const marketCapUSD = latestPrice.marketCapSol * solPriceUSD;
-  return Number(marketCapUSD.toFixed(2));
+  return {
+    usdMarketCap: Number(marketCapUSD.toFixed(2)),
+    solMarketCap: latestPrice.price * BILLION,
+    solPrice: latestPrice.price,
+    usdPrice: latestPrice.price * solPriceUSD
+  };
 }
 
 export default function Dashboard() {
-  const { user, userData, loading } = useAuth();
-  
-  const router = useRouter();
-
-  useEffect(() => {
-    if (user == null && !loading) {
-      router.push("/");
-    }
-  }, [user, loading, router]);
-
+  const { userData, loading } = useAuth();
   const [mintToTokenData, setMintToTokenData] = useState<Map<string, Token | undefined>>(new Map());
   const [solPrice, setSolPrice] = useState<CryptoDataDb | undefined>(cache.solPrice.data);
+  const [currency, setCurrency] = useState<"SOL" | "USD">("USD"); // Default to USD
+  const [selectedMetric, setSelectedMetric] = useState<"totalEquity" | "marketCap" | "price">("totalEquity"); // Default to totalEquity
 
   // Memoize notifications to prevent recalculating on every render
   const notifications = useMemo(() => {
@@ -88,7 +100,7 @@ export default function Dashboard() {
         const tokenAddresses = [
           ...new Set([
             ...(notifications.map((n) => n.id.split("_")[0])),
-            ...(userData?.trackedTokens || []),
+            ...(userData?.trackedTokens?.map((token) => token.mint) || []),
           ]),
         ];
 
@@ -131,43 +143,128 @@ export default function Dashboard() {
     }
   }, [loading, userData, notifications]);
 
+  // Handle currency toggle
+  const handleCurrencyToggle = () => {
+    setCurrency(currency === "USD" ? "SOL" : "USD");
+  };
+
+    // Handle metric selection
+    const handleMetricChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setSelectedMetric(event.target.value as "totalEquity" | "marketCap" | "price");
+    };
+
   return (
     <div className={styles.container}>
-      {/* Your Tracked Assets Section */}
+
       <section className={styles.assetsSection}>
         <h1 className={styles.sectionTitle}>Your Tracked Assets</h1>
+              {/* Currency Toggle */}
+              <div className={styles.currencySelectRow}>
+
+              
+      <div className={styles.currencyToggle}>
+        <button
+          className={`${styles.toggleButton} ${currency === "USD" ? styles.toggleActive : ""}`}
+          onClick={handleCurrencyToggle}
+          aria-label="Switch to USD"
+        >
+          USD
+        </button>
+        <button
+          className={`${styles.toggleButton} ${currency === "SOL" ? styles.toggleActive : ""}`}
+          onClick={handleCurrencyToggle}
+          aria-label="Switch to SOL"
+        >
+          SOL
+        </button>
+      </div>
+
+        {/* Metric Selection Dropdown */}
+        <div className={styles.metricSelect}>
+          <div className={styles.selectWrapper}>
+            <select
+              value={selectedMetric}
+              onChange={handleMetricChange}
+              className={styles.metricDropdown}
+              aria-label="Select metric to display"
+            >
+              <option value="totalEquity">Total Equity</option>
+              <option value="marketCap">Market Cap</option>
+              <option value="price">Latest Price</option>
+            </select>
+            <FaChevronDown className={styles.selectIcon} aria-hidden="true" />
+          </div>
+        </div>
+        </div>
+
         <div className={styles.tokenList}>
-          {userData?.trackedTokens ? (
-            userData.trackedTokens.map((token, index) => {
-              const tokenFromDb = mintToTokenData.get(token);
+          {(userData?.trackedTokens?.length || 0) > 0 ? (
+            userData?.trackedTokens?.map((token: TrackedToken, index: number) => {
+              const tokenFromDb = mintToTokenData.get(token.mint);
               const imageSrc = tokenFromDb?.tokenData?.tokenMetadata?.image || "/placeholder.jpg";
+              const latestPriceData: TokenPriceData | undefined = getMarketCapUSDFromPrices(
+                tokenFromDb?.prices || [],
+                solPrice?.priceUsd || 0
+              );
+
+              // Handle notification button click
+              const handleNotificationToggle = async () => {
+                try {
+                  const userRef = doc(db, "users", userData?.uid);
+                  const updatedTokens = userData?.trackedTokens?.map((t: TrackedToken) =>
+                    t.mint === token.mint ? { ...t, isNotificationsOn: !t.isNotificationsOn } : t
+                  );
+                  await updateDoc(userRef, { trackedTokens: updatedTokens });
+                  // Note: You may need to update local state to reflect the change immediately
+                } catch (error) {
+                  console.error(`Error updating notifications for token ${token.mint}:`, error);
+                }
+              };
+
               return (
                 <div key={index} className={styles.tokenRowWrapper}>
                   <div className={styles.tokenRow}>
                     <div className={styles.tokenInfo}>
+                      <button
+                        onClick={handleNotificationToggle}
+                        className={`${styles.notificationButton} ${
+                          token.isNotificationsOn ? styles.notificationOn : styles.notificationOff
+                        }`}
+                        aria-label={`Turn ${token.isNotificationsOn ? "off" : "on"} notifications for ${
+                          tokenFromDb?.tokenData?.tokenMetadata?.symbol || token.mint
+                        }`}
+                      >
+                        🔔
+                      </button>
                       <Image
                         src={imageSrc}
-                        alt={`${tokenFromDb?.tokenData?.tokenMetadata?.symbol || token} logo`}
-                        width={70}
-                        height={70}
-                        className={styles.notificationImage}
+                        alt={`${tokenFromDb?.tokenData?.tokenMetadata?.symbol || token.mint} logo`}
+                        width={50}
+                        height={50}
+                        className={styles.tokenImage}
                       />
                       <div>
                         <p className={styles.tokenSymbol}>
-                          {tokenFromDb?.tokenData?.tokenMetadata?.symbol || token}
+                          {tokenFromDb?.tokenData?.tokenMetadata?.symbol || token.mint}
                         </p>
-                        <p className={styles.tokenLabel}>Market Cap</p>
+                        <p className={styles.tokenLabel}>Tokens Owned: {formatNumber(token.tokensOwned)}</p>
                       </div>
                     </div>
-                    <p className={styles.tokenMarketCap}>
-                      $
-                      {(getMarketCapUSDFromPrices(tokenFromDb?.prices || [], solPrice?.priceUsd || 0) / 1_000_000).toLocaleString()}
-                      M
-                    </p>
+                    <div className={styles.tokenDetails}>
+                      {latestPriceData ? (
+                        <TokenMetricDisplay
+                          trackedToken={token}
+                          currency={currency}
+                          solPrice={solPrice?.priceUsd || 0}
+                          priceData={latestPriceData}
+                          selectedMetric={selectedMetric}
+                        />
+                      ) : (
+                        <p className={styles.emptyState}>Price data unavailable</p>
+                      )}
+                    </div>
                   </div>
-                  {index < (userData?.trackedTokens?.length || 0) - 1 && (
-                    <hr className={styles.tokenSeparator} />
-                  )}
+                  {index < (userData?.trackedTokens?.length || 0) - 1 && <hr className={styles.tokenSeparator} />}
                 </div>
               );
             })
@@ -183,7 +280,7 @@ export default function Dashboard() {
         <div className={styles.notificationsContainer}>
           {notifications.length > 0 ? (
             notifications.map((notification, idx) => {
-              const tokenMint = notification.id.split("_")[0]
+              const tokenMint = notification.id.split("_")[0];
               const metadata = mintToTokenData.get(tokenMint)?.tokenData?.tokenMetadata || {
                 symbol: "Unknown",
                 image: null,
@@ -205,7 +302,9 @@ export default function Dashboard() {
                       className={styles.notificationImage}
                     />
                     <div className={styles.notificationContent}>
-                      <p className={styles.notificationHeader}>{notification?.notificationTitle || `${metadata.symbol} (${shortenString(tokenMint)})`}</p>
+                      <p className={styles.notificationHeader}>
+                        {notification?.notificationTitle || `${metadata.symbol} (${shortenString(tokenMint)})`}
+                      </p>
                       <p className={styles.notificationText}>
                         {notification.notificationBody || getBackupNotificationBody(notification)}
                       </p>
