@@ -1,20 +1,21 @@
 "use client";
 
-import Image from "next/image";
-import styles from "./page.module.css";
-import { useAuth } from "../providers/auth-provider";
-import { useEffect, useState, useMemo } from "react";
-import { PriceData, Token } from "../lib/firebase/tokenUtils";
-import { getTokenAction } from "../actions/getTokenAction";
-import { getCryptoPriceAction } from "../actions/getCryptoPrice";
-import { CryptoDataDb } from "../lib/utils/cryptoPrice";
-import { formatNumber, shortenString } from "../lib/utils/stringUtils";
-import { RecentNotification, TrackedToken } from "../lib/firebase/userUtils";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../lib/firebase/firebase";
-import TokenMetricDisplay from "../components/TokenMetricDisplay";
-import { BILLION } from "../lib/utils/solanaUtils";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
+import { CiBellOff, CiBellOn } from "react-icons/ci";
 import { FaChevronDown } from "react-icons/fa";
+import { getCryptoPriceAction } from "../actions/getCryptoPrice";
+import { getTokenAction } from "../actions/getTokenAction";
+import TokenMetricDisplay from "../components/TokenMetricDisplay";
+import { db } from "../lib/firebase/firebase";
+import { PriceData, Token } from "../lib/firebase/tokenUtils";
+import { RecentNotification, TrackedToken } from "../lib/firebase/userUtils";
+import { CryptoDataDb } from "../lib/utils/cryptoPrice";
+import { BILLION } from "../lib/utils/solanaUtils";
+import { formatNumber, shortenString } from "../lib/utils/stringUtils";
+import { useAuth } from "../providers/auth-provider";
+import styles from "./page.module.css";
 
 // Simple in-memory cache
 const cache = {
@@ -68,11 +69,13 @@ function getMarketCapUSDFromPrices(prices: PriceData[], solPriceUSD: number): To
   };
 }
 
+type Currency = "SOL" | "USD"
+
 export default function Dashboard() {
   const { userData, loading } = useAuth();
   const [mintToTokenData, setMintToTokenData] = useState<Map<string, Token | undefined>>(new Map());
   const [solPrice, setSolPrice] = useState<CryptoDataDb | undefined>(cache.solPrice.data);
-  const [currency, setCurrency] = useState<"SOL" | "USD">("USD"); // Default to USD
+  const [currency, setCurrency] = useState<Currency>("USD"); // Default to USD
   const [selectedMetric, setSelectedMetric] = useState<"totalEquity" | "marketCap" | "price">("totalEquity"); // Default to totalEquity
 
   // Memoize notifications to prevent recalculating on every render
@@ -144,8 +147,8 @@ export default function Dashboard() {
   }, [loading, userData, notifications]);
 
   // Handle currency toggle
-  const handleCurrencyToggle = () => {
-    setCurrency(currency === "USD" ? "SOL" : "USD");
+  function handleCurrencyToggle(newCurrency: Currency){
+    setCurrency(newCurrency);
   };
 
     // Handle metric selection
@@ -165,14 +168,14 @@ export default function Dashboard() {
       <div className={styles.currencyToggle}>
         <button
           className={`${styles.toggleButton} ${currency === "USD" ? styles.toggleActive : ""}`}
-          onClick={handleCurrencyToggle}
+          onClick={() => handleCurrencyToggle("USD")}
           aria-label="Switch to USD"
         >
           USD
         </button>
         <button
           className={`${styles.toggleButton} ${currency === "SOL" ? styles.toggleActive : ""}`}
-          onClick={handleCurrencyToggle}
+          onClick={() => handleCurrencyToggle("SOL")}
           aria-label="Switch to SOL"
         >
           SOL
@@ -234,7 +237,7 @@ export default function Dashboard() {
                           tokenFromDb?.tokenData?.tokenMetadata?.symbol || token.mint
                         }`}
                       >
-                        🔔
+                        { token.isNotificationsOn ? <CiBellOn/> : <CiBellOff/>}
                       </button>
                       <Image
                         src={imageSrc}

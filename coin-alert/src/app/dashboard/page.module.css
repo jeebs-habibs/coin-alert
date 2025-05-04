@@ -230,23 +230,23 @@
 
 .toggleButton {
   padding: 8px 16px;
-  background: var(--foreground);
+  background: #ffffff;
   border-radius: 20px; /* Pill shape */
   border: none;
   font-size: 14px;
   font-weight: 500;
-  color: #4a5568;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
 
 .toggleButton:hover {
   background: var(--primary-color); 
+  color: #ffffff
 }
 
 .toggleActive {
   background: var(--primary-color);
-  color: var(--foreground);
+  color: #ffffff
 }
 
 /* Metric Dropdown Styles */
@@ -260,7 +260,7 @@
 }
 
 .metricDropdown {
-  background: var(--foreground);
+  background: #ffffff;
   border: none;
   border-radius: 20px; /* Pill shape */
   font-size: 14px;
