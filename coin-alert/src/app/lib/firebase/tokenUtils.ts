@@ -57,6 +57,7 @@ export async function getTokenCached(token: string, tokenCache: Map<string, Toke
 
 }
 
+const DEAD_PRICE_THRESHOLD = .000006
 
 export async function setTokenDead(token: string, tokenDb: Token | undefined): Promise<boolean> {
   try {
@@ -72,7 +73,7 @@ export async function setTokenDead(token: string, tokenDb: Token | undefined): P
     for (let i = 0; i < prices.length - 1; i++) {
       for (let j = i + 1; j < prices.length; j++) {
         const timeDifference = Math.abs(prices[j].timestamp - prices[i].timestamp);
-        if (timeDifference > fortyFiveMinMs && prices[i].price === prices[j].price) {
+        if (timeDifference > fortyFiveMinMs && prices[i].price === prices[j].price && prices[j].price < DEAD_PRICE_THRESHOLD) {
           console.log(`💀 Token ${token} detected as dead (same price > 45 min apart). Marking as dead...`);
 
           // 🔹 Update Firestore to mark the token as dead
