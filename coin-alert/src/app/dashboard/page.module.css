@@ -136,6 +136,7 @@
 
 .tokenRow {
   display: flex;
+  position: relative;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
@@ -195,6 +196,9 @@
 
 /* Notification Button Styles */
 .notificationButton {
+  position: absolute;
+  top: 0px; /* Adjust as needed for vertical positioning */
+  left: 0px; /* Adjust as needed for horizontal positioning */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,6 +209,7 @@
   cursor: pointer;
   font-size: 18px; /* For bell emoji */
   transition: background-color 0.2s, transform 0.2s;
+  z-index: 10; /* Ensure it sits above other content */
 }
 
 .notificationButton:hover {
