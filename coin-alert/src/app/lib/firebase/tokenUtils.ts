@@ -57,36 +57,57 @@ export async function getTokenCached(token: string, tokenCache: Map<string, Toke
 
 }
 
-const DEAD_PRICE_THRESHOLD = .000006
+const DEAD_PRICE_THRESHOLD = 0.000006;
+const PRICE_VARIATION_THRESHOLD = 0.00001; // 0.001% as a decimal
+const MIN_ENTRIES_REQUIRED = 15;
 
 export async function setTokenDead(token: string, tokenDb: Token | undefined): Promise<boolean> {
   try {
-    if (!tokenDb || !tokenDb.prices || tokenDb.prices.length < 2) {
-      console.log(`🔹 Not enough price data to determine if ${token} is dead.`);
+    // Validate input: ensure tokenDb exists, has prices, and has at least 15 entries
+    if (!tokenDb || !tokenDb.prices || tokenDb.prices.length < MIN_ENTRIES_REQUIRED) {
+      console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${tokenDb?.prices?.length || 0}.`);
       return false;
     }
 
-    const prices = tokenDb.prices;
-    const fortyFiveMinMs = 45 * 60 * 1000;
+    // Get the 15 most recent price entries (sorted by timestamp descending)
+    const prices = tokenDb.prices
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, MIN_ENTRIES_REQUIRED);
 
-    // 🔹 Check if any two price entries are more than 45 minutes apart and identical
-    for (let i = 0; i < prices.length - 1; i++) {
-      for (let j = i + 1; j < prices.length; j++) {
-        const timeDifference = Math.abs(prices[j].timestamp - prices[i].timestamp);
-        if (timeDifference > fortyFiveMinMs && prices[i].price === prices[j].price && prices[j].price < DEAD_PRICE_THRESHOLD) {
-          console.log(`💀 Token ${token} detected as dead (same price > 45 min apart). Marking as dead...`);
-
-          // 🔹 Update Firestore to mark the token as dead
-          const tokenDocRef = adminDB.collection("uniqueTokens").doc(token)
-          await tokenDocRef.update({ isDead: true });
-
-          console.log(`✅ Token ${token} successfully marked as dead.`);
-          return true;
-        }
-      }
+    // Check if all prices are below the DEAD_PRICE_THRESHOLD
+    const allBelowThreshold = prices.every(entry => entry.price < DEAD_PRICE_THRESHOLD);
+    if (!allBelowThreshold) {
+      console.log(`🔹 Token ${token} has prices above DEAD_PRICE_THRESHOLD (${DEAD_PRICE_THRESHOLD}). Not dead.`);
+      return false;
     }
 
-    console.log(`🔹 Token ${token} is still active.`);
+    // Calculate the reference price (use the most recent price)
+    const referencePrice = prices[0].price;
+    if (referencePrice === 0) {
+      console.log(`🔹 Token ${token} has a price of 0. Marking as dead...`);
+      // Update Firestore to mark the token as dead
+      const tokenDocRef = adminDB.collection("uniqueTokens").doc(token);
+      await tokenDocRef.update({ isDead: true });
+      console.log(`✅ Token ${token} successfully marked as dead.`);
+      return true;
+    }
+
+    // Check if all prices are within 0.001% of the reference price
+    const maxAllowedVariation = referencePrice * PRICE_VARIATION_THRESHOLD;
+    const allWithinVariation = prices.every(entry => 
+      Math.abs(entry.price - referencePrice) <= maxAllowedVariation
+    );
+
+    if (allWithinVariation) {
+      console.log(`💀 Token ${token} detected as dead (price variation < 0.001% across ${MIN_ENTRIES_REQUIRED} entries). Marking as dead...`);
+      // Update Firestore to mark the token as dead
+      const tokenDocRef = adminDB.collection("uniqueTokens").doc(token);
+      await tokenDocRef.update({ isDead: true });
+      console.log(`✅ Token ${token} successfully marked as dead.`);
+      return true;
+    }
+
+    console.log(`🔹 Token ${token} is still active (price variation exceeds 0.001% across ${MIN_ENTRIES_REQUIRED} entries).`);
     return false;
   } catch (error) {
     console.error(`❌ Error marking token ${token} as dead:`, error);
