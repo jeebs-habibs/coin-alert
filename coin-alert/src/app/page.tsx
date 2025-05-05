@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "./components/Button";
-import { useAuth } from "./providers/auth-provider";
 import styles from "./page.module.css";
+import { useAuth } from "./providers/auth-provider";
 
 export default function Home() {
   const router = useRouter();
@@ -83,6 +83,20 @@ export default function Home() {
           </div>
         )}
       </main>
+      <a 
+        href="https://x.com/siren_notify" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className={styles.xLink}
+      >
+        <svg 
+          viewBox="0 0 24 24" 
+          className={styles.xLogo}
+          fill="white"
+        >
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+      </a>
     </div>
   );
 }

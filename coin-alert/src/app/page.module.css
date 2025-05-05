@@ -392,3 +392,27 @@ a.secondary {
     padding: 24px;
   }
 }
+
+.xLink {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: transform 0.2s ease-in-out;
+}
+
+.xLink:hover {
+  transform: scale(1.1);
+}
+
+.xLogo {
+  width: 24px;
+  height: 24px;
+}
