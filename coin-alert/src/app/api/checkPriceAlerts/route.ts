@@ -108,7 +108,7 @@ export async function GET(req: Request) {
         tokenAccountsForAddress.value.forEach((value) => {
           const tokenAccountData: TokenAccountData = value.account.data.parsed;
           if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
-            //console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
+            console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
             allTokensSet.add(tokenAccountData.info.mint);
           }
         })

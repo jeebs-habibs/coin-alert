@@ -332,20 +332,19 @@ export async function updateUniqueTokens() {
       }
     });
 
-    console.log("Unique wallets: ")
+    //console.log("Unique wallets: ")
     uniqueWalletSet.forEach((wallet) => console.log(wallet))
 
     // 🔹 2️⃣ Fetch Token Data from Blockchain and Associate with Users
     await Promise.all(
-      Array.from(uniqueWalletSet).map((wallet) =>
-        blockchainTaskQueue.addTask(async () => {
+      Array.from(uniqueWalletSet).map(async (wallet) => {
           try {
             const publicKey = new PublicKey(wallet);
-            const tokenAccountsForAddress = await connection.getParsedTokenAccountsByOwner(publicKey, {
+            const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(publicKey, {
               programId: TOKEN_PROGRAM_ID,
-            });
+            }))
 
-            console.log("Wallet " + wallet + " has " + tokenAccountsForAddress.value.length + " token accounts")
+            // console.log("Wallet " + wallet + " has " + tokenAccountsForAddress.value.length + " token accounts")
 
             // Find users with this wallet
             const usersWithWallet = usersSnapshot.docs.filter((userDoc) => {
@@ -353,19 +352,16 @@ export async function updateUniqueTokens() {
               return Array.isArray(userData.wallets) && userData.wallets.includes(wallet);
             });
 
-            console.log("Users with wallet " + wallet + ": " + usersWithWallet.map((user) => user.id).join(","))
+            // console.log("Users with wallet " + wallet + ": " + usersWithWallet.map((user) => user.id).join(","))
 
             // Process token accounts
             for(const value of  tokenAccountsForAddress.value){
               const tokenAccountData: TokenAccountData = value.account.data.parsed;
-              if(tokenAccountData.info.mint == "8sv4W4uQ9qML87Kr2XFkYBDwsiFEJVZZ1ScsM71Hpump"){
-                console.log(JSON.stringify(tokenAccountData))
-              }
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
                 if(tokenObj[0]?.isDead != true){
-                  console.log("Adding " + tokenMint + " to unique tokens list.")
+                  // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
                     mint: tokenMint,
@@ -376,19 +372,14 @@ export async function updateUniqueTokens() {
                   usersWithWallet.forEach((userDoc) => {
                     userTokenMap.get(userDoc.id)!.add(walletTokenInfo);
                   });
-                } else {
-                  console.warn("Not adding coin bc its dead: " + tokenMint)
                 }
-
-              } else {
-                console.warn("Not adding coin bc not owned over 50 and not pump: " + tokenAccountData.info.mint)
               }
             };
           } catch (error) {
             console.error(`Error processing wallet ${wallet}:`, error);
           }
-        })
-      )
+        
+      })
     );
 
     // 🔹 3️⃣ Update Firestore with Tracked Tokens
