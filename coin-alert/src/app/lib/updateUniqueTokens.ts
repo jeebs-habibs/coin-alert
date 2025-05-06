@@ -345,11 +345,15 @@ export async function updateUniqueTokens() {
               programId: TOKEN_PROGRAM_ID,
             });
 
+            console.log("Wallet " + wallet + " has " + tokenAccountsForAddress.value.length + " token accounts")
+
             // Find users with this wallet
             const usersWithWallet = usersSnapshot.docs.filter((userDoc) => {
               const userData = userDoc.data();
               return Array.isArray(userData.wallets) && userData.wallets.includes(wallet);
             });
+
+            console.log("Users with wallet " + wallet + ": " + usersWithWallet.map((user) => user.id).join(","))
 
             // Process token accounts
             for(const value of  tokenAccountsForAddress.value){
@@ -369,8 +373,12 @@ export async function updateUniqueTokens() {
                   usersWithWallet.forEach((userDoc) => {
                     userTokenMap.get(userDoc.id)!.add(walletTokenInfo);
                   });
+                } else {
+                  console.warn("Not adding coin bc its dead: " + tokenMint)
                 }
 
+              } else {
+                console.warn("Not adding coin bc not owned over 50 and not pump: " + tokenAccountData.info.mint)
               }
             };
           } catch (error) {
