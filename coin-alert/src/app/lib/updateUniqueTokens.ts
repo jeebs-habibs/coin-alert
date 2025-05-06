@@ -358,6 +358,9 @@ export async function updateUniqueTokens() {
             // Process token accounts
             for(const value of  tokenAccountsForAddress.value){
               const tokenAccountData: TokenAccountData = value.account.data.parsed;
+              if(tokenAccountData.info.mint == "8sv4W4uQ9qML87Kr2XFkYBDwsiFEJVZZ1ScsM71Hpump"){
+                console.log(JSON.stringify(tokenAccountData))
+              }
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
