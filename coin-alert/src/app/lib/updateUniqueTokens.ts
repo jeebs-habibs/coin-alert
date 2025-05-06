@@ -12,7 +12,6 @@ import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata'
 import { publicKey } from "@metaplex-foundation/umi";
 import { TrackedToken } from "./firebase/userUtils";
 import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
-import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
