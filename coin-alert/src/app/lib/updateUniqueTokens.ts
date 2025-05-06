@@ -332,7 +332,9 @@ export async function updateUniqueTokens() {
       }
     });
 
-    console.log("Unique wallets: " + )
+    console.log("Unique wallets: ")
+    uniqueWalletSet.forEach((wallet) => console.log(wallet))
+
     // 🔹 2️⃣ Fetch Token Data from Blockchain and Associate with Users
     await Promise.all(
       Array.from(uniqueWalletSet).map((wallet) =>
@@ -355,7 +357,7 @@ export async function updateUniqueTokens() {
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.prices?.length || 0) > 0){
+                if(tokenObj[0]?.isDead != true){
                   console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
