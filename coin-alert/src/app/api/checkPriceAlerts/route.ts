@@ -5,12 +5,6 @@ import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import chalk from "chalk";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
-import { blockchainTaskQueue } from "@/app/lib/taskQueue";
-import { connection } from "@/app/lib/connection";
-import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { TokenAccountData } from "@/app/lib/utils/solanaUtils";
-import { isValidMint } from "@/app/lib/updateUniqueTokens";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -19,7 +13,6 @@ let numberOfNotisSkipped = 0
 let totalNumberOfTokensGottenFromDB = 0
 let totalNumberOfTokensGottenFromCache = 0
 let totalNumberOfUsers = 0
-let totalNumberOfWallets = 0
 let totalUsersSkipped = 0
 let totalNumberOfDeadTokens = 0
 let totalNotisSent = 0
@@ -98,25 +91,29 @@ export async function GET(req: Request) {
       //console.log(`👤 Checking tokens for user: ${JSON.stringify(user)} (${user.wallets.join(",")})`);
 
       // 🔹 2️⃣ Get All Tokens Owned by User (via Blockchain) in Parallel
-      const allTokensSet = new Set<string>();
-      const tokenPromises = user.wallets.map(async (wallet) => {
-        totalNumberOfWallets++
-        const walletPubkey = new PublicKey(wallet)
-        const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(walletPubkey, { programId: TOKEN_PROGRAM_ID }));
+      // const allTokensSet = new Set<string>();
+      // const tokenPromises = user.wallets.map(async (wallet) => {
+      //   totalNumberOfWallets++
+      //   const walletPubkey = new PublicKey(wallet)
+      //   const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(walletPubkey, { programId: TOKEN_PROGRAM_ID }));
 
-        console.log("Address " + wallet + " has " + tokenAccountsForAddress.value.length + " unique tokens held")
-        tokenAccountsForAddress.value.forEach((value) => {
-          const tokenAccountData: TokenAccountData = value.account.data.parsed;
-          if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
-            console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
-            allTokensSet.add(tokenAccountData.info.mint);
-          }
-        })
+      //   console.log("Address " + wallet + " has " + tokenAccountsForAddress.value.length + " unique tokens held")
+      //   tokenAccountsForAddress.value.forEach((value) => {
+      //     const tokenAccountData: TokenAccountData = value.account.data.parsed;
+      //     if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
+      //       console.log(`Wallet ${wallet} has ${tokenAccountData.info.tokenAmount.uiAmount} of ${tokenAccountData.info.mint} Adding to unique set`)
+      //       allTokensSet.add(tokenAccountData.info.mint);
+      //     }
+      //   })
 
-      });
+      // });
 
-      await Promise.all(tokenPromises);
-      const allTokens = Array.from(allTokensSet);
+      const allTokens = user?.trackedTokens?.filter((token) => token.isNotificationsOn)?.map((token) => token.mint) || []
+
+      console.log("Checking prices for user: " + user.uid + " and maybe sending notis for tokens: " + allTokens.join(","))
+
+      // await Promise.all(tokenPromises);
+      // const allTokens = Array.from(allTokensSet);
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
@@ -242,7 +239,6 @@ export async function GET(req: Request) {
       totalNumberOfTokensGottenFromDB = ${totalNumberOfTokensGottenFromDB}
       totalNumberOfTokensGottenFromCache = ${totalNumberOfTokensGottenFromCache}
       totalNumberOfUsers = ${totalNumberOfUsers}
-      totalNumberOfWallets = ${totalNumberOfWallets}
       totalNumberOfDeadTokens = ${totalNumberOfDeadTokens}
       totalNotisSent = ${totalNotisSent}
       totalUsersSkipped = ${totalUsersSkipped}

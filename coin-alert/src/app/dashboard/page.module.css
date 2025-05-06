@@ -234,6 +234,7 @@
 }
 
 .toggleButton {
+  margin-right: 10px;
   padding: 8px 16px;
   background: #ffffff;
   color: #000000;
@@ -242,18 +243,28 @@
   font-size: 14px;
   font-weight: normal;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition: 
+    background-color 0.2s, 
+    color 0.2s,
+    transform 0.3s ease,
+    font-size 0.3s ease,
+    padding 0.3s ease;
 }
 
 .toggleButton:hover {
   background: var(--primary-color); 
-  color: #ffffff
+  color: #ffffff;
 }
 
 .toggleActive {
   background: var(--primary-color);
-  color: #ffffff
+  color: #ffffff;
+  font-size: 20px;
+  padding: 14px 28px;
+  transform: scale(1.2);
+  font-weight: bold;
 }
+
 
 /* Metric Dropdown Styles */
 .metricSelect {
