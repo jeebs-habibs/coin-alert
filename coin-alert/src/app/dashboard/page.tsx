@@ -165,22 +165,29 @@ export default function Dashboard() {
               <div className={styles.currencySelectRow}>
 
               
-      <div className={styles.currencyToggle}>
-        <button
-          className={`${styles.toggleButton} ${currency === "USD" ? styles.toggleActive : ""}`}
-          onClick={() => handleCurrencyToggle("USD")}
-          aria-label="Switch to USD"
-        >
-          USD
-        </button>
-        <button
-          className={`${styles.toggleButton} ${currency === "SOL" ? styles.toggleActive : ""}`}
-          onClick={() => handleCurrencyToggle("SOL")}
-          aria-label="Switch to SOL"
-        >
-          SOL
-        </button>
-      </div>
+              <div className={styles.currencyToggle}>
+                <div
+                  className={styles.toggleIndicator}
+                  style={{
+                    left: currency === "USD" ? "4px" : "calc(50% + 2px)"
+                  }}
+                />
+                <button
+                  className={`${styles.toggleButton} ${currency === "USD" ? styles.toggleActive : ""}`}
+                  onClick={() => handleCurrencyToggle("USD")}
+                  aria-label="Switch to USD"
+                >
+                  USD
+                </button>
+                <button
+                  className={`${styles.toggleButton} ${currency === "SOL" ? styles.toggleActive : ""}`}
+                  onClick={() => handleCurrencyToggle("SOL")}
+                  aria-label="Switch to SOL"
+                >
+                  SOL
+                </button>
+              </div>
+
 
         {/* Metric Selection Dropdown */}
         <div className={styles.metricSelect}>

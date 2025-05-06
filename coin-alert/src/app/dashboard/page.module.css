@@ -226,42 +226,44 @@
   color: #4a5568;
 }
 
-/* Currency Toggle Styles */
 .currencyToggle {
+  position: relative;
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  background: #e0e0e0;
+  border-radius: 999px;
+  padding: 4px;
+  width: 140px;
+  height: 35px;
+  overflow: hidden;
+}
+
+.toggleIndicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 45%;
+  background: var(--primary-color);
+  border-radius: 999px;
+  transition: left 0.3s ease;
+  z-index: 1;
 }
 
 .toggleButton {
-  margin-right: 10px;
-  padding: 8px 16px;
-  background: #ffffff;
-  color: #000000;
-  border-radius: 20px; /* Pill shape */
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: none;
   border: none;
-  font-size: 14px;
-  font-weight: normal;
+  border-radius: 999px;
+  color: #000000;
   cursor: pointer;
-  transition: 
-    background-color 0.2s, 
-    color 0.2s,
-    transform 0.3s ease,
-    font-size 0.3s ease,
-    padding 0.3s ease;
-}
-
-.toggleButton:hover {
-  background: var(--primary-color); 
-  color: #ffffff;
+  position: relative;
+  z-index: 2;
+  transition: color 0.2s ease;
 }
 
 .toggleActive {
-  background: var(--primary-color);
   color: #ffffff;
-  font-size: 20px;
-  padding: 14px 28px;
-  transform: scale(1.2);
   font-weight: bold;
 }
 
@@ -282,7 +284,7 @@
   border-radius: 20px; /* Pill shape */
   font-size: 14px;
   font-weight: 500;
-  color: #4a5568;
+  color: #363636;
   cursor: pointer;
   padding: 8px 40px 8px 16px; /* Increased right padding to prevent overlap */
   appearance: none; /* Remove default browser arrow */
@@ -306,7 +308,7 @@
   right: 7px; /* Slightly adjusted for alignment */
   top: 50%;
   transform: translateY(-50%);
-  color: #4a5568; /* Match text color */
+  color: #363636; /* Match text color */
   font-size: 12px; /* Small icon */
   pointer-events: none; /* Prevent icon from intercepting clicks */
 }
@@ -352,11 +354,6 @@
     width: 36px;
     height: 36px;
     font-size: 20px;
-  }
-
-  .toggleButton {
-    padding: 10px 20px;
-    font-size: 15px;
   }
 
   .metricDropdown {
