@@ -12,6 +12,7 @@ import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata'
 import { publicKey } from "@metaplex-foundation/umi";
 import { TrackedToken } from "./firebase/userUtils";
 import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
+import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -360,7 +361,7 @@ export async function updateUniqueTokens() {
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if(tokenObj[0]?.isDead != true){
+                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < 3){
                   // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
