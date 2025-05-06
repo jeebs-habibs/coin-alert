@@ -17,6 +17,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Siren",
   description: "Notification app for memecoins",
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Siren Landing Page',
+    description: 'Landing page for Siren, a memecoin notification app.',
+    images: ['https://www.sirennotify.com/siren-landing-page.jpg'], // Same image
+  },
 };
 
 export default async function RootLayout({
