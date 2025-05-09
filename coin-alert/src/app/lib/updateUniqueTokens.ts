@@ -238,8 +238,6 @@ async function updateUserTrackedTokens(
 ) {
   for (const [userId, tokenSet] of userTokenMap) {
     try {
-      console.log("Updating user: " + userId + " with trackedTokens: ")
-      tokenSet.forEach((a) => console.log(a))
       const userRef = adminDB.collection("users").doc(userId);
       const userDoc = usersSnapshot.docs.find((doc) => doc.id === userId);
       const userData = userDoc?.data() || {};
@@ -260,6 +258,9 @@ async function updateUserTrackedTokens(
         };
       });
 
+      console.log("Updating user: " + userId + " with trackedTokens: ")
+      updatedTokens.forEach((a) => console.log(a))
+
       // Update Firestore with new trackedTokens
       await userRef.update({
         trackedTokens: updatedTokens
@@ -269,6 +270,15 @@ async function updateUserTrackedTokens(
     }
   }
   console.log(`Updated trackedTokens for ${userTokenMap.size} users.`);
+}
+
+function getTrackedToken(set: Set<TrackedToken>, mint: string): TrackedToken | undefined {
+  for (const token of set) {
+    if (token.mint === mint) {
+      return token;
+    }
+  }
+  return undefined;
 }
 
 // 🔹 Store Token Price in Firestore
@@ -360,7 +370,7 @@ export async function updateUniqueTokens() {
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < 3){
+                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < 5){
                   // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
@@ -370,7 +380,17 @@ export async function updateUniqueTokens() {
                   };
                   // Add token to each user's set
                   usersWithWallet.forEach((userDoc) => {
-                    userTokenMap.get(userDoc.id)!.add(walletTokenInfo);
+                    const userTokens = userTokenMap.get(userDoc.id)!
+                    //console.log("User tokens: ")
+                    //userTokens.forEach((tok) => console.log(tok.mint))
+                    const token = getTrackedToken(userTokens, tokenMint)
+                    if(token){
+                      //console.log(`Token ${token.mint} is already defined, adding to amount owned`)
+                      token.tokensOwned += walletTokenInfo.tokensOwned
+                    } else {
+                      //console.log(`Token ${tokenMint} not defined, adding`)
+                      userTokens.add(walletTokenInfo)
+                    }
                   });
                 }
               }
