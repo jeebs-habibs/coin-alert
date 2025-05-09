@@ -74,13 +74,15 @@ export async function setTokenDead(token: string, tokenDb: Token | undefined): P
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, MIN_ENTRIES_REQUIRED);
 
-    // Check if all prices are below the DEAD_PRICE_THRESHOLD
-    const allBelowThreshold = prices.every(entry => entry.price < DEAD_PRICE_THRESHOLD);
-    if (!allBelowThreshold) {
-      console.log(`🔹 Token ${token} has prices above DEAD_PRICE_THRESHOLD (${DEAD_PRICE_THRESHOLD}). Not dead.`);
+    const mostRecent = prices.reduce((latest, entry) =>
+      entry.timestamp > latest.timestamp ? entry : latest
+    );
+    
+    // Check if the most recent price is below the DEAD_PRICE_THRESHOLD
+    if (mostRecent.price >= DEAD_PRICE_THRESHOLD) {
+      console.log(`🔹 Token ${token} has a recent price of ${mostRecent.price}, which is above DEAD_PRICE_THRESHOLD of (${DEAD_PRICE_THRESHOLD}). Not dead.`);
       return false;
     }
-
     // Calculate the reference price (use the most recent price)
     const referencePrice = prices[0].price;
     if (referencePrice === 0) {
