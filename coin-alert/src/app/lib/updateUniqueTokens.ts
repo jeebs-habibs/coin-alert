@@ -40,6 +40,9 @@ async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number 
   return account.value.uiAmount
 }
 
+// The number of max price failures we allow before skipping a token
+const PRICE_FETCH_THRESHOLD = 5
+
 async function calculateTokenPrice(token: string, poolData: PoolData, poolType: PoolType): Promise<GetPriceResponse | undefined> {
   if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint) {
     console.log(`ERROR: Insufficient token data for ${poolType} price calculation for token: ${token}`);
@@ -370,7 +373,7 @@ export async function updateUniqueTokens() {
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < 5){
+                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD){
                   // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
@@ -426,7 +429,7 @@ export async function updateUniqueTokens() {
           return;
         }
 
-        if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) > 2){
+        if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
           totalSkippedPrice = totalSkippedPrice + 1
           return;
         }
