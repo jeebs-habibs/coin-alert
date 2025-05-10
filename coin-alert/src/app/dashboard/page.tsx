@@ -209,7 +209,25 @@ export default function Dashboard() {
 
         <div className={styles.tokenList}>
           {(userData?.trackedTokens?.length || 0) > 0 ? (
-            userData?.trackedTokens?.map((token: TrackedToken, index: number) => {
+            userData?.trackedTokens?.sort((tokenA, tokenB) => {
+              const tokenAFromDb = mintToTokenData.get(tokenA.mint)
+              const tokenBFromDb = mintToTokenData.get(tokenB.mint)
+              const tokenALatestPriceData: TokenPriceData | undefined = getMarketCapUSDFromPrices(
+                tokenAFromDb?.prices || [],
+                solPrice?.priceUsd || 0
+              );
+
+              const tokenBLatestPriceData: TokenPriceData | undefined = getMarketCapUSDFromPrices(
+                tokenBFromDb?.prices || [],
+                solPrice?.priceUsd || 0
+              );
+
+              const tokenATotalValue = (tokenALatestPriceData?.usdPrice || 0) * tokenA.tokensOwned
+              const tokenBTotalValue = (tokenBLatestPriceData?.usdPrice || 0) * tokenB.tokensOwned
+
+              return tokenBTotalValue - tokenATotalValue
+
+            }).map((token: TrackedToken, index: number) => {
               const tokenFromDb = mintToTokenData.get(token.mint);
               const imageSrc = tokenFromDb?.tokenData?.tokenMetadata?.image || "/placeholder.jpg";
               const latestPriceData: TokenPriceData | undefined = getMarketCapUSDFromPrices(
