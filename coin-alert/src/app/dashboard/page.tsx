@@ -279,7 +279,7 @@ export default function Dashboard() {
               );
             })
           ) : (
-            <p className={styles.emptyState}>Your top 5 memecoin holdings will be displayed here</p>
+            <p className={styles.emptyState}>Your top 5 memecoin holdings will be displayed here (this may take up to 2 minutes to refresh)</p>
           )}
         </div>
       </section>
