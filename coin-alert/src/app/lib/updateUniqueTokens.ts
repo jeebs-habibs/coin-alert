@@ -1,17 +1,17 @@
+import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
+import { publicKey } from "@metaplex-foundation/umi";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
-import { GetPriceResponse, getTokenCached, PoolType, PriceData, setTokenDead, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
+import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
+import { GetPriceResponse, getTokenCached, PoolType, PriceData, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
+import { TrackedToken } from "./firebase/userUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
-import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata'
-import { publicKey } from "@metaplex-foundation/umi";
-import { TrackedToken } from "./firebase/userUtils";
-import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -373,7 +373,7 @@ export async function updateUniqueTokens() {
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if(tokenObj[0]?.isDead != true && (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD){
+                if((tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD){
                   // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
@@ -418,16 +418,16 @@ export async function updateUniqueTokens() {
         const performanceStart = Date.now();
 
         const tokenFromFirestore: Token | undefined = (await getTokenCached(token, tokensCache))[0]
-        if(tokenFromFirestore?.isDead == true){
-          totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
-          return;
-        }
-        const isTokenDead = await setTokenDead(token, tokenFromFirestore);
+        // if(tokenFromFirestore?.isDead == true){
+        //   totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
+        //   return;
+        // }
+        // const isTokenDead = await setTokenDead(token, tokenFromFirestore);
 
-        if (isTokenDead) {
-          totalDeadTokensSkipped = totalDeadTokensSkipped + 1
-          return;
-        }
+        // if (isTokenDead) {
+        //   totalDeadTokensSkipped = totalDeadTokensSkipped + 1
+        //   return;
+        // }
 
         if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
           totalSkippedPrice = totalSkippedPrice + 1

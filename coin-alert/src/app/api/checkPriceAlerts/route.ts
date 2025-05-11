@@ -124,10 +124,6 @@ export async function GET(req: Request) {
         if(tokenObj[1] == "cache"){
           totalNumberOfTokensGottenFromCache++
         }
-        if(tokenObj[0]?.isDead){
-          totalNumberOfDeadTokens++
-          return null;
-        }
         // const isTokenDead = await setTokenDead(token, tokenObj[0])
         // if(isTokenDead){
         //   return null
