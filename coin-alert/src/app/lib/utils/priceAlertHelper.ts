@@ -30,7 +30,7 @@ export async function getLastHourPrices(token: Token | undefined, tokenMint: str
         .filter((entry: PriceData) => entry.timestamp > oneHourAgo)
         .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
 
-        console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${tokenMint}`);
+        //console.log(`✅ Found ${lastHourPrices.length} price entries for token: ${tokenMint}`);
         return lastHourPrices;
     } catch (error) {
         console.error(`❌ Error fetching prices for ${token}:`, error);
