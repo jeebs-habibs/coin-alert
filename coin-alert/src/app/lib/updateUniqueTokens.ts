@@ -143,7 +143,7 @@ async function getTokenMetadataFromBlockchain(token: string): Promise<TokenMetad
   return undefined
 }
 
-function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData): GetPriceResponse {
+function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, poolType: PoolType): GetPriceResponse {
   const finalResponse: GetPriceResponse = {
     ...priceResponse,
     tokenData: {
@@ -151,7 +151,8 @@ function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData): 
       baseVault: poolData.baseVault.toString(),
       quoteMint: poolData.quoteMint.toString(),
       quoteVault: poolData.quoteVault.toString(),
-      marketPoolId: poolData.pubKey.toString()
+      marketPoolId: poolData.pubKey.toString(),
+      pool: poolType
     }
   }
   return finalResponse
@@ -168,12 +169,12 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
         return bondingCurvePrice
       }
       if(bondingCurvePrice?.complete){
-        // 2. If completed, check pump swap
+        // 2. If completed, check pump swap. Shouldn't have any pool data cached in db
         const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
         if(pumpPoolData){
           const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
           if(priceResponse){
-            return decoratePoolData(priceResponse, pumpPoolData)
+            return decoratePoolData(priceResponse, pumpPoolData, "pump-swap")
           }
         }
       }
@@ -183,7 +184,7 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
       if(raydiumPoolData){
         const priceResponse = await calculateTokenPrice(token, raydiumPoolData, "raydium")
           if(priceResponse){
-            return decoratePoolData(priceResponse, raydiumPoolData)
+            return decoratePoolData(priceResponse, raydiumPoolData, "raydium")
           }
       }
 
@@ -198,7 +199,7 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
           if(pumpPoolData){
             const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
             if(priceResponse){
-              return decoratePoolData(priceResponse, pumpPoolData)
+              return decoratePoolData(priceResponse, pumpPoolData, "pump-swap")
             }
           }
         } 
@@ -220,14 +221,14 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
         //Check if pool data is in db and call general function to get price
         const priceResponse = await calculateTokenPrice(token, poolData, "raydium")
         if(priceResponse){
-          return decoratePoolData(priceResponse, poolData)
+          return decoratePoolData(priceResponse, poolData, "raydium")
         }
       }
       if(poolType == "pump-swap"){
         //Check if pool data is in db and call general function to get price
         const priceResponse = await calculateTokenPrice(token, poolData, "pump-swap")
         if(priceResponse){
-          return decoratePoolData(priceResponse, poolData)
+          return decoratePoolData(priceResponse, poolData, "pump-swap")
         }
       }
     }
