@@ -161,8 +161,8 @@ export async function GET(req: Request) {
             continue;
           }
 
-          console.log("Old price entry: " + oldPriceEntry.price)
-          console.log("Latest price: " + latestPrice)
+          // console.log("Old price entry: " + oldPriceEntry.price)
+          // console.log("Latest price: " + latestPrice)
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
           //console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);

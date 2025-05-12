@@ -474,7 +474,7 @@ export async function updateUniqueTokens() {
             if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
               totalUncachedPoolData++
             }
-            console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
+            //console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
             await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
           } else {
             totalFailedPrice++;
