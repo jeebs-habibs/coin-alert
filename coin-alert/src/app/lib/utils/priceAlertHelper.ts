@@ -13,7 +13,7 @@ export interface NotificationReturn {
     marketCapUsd?: number;
 }
 
-export async function getLastHourPrices(token: Token | undefined): Promise<PriceData[]> {
+export function getLastHourPrices(token: Token | undefined): PriceData[] {
     try {
         if(!token){
             return []

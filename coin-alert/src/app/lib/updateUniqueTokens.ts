@@ -12,8 +12,11 @@ import { blockchainTaskQueue } from "./taskQueue";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
+import { getLastHourPrices } from './utils/priceAlertHelper';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
+
+const SOL_THRESHOLD = .0007 
 
 // 🔹 Metrics Tracking
 let totalUsers = 0;
@@ -373,7 +376,8 @@ export async function updateUniqueTokens() {
               if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if((tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD){
+                const totalValueSOL = (getLastHourPrices(tokenObj[0])[0]?.price || 0) * (tokenAccountData.info.tokenAmount.uiAmount ?? 0)
+                if((tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD && totalValueSOL > SOL_THRESHOLD){
                   // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
