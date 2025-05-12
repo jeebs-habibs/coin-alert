@@ -135,7 +135,12 @@ export async function sendNotification(
     }
 
     console.log(`✅ Sent ${alertType} alert for ${token} to ${userId}`);
-  } catch (error: any) {
-    throw new Error("❌ Error sending notification: " + error + error.stack);
+} catch (error) {
+  if (error instanceof Error) {
+    throw new Error("❌ Error sending notification: " + error.message + "\n" + error.stack);
+  } else {
+    throw new Error("❌ Unknown error: " + JSON.stringify(error));
   }
+}
+
 }

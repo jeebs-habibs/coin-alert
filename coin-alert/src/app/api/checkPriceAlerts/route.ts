@@ -128,7 +128,7 @@ export async function GET(req: Request) {
         // if(isTokenDead){
         //   return null
         // }
-        const priceHistory = await getLastHourPrices(tokenObj[0], token);
+        const priceHistory = await getLastHourPrices(tokenObj[0]);
 
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
