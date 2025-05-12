@@ -18,8 +18,8 @@ const tokensCache: Map<string, Token> = new Map<string, Token>()
 // 🔹 Metrics Tracking
 let totalUsers = 0;
 let totalUniqueTokens = 0;
-let totalDeadTokensSkipped = 0;
-let totalDeadTokensSkippedFirestore = 0;
+// let totalDeadTokensSkipped = 0;
+// let totalDeadTokensSkippedFirestore = 0;
 let totalFailedToGetMetadata = 0;
 let totalMetadataFetchSkipped = 0;
 let totalSucceededToGetMetadata = 0;
@@ -261,8 +261,8 @@ async function updateUserTrackedTokens(
         };
       });
 
-      console.log("Updating user: " + userId + " with trackedTokens: ")
-      updatedTokens.forEach((a) => console.log(a))
+      console.log("Updating user: " + userId + " with " + updatedTokens.length + " trackedTokens.")
+      //updatedTokens.forEach((a) => console.log(a))
 
       // Update Firestore with new trackedTokens
       await userRef.update({
@@ -494,8 +494,6 @@ export async function updateUniqueTokens() {
       👤 Total Users Processed: ${totalUsers}
       👛 Total Unique Wallets Processed: ${uniqueWalletSet.size}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
-      ⚰️ Total Dead Tokens Skipped: ${totalDeadTokensSkipped}
-      ⚰️ Total Dead Tokens Skipped from Firestore: ${totalDeadTokensSkippedFirestore}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
       ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} 

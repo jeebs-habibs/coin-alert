@@ -14,7 +14,7 @@ let totalNumberOfTokensGottenFromDB = 0
 let totalNumberOfTokensGottenFromCache = 0
 let totalNumberOfUsers = 0
 let totalUsersSkipped = 0
-let totalNumberOfDeadTokens = 0
+//let totalNumberOfDeadTokens = 0
 let totalNotisSent = 0
 
 /**
@@ -235,7 +235,6 @@ export async function GET(req: Request) {
       totalNumberOfTokensGottenFromDB = ${totalNumberOfTokensGottenFromDB}
       totalNumberOfTokensGottenFromCache = ${totalNumberOfTokensGottenFromCache}
       totalNumberOfUsers = ${totalNumberOfUsers}
-      totalNumberOfDeadTokens = ${totalNumberOfDeadTokens}
       totalNotisSent = ${totalNotisSent}
       totalUsersSkipped = ${totalUsersSkipped}
     `
