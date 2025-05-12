@@ -128,6 +128,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 500px; /* Fixed height for scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #cbd5e0 transparent; /* Firefox */
 }
 
 .tokenRowWrapper {
