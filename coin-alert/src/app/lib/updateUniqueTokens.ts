@@ -16,7 +16,7 @@ import { getLastHourPrices } from './utils/priceAlertHelper';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
-const SOL_THRESHOLD = .0007 
+const SOL_THRESHOLD = .01
 
 // 🔹 Metrics Tracking
 let totalUsers = 0;
@@ -288,6 +288,13 @@ function getTrackedToken(set: Set<TrackedToken>, mint: string): TrackedToken | u
   return undefined;
 }
 
+function isTokenOverThreshold(price: number | null, tokenAmount: number): boolean {
+  if(price == null){
+    return true
+  }
+  return ((price * tokenAmount) > SOL_THRESHOLD)
+}
+
 // 🔹 Store Token Price in Firestore
 export async function storeTokenPrice(
   token: string,
@@ -374,11 +381,14 @@ export async function updateUniqueTokens() {
             // Process token accounts
             for(const value of  tokenAccountsForAddress.value){
               const tokenAccountData: TokenAccountData = value.account.data.parsed;
-              if ((tokenAccountData.info.tokenAmount.uiAmount || 0) > 50 && isValidMint(tokenAccountData.info.mint)) {
+              if(tokenAccountData.info.tokenAmount.uiAmount == null){
+                console.error("Token ui amount not defined for token: " +  tokenAccountData.info.mint)
+                continue
+              }
+              if (tokenAccountData.info.tokenAmount.uiAmount > 50 && isValidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                const totalValueSOL = (getLastHourPrices(tokenObj[0])[0]?.price || 0) * (tokenAccountData.info.tokenAmount.uiAmount ?? 0)
-                if((tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD && totalValueSOL > SOL_THRESHOLD){
+                if ((tokenObj[0]?.tokenData?.priceFetchFailures || 0 ) < PRICE_FETCH_THRESHOLD && isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, tokenAccountData.info.tokenAmount.uiAmount)) {
                   // console.log("Adding " + tokenMint + " to unique tokens list.")
                   uniqueTokensSet.add(tokenMint);
                   const walletTokenInfo: TrackedToken = {
@@ -400,6 +410,8 @@ export async function updateUniqueTokens() {
                       userTokens.add(walletTokenInfo)
                     }
                   });
+                } else {
+                  console.error("Not adding new token: " + tokenAccountData.info.mint)
                 }
               }
             };
