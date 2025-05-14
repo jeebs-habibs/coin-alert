@@ -13,6 +13,7 @@ import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getLastHourPrices } from './utils/priceAlertHelper';
+import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -44,7 +45,7 @@ async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number 
 }
 
 // The number of max price failures we allow before skipping a token
-const PRICE_FETCH_THRESHOLD = 5
+const PRICE_FETCH_THRESHOLD = 8
 
 async function calculateTokenPrice(token: string, poolData: PoolData, poolType: PoolType): Promise<GetPriceResponse | undefined> {
   if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint) {
@@ -84,9 +85,9 @@ async function calculateTokenPrice(token: string, poolData: PoolData, poolType: 
   }
 }
 
-export function isValidMint(mint: string): boolean {
-  const validEndings = ["pump"];
-  return validEndings.some(ending => mint.endsWith(ending));
+export function isInvalidMint(mint: string): boolean {
+  const invalidEndings = ["bonk", "moon", "boop"];
+  return invalidEndings.some(ending => mint.endsWith(ending));
 }
 
 async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
@@ -179,7 +180,16 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
         }
       }
 
-      // 3. If cant find bonding curve account, check raydium
+      // 3. If cant find pump or raydium check meteora
+      const meteoraPoolData: PoolData | undefined = await fetchMeteoraPoolAccountsFromToken(new PublicKey(token))
+      if(meteoraPoolData){
+          const priceResponse = await calculateTokenPrice(token, meteoraPoolData, "meteora")
+          if(priceResponse){
+            return decoratePoolData(priceResponse, meteoraPoolData, "meteora")
+          }
+      }
+
+      // 4. If cant find bonding curve account, check raydium
       const raydiumPoolData: PoolData | undefined = await fetchRaydiumPoolAccountsFromToken(new PublicKey(token))
       if(raydiumPoolData){
         const priceResponse = await calculateTokenPrice(token, raydiumPoolData, "raydium")
@@ -187,8 +197,9 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
             return decoratePoolData(priceResponse, raydiumPoolData, "raydium")
           }
       }
-
+      
       return undefined
+
     } else {
       if(poolType == "pump"){
         // Check bonding curve
@@ -231,6 +242,13 @@ async function getTokenPrice(token: string, tokenFromFirestore: Token | undefine
           return decoratePoolData(priceResponse, poolData, "pump-swap")
         }
       }
+      if(poolType == "meteora"){
+        const priceResponse = await calculateTokenPrice(token, poolData, "meteora")
+        if(priceResponse){
+          return decoratePoolData(priceResponse, poolData, "meteora")
+        }
+      }
+      
     }
   } catch (error) {
     console.error(`❌ Error getting price data for ${token}:`, error);
@@ -385,7 +403,7 @@ export async function updateUniqueTokens() {
                 console.error("Token ui amount not defined for token: " +  tokenAccountData.info.mint)
                 continue
               }
-              if (tokenAccountData.info.tokenAmount.uiAmount > 50 && isValidMint(tokenAccountData.info.mint)) {
+              if (tokenAccountData.info.tokenAmount.uiAmount > 50 && !isInvalidMint(tokenAccountData.info.mint)) {
                 const tokenMint = tokenAccountData.info.mint;
                 const tokenObj = await getTokenCached(tokenMint, tokensCache)
                 if ((tokenObj[0]?.tokenData?.priceFetchFailures || 0 ) < PRICE_FETCH_THRESHOLD && isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, tokenAccountData.info.tokenAmount.uiAmount)) {
@@ -410,8 +428,6 @@ export async function updateUniqueTokens() {
                       userTokens.add(walletTokenInfo)
                     }
                   });
-                } else {
-                  console.error("Not adding new token: " + tokenAccountData.info.mint)
                 }
               }
             };

@@ -60,7 +60,7 @@ export async function fetchRaydiumPoolAccountsFromToken(mint: PublicKey): Promis
     }
 
     //console.log("found " + accounts.length + " pool accounts for token: " + mint.toString())
-    if(accounts[0].account.data){
+    if(accounts.length && accounts[0].account.data){
         const data = LIQUIDITY_STATE_LAYOUT_V4.decode(accounts[0].account.data)
         return {
             quoteVault: data.quoteVault,

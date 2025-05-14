@@ -1,13 +1,15 @@
 class TaskQueue {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private queue: (() => Promise<any>)[] = [];
+  private name: string;
   private isProcessing = false;
   private requestInterval: number;
 
-  constructor(maxRequestsPerSecond: number) {
+  constructor(maxRequestsPerSecond: number, name: string = "") {
     if (maxRequestsPerSecond <= 0) {
       throw new Error('maxRequestsPerSecond must be greater than 0');
     }
+    this.name = name
     this.requestInterval = 1000 / maxRequestsPerSecond; // Delay between requests in ms
   }
 
@@ -34,6 +36,8 @@ class TaskQueue {
     this.isProcessing = true;
 
     //console.log("Processing queue")
+    let recordsProcessed = 0
+    let initialTime = Date.now()
     
     while (this.queue.length > 0) {
       const task = this.queue.shift();
@@ -42,6 +46,12 @@ class TaskQueue {
           //console.log(`Processing task`);
           //const beforeTaskTime = Date.now()
           task();
+          recordsProcessed++
+          if(Date.now() - initialTime >= 1000){
+            console.log(`Processed ${recordsProcessed} records in ${(Date.now() - initialTime) / 1000} seconds.`)
+            recordsProcessed = 0
+            initialTime = Date.now()
+          }
           // const afterTaskTime = Date.now()
           // console.log("Processed task in " + (afterTaskTime - beforeTaskTime)/1000 + " seconds.")
         } catch (error) {

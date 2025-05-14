@@ -9,7 +9,7 @@ export interface PriceData {
     signatures?: string[];
 }
 
-export type PoolType = "pump" | "raydium" | "pump-swap"
+export type PoolType = "pump" | "raydium" | "pump-swap" | "meteora"
 
 export interface TokenMetadata {
   symbol?: string;
