@@ -14,7 +14,10 @@ export interface PoolData {
   baseMint: web3.PublicKey;
   quoteMint: web3.PublicKey;
   pubKey: web3.PublicKey;
+  quoteLpVault?: web3.PublicKey;
+  baseLpVault?: web3.PublicKey;
 }
+
 export interface TokenAccountInfo {
     isNative: boolean;
     mint: string;

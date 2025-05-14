@@ -57,8 +57,18 @@ async function calculateTokenPrice(token: string, poolData: PoolData, poolType: 
     return undefined
   }
 
-  const baseBalance = await getTokenAccountBalance(new PublicKey(poolData?.baseVault))
-  const quoteBalance = await getTokenAccountBalance(new PublicKey(poolData?.quoteVault))
+  const baseBalance = poolType === "meteora" && poolData?.baseLpVault
+    ? await getTokenAccountBalance(new PublicKey(poolData.baseLpVault))
+    : poolData?.baseVault
+      ? await getTokenAccountBalance(new PublicKey(poolData.baseVault))
+      : undefined;
+
+  const quoteBalance = poolType === "meteora" && poolData?.quoteLpVault
+    ? await getTokenAccountBalance(new PublicKey(poolData.quoteLpVault))
+    : poolData?.quoteVault
+      ? await getTokenAccountBalance(new PublicKey(poolData.quoteVault))
+      : undefined;
+
   if (baseBalance == null || quoteBalance == null) {
     console.error(`Failed to fetch balances for ${poolType} token: ${token}`);
     return undefined;
@@ -153,6 +163,8 @@ function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, p
       quoteMint: poolData.quoteMint.toString(),
       quoteVault: poolData.quoteVault.toString(),
       marketPoolId: poolData.pubKey.toString(),
+      baseVauiltLp: poolData?.baseLpVault?.toString(),
+      quoteVaultLp: poolData?.quoteLpVault?.toString(),
       pool: poolType
     }
   }

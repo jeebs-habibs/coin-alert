@@ -72,34 +72,6 @@ const meteoraMarketSchema = borsh.struct([
   borsh.array(borsh.u8(), 32, "padding"), // Adjust size as needed
 ]);
 
-const vaultSchema = borsh.struct([
-  // Optional discriminator (8 bytes, account type identifier)
-  borsh.array(borsh.u8(), 8, "discriminator"),
-  // Enabled (u8, 1 byte)
-  borsh.u8("enabled"),
-  // Bumps
-  borsh.u8("vaultBump"),
-  borsh.u8("tokenVaultBump"),
-  // Total Amount (u64, 8 bytes)
-  borsh.u64("totalAmount"),
-  // PublicKeys (32 bytes each)
-  borsh.publicKey("tokenVault"),
-  borsh.publicKey("feeVault"),
-  borsh.publicKey("tokenMint"),
-  borsh.publicKey("lpMint"),
-  // Strategies (30 PublicKeys)
-  borsh.array(borsh.publicKey(), 30, "strategies"),
-  // More PublicKeys
-  borsh.publicKey("base"),
-  borsh.publicKey("admin"),
-  borsh.publicKey("operator"),
-  // Locked Profit Tracker
-  borsh.u64("lastUpdatedLockedProfit"),
-  borsh.u64("lastReport"),
-  borsh.u64("lockedProfitDegradation"),
-]);
-
-// Define a function to fetch and decode OpenBook accounts
 export async function fetchMeteoraPoolAccountsFromToken(mint: PublicKey): Promise<PoolData | undefined> {
     console.log("Getting meteora pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
@@ -150,15 +122,11 @@ export async function fetchMeteoraPoolAccountsFromToken(mint: PublicKey): Promis
 
     if(accounts.length && accounts[0].account.data){
         const data = meteoraMarketSchema.decode(accounts[0].account.data)
-        // The vault we get above is vault authority. Need to use this to get the actual vault token account
-        const aVaultAuthority = await blockchainTaskQueue.addTask(() => connection.getAccountInfo(new PublicKey(data.aVault)))
-        const aVaultAuthorityData = vaultSchema.decode(aVaultAuthority?.data)
-
-        const bVaultAuthority = await blockchainTaskQueue.addTask(() => connection.getAccountInfo(new PublicKey(data.bVault)))
-        const bVaultAuthorityData = vaultSchema.decode(bVaultAuthority?.data)
         return {
-            quoteVault: aVaultAuthorityData.tokenVault,
-            baseVault: bVaultAuthorityData.tokenVault,
+            quoteVault: data.aVault,
+            baseVault: data.bVault,
+            quoteLpVault: data.aVaultLp,
+            baseLpVault: data.bVaultLp,
             baseMint: data.tokenBMint,
             quoteMint: data.tokenAMint,
             pubKey: accounts[0].pubkey
@@ -167,4 +135,3 @@ export async function fetchMeteoraPoolAccountsFromToken(mint: PublicKey): Promis
     return undefined
 
 }
-
