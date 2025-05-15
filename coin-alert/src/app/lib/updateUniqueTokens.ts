@@ -9,12 +9,11 @@ import { connection, umi } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { TrackedToken } from "./firebase/userUtils";
 import { blockchainTaskQueue } from "./taskQueue";
-import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
-import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
+// import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
+// import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getLastHourPrices } from './utils/priceAlertHelper';
-import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
-import { start } from 'repl';
+//import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -154,22 +153,22 @@ async function getTokenMetadataFromBlockchain(token: string): Promise<TokenMetad
   return undefined
 }
 
-function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, poolType: PoolType): GetPriceResponse {
-  const finalResponse: GetPriceResponse = {
-    ...priceResponse,
-    tokenData: {
-      baseMint: poolData.baseMint.toString(),
-      baseVault: poolData.baseVault.toString(),
-      quoteMint: poolData.quoteMint.toString(),
-      quoteVault: poolData.quoteVault.toString(),
-      marketPoolId: poolData.pubKey.toString(),
-      baseLpVault: poolData?.baseLpVault?.toString(),
-      quoteLpVault: poolData?.quoteLpVault?.toString(),
-      pool: poolType
-    }
-  }
-  return finalResponse
-}
+// function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, poolType: PoolType): GetPriceResponse {
+//   const finalResponse: GetPriceResponse = {
+//     ...priceResponse,
+//     tokenData: {
+//       baseMint: poolData.baseMint.toString(),
+//       baseVault: poolData.baseVault.toString(),
+//       quoteMint: poolData.quoteMint.toString(),
+//       quoteVault: poolData.quoteVault.toString(),
+//       marketPoolId: poolData.pubKey.toString(),
+//       baseLpVault: poolData?.baseLpVault?.toString(),
+//       quoteLpVault: poolData?.quoteLpVault?.toString(),
+//       pool: poolType
+//     }
+//   }
+//   return finalResponse
+// }
 
 function buildPoolDataFromTokenData(tokenData: TokenData): PoolData | undefined {
   // Validate required fields
@@ -189,102 +188,102 @@ function buildPoolDataFromTokenData(tokenData: TokenData): PoolData | undefined 
   };
 }
 
-// 🔹 Fetch Token Price from External APIs
-async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
-  try {
-    const poolType: PoolType | undefined = tokenFromFirestore?.tokenData?.pool
-    if(!poolType){
-      // 1. Bonding curve
-      const bondingCurvePrice = await getPriceFromBondingCurve(token)
-      if(bondingCurvePrice?.complete == false && bondingCurvePrice?.price){
-        return bondingCurvePrice
-      }
-      if(bondingCurvePrice?.complete){
-        // 2. If completed, check pump swap. Shouldn't have any pool data cached in db
-        const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
-        if(pumpPoolData){
-          const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
-          if(priceResponse){
-            return decoratePoolData(priceResponse, pumpPoolData, "pump-swap")
-          }
-        }
-      }
+// // 🔹 Fetch Token Price from External APIs
+// async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<GetPriceResponse | undefined> {
+//   try {
+//     const poolType: PoolType | undefined = tokenFromFirestore?.tokenData?.pool
+//     if(!poolType){
+//       // 1. Bonding curve
+//       const bondingCurvePrice = await getPriceFromBondingCurve(token)
+//       if(bondingCurvePrice?.complete == false && bondingCurvePrice?.price){
+//         return bondingCurvePrice
+//       }
+//       if(bondingCurvePrice?.complete){
+//         // 2. If completed, check pump swap. Shouldn't have any pool data cached in db
+//         const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
+//         if(pumpPoolData){
+//           const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
+//           if(priceResponse){
+//             return decoratePoolData(priceResponse, pumpPoolData, "pump-swap")
+//           }
+//         }
+//       }
 
-      // 3. If cant find pump or raydium check meteora
-      const meteoraPoolData: PoolData | undefined = await fetchMeteoraPoolAccountsFromToken(new PublicKey(token))
-      if(meteoraPoolData){
-          const priceResponse = await calculateTokenPrice(token, meteoraPoolData, "meteora")
-          if(priceResponse){
-            return decoratePoolData(priceResponse, meteoraPoolData, "meteora")
-          }
-      }
+//       // 3. If cant find pump or raydium check meteora
+//       const meteoraPoolData: PoolData | undefined = await fetchMeteoraPoolAccountsFromToken(new PublicKey(token))
+//       if(meteoraPoolData){
+//           const priceResponse = await calculateTokenPrice(token, meteoraPoolData, "meteora")
+//           if(priceResponse){
+//             return decoratePoolData(priceResponse, meteoraPoolData, "meteora")
+//           }
+//       }
 
-      // 4. If cant find bonding curve account, check raydium
-      const raydiumPoolData: PoolData | undefined = await fetchRaydiumPoolAccountsFromToken(new PublicKey(token))
-      if(raydiumPoolData){
-        const priceResponse = await calculateTokenPrice(token, raydiumPoolData, "raydium")
-          if(priceResponse){
-            return decoratePoolData(priceResponse, raydiumPoolData, "raydium")
-          }
-      }
+//       // 4. If cant find bonding curve account, check raydium
+//       const raydiumPoolData: PoolData | undefined = await fetchRaydiumPoolAccountsFromToken(new PublicKey(token))
+//       if(raydiumPoolData){
+//         const priceResponse = await calculateTokenPrice(token, raydiumPoolData, "raydium")
+//           if(priceResponse){
+//             return decoratePoolData(priceResponse, raydiumPoolData, "raydium")
+//           }
+//       }
       
-      return undefined
+//       return undefined
 
-    } else {
-      if(poolType == "pump"){
-        // Check bonding curve
-        const bondingCurvePrice = await getPriceFromBondingCurve(token)
-        if(bondingCurvePrice?.complete){
-          // If completed, check pump swap
-          const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
-          if(pumpPoolData){
-            const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
-            if(priceResponse){
-              return decoratePoolData(priceResponse, pumpPoolData, "pump-swap")
-            }
-          }
-        } 
-        if(bondingCurvePrice?.complete == false){
-          return bondingCurvePrice
-        }
-      } 
-      if(!tokenFromFirestore?.tokenData?.baseMint || !tokenFromFirestore.tokenData.baseVault || !tokenFromFirestore.tokenData.quoteMint || !tokenFromFirestore.tokenData.quoteVault || !tokenFromFirestore.tokenData.marketPoolId){
-        return undefined
-      }
-      const poolData: PoolData = {
-        baseMint: new PublicKey(tokenFromFirestore?.tokenData?.baseMint),
-        baseVault: new PublicKey(tokenFromFirestore.tokenData.baseVault),
-        quoteMint: new PublicKey(tokenFromFirestore.tokenData.quoteMint),
-        quoteVault: new PublicKey(tokenFromFirestore.tokenData.quoteVault),
-        pubKey: new PublicKey(tokenFromFirestore.tokenData.marketPoolId)
-      }
-      if(poolType == "raydium"){
-        //Check if pool data is in db and call general function to get price
-        const priceResponse = await calculateTokenPrice(token, poolData, "raydium")
-        if(priceResponse){
-          return decoratePoolData(priceResponse, poolData, "raydium")
-        }
-      }
-      if(poolType == "pump-swap"){
-        //Check if pool data is in db and call general function to get price
-        const priceResponse = await calculateTokenPrice(token, poolData, "pump-swap")
-        if(priceResponse){
-          return decoratePoolData(priceResponse, poolData, "pump-swap")
-        }
-      }
-      if(poolType == "meteora"){
-        const priceResponse = await calculateTokenPrice(token, poolData, "meteora")
-        if(priceResponse){
-          return decoratePoolData(priceResponse, poolData, "meteora")
-        }
-      }
+//     } else {
+//       if(poolType == "pump"){
+//         // Check bonding curve
+//         const bondingCurvePrice = await getPriceFromBondingCurve(token)
+//         if(bondingCurvePrice?.complete){
+//           // If completed, check pump swap
+//           const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
+//           if(pumpPoolData){
+//             const priceResponse = await calculateTokenPrice(token, pumpPoolData, "pump-swap")
+//             if(priceResponse){
+//               return decoratePoolData(priceResponse, pumpPoolData, "pump-swap")
+//             }
+//           }
+//         } 
+//         if(bondingCurvePrice?.complete == false){
+//           return bondingCurvePrice
+//         }
+//       } 
+//       if(!tokenFromFirestore?.tokenData?.baseMint || !tokenFromFirestore.tokenData.baseVault || !tokenFromFirestore.tokenData.quoteMint || !tokenFromFirestore.tokenData.quoteVault || !tokenFromFirestore.tokenData.marketPoolId){
+//         return undefined
+//       }
+//       const poolData: PoolData = {
+//         baseMint: new PublicKey(tokenFromFirestore?.tokenData?.baseMint),
+//         baseVault: new PublicKey(tokenFromFirestore.tokenData.baseVault),
+//         quoteMint: new PublicKey(tokenFromFirestore.tokenData.quoteMint),
+//         quoteVault: new PublicKey(tokenFromFirestore.tokenData.quoteVault),
+//         pubKey: new PublicKey(tokenFromFirestore.tokenData.marketPoolId)
+//       }
+//       if(poolType == "raydium"){
+//         //Check if pool data is in db and call general function to get price
+//         const priceResponse = await calculateTokenPrice(token, poolData, "raydium")
+//         if(priceResponse){
+//           return decoratePoolData(priceResponse, poolData, "raydium")
+//         }
+//       }
+//       if(poolType == "pump-swap"){
+//         //Check if pool data is in db and call general function to get price
+//         const priceResponse = await calculateTokenPrice(token, poolData, "pump-swap")
+//         if(priceResponse){
+//           return decoratePoolData(priceResponse, poolData, "pump-swap")
+//         }
+//       }
+//       if(poolType == "meteora"){
+//         const priceResponse = await calculateTokenPrice(token, poolData, "meteora")
+//         if(priceResponse){
+//           return decoratePoolData(priceResponse, poolData, "meteora")
+//         }
+//       }
       
-    }
-  } catch (error) {
-    console.error(`❌ Error getting price data for ${token}:`, error);
-  }
-  return undefined;
-}
+//     }
+//   } catch (error) {
+//     console.error(`❌ Error getting price data for ${token}:`, error);
+//   }
+//   return undefined;
+// }
 
 // Function to update trackedTokens in Firestore, preserving isNotificationsOn
 async function updateUserTrackedTokens(
@@ -451,6 +450,7 @@ export async function updateUniqueTokens() {
           });
 
           // Fetch token metadata in parallel
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tokenDataMap = new Map<string, any>();
           await Promise.all(
             Array.from(tokenMints).map(async (mint) => {

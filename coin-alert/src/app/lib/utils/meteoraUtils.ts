@@ -1,7 +1,7 @@
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
-import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
-import { connection, heliusConnection } from "../connection";
+import { heliusPoolQueue } from "../taskQueue";
+import { heliusConnection } from "../connection";
 import * as borsh from "@coral-xyz/borsh";
 import { PoolData } from "./solanaUtils";
 
