@@ -455,7 +455,7 @@ export async function updateUniqueTokens() {
           await Promise.all(
             Array.from(tokenMints).map(async (mint) => {
               try {
-                console.log(`Fetching metadata for token: ${mint}`);
+                //console.log(`Fetching metadata for token: ${mint}`);
                 const tokenObj = await getTokenCached(mint, tokensCache);
                 tokenDataMap.set(mint, tokenObj);
               } catch (error) {
@@ -468,7 +468,7 @@ export async function updateUniqueTokens() {
           await Promise.all(
             tokenInfoList.map(async ({ mint, amount }) => {
               try {
-                console.log(`Processing token: ${mint} for wallet ${wallet}`);
+                //console.log(`Processing token: ${mint} for wallet ${wallet}`);
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
                 const tokenObj = tokenDataMap.get(mint);
