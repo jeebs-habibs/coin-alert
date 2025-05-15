@@ -48,14 +48,11 @@ async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number 
 const PRICE_FETCH_THRESHOLD = 8
 
 async function calculateTokenPrice(token: string, poolData: PoolData, poolType: PoolType): Promise<GetPriceResponse | undefined> {
-  if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint) {
+  if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint || !poolData?.quoteVault) {
     console.log(`ERROR: Insufficient token data for ${poolType} price calculation for token: ${token}`);
     return undefined;
   }
 
-  if(!poolData?.quoteVault){
-    return undefined
-  }
 
   const baseBalance = poolType === "meteora" && poolData?.baseLpVault
     ? await getTokenAccountBalance(new PublicKey(poolData.baseLpVault))
@@ -163,8 +160,8 @@ function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, p
       quoteMint: poolData.quoteMint.toString(),
       quoteVault: poolData.quoteVault.toString(),
       marketPoolId: poolData.pubKey.toString(),
-      baseVauiltLp: poolData?.baseLpVault?.toString(),
-      quoteVaultLp: poolData?.quoteLpVault?.toString(),
+      baseLpVault: poolData?.baseLpVault?.toString(),
+      quoteLpVault: poolData?.quoteLpVault?.toString(),
       pool: poolType
     }
   }
@@ -386,9 +383,10 @@ export async function updateUniqueTokens() {
       }
     });
 
-    //console.log("Unique wallets: ")
+    console.log("Unique wallets: ")
     uniqueWalletSet.forEach((wallet) => console.log(wallet))
 
+    const updateTrackedTokensStartTime = Date.now()
     // 🔹 2️⃣ Fetch Token Data from Blockchain and Associate with Users
     await Promise.all(
       Array.from(uniqueWalletSet).map(async (wallet) => {
@@ -453,8 +451,15 @@ export async function updateUniqueTokens() {
     // 🔹 3️⃣ Update Firestore with Tracked Tokens
     await updateUserTrackedTokens(userTokenMap, usersSnapshot);
 
+    // userTokenMap.forEach((tokens, userId) => {
+    //   console.log(`User ID: ${userId}`);
+    //   tokens.forEach((token) => {
+    //     console.log(`  Token: ${JSON.stringify(token, null, 2)}`);
+    //   });
+    // });    
     totalUniqueTokens = uniqueTokensSet.size;
-    console.log(`✅ Finished fetching ${totalUniqueTokens} unique tokens`);
+    const updateTrackedTokensFinishTime = Date.now()
+    console.log(`✅ Finished fetching ${totalUniqueTokens} unique tokens in ${(updateTrackedTokensFinishTime - updateTrackedTokensStartTime) / 1000} sec.`);
 
     // 🔹 3️⃣ Process Each Token
     await Promise.all(

@@ -23,10 +23,10 @@ export interface TokenData {
   priceFetchFailures?: number;
   pool?: PoolType
   baseVault?: string;
-  baseVauiltLp?: string;
+  baseLpVault?: string;
   baseMint?: string;
   quoteVault?: string;
-  quoteVaultLp?: string;
+  quoteLpVault?: string;
   quoteMint?: string;
   marketPoolId?: string;
   tokenMetadata?: TokenMetadata;
