@@ -86,7 +86,7 @@ export async function sendNotification(
 
     const userData = userDocSnap.data();
     if (!userData?.tokens || userData.tokens.length === 0) {
-      console.error("ERROR: User has no devices detected to notify.");
+      console.error("ERROR: User " + userData?.uid + " has no devices detected to notify.");
       return;
     }
 
