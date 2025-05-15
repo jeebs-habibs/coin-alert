@@ -5,7 +5,7 @@
       "schedule": "*/3 * * * *"
     },
     {
-      "path": "/api/updatedTokens",
+      "path": "/api/updateTokens",
       "schedule": "*/3 * * * *"
     }
   ]
