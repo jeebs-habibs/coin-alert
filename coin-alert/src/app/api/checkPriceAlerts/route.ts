@@ -5,6 +5,7 @@ import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import chalk from "chalk";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
+import { NextRequest } from "next/server";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -54,14 +55,15 @@ function isTokenMinuteAfterCooldown(
 }
 
 // 🔹 Main API Function
-export async function GET(req: Request) {
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', {
+      status: 401,
+    });
+  }
 
   const startTime = Date.now()
-  const apiKey = req.headers.get("Authorization");
-
-  if (apiKey !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
-  }
 
   try {
 

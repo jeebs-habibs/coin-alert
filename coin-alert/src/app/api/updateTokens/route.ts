@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { updateUniqueTokens } from "../../lib/updateUniqueTokens";
 
-export async function GET(req: Request) {
-  const apiKey = req.headers.get("Authorization");
-
-  if (apiKey !== process.env.CRON_SECRET) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', {
+      status: 401,
+    });
   }
   
   try {
