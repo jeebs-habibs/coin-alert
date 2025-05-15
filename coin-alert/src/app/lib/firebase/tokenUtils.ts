@@ -175,7 +175,7 @@ export async function updateToken(tokenId: string, updateData: Partial<Token>): 
     // Update only the provided fields
     await tokenDocRef.set(convertedData, { merge: true });
 
-    console.log(`✅ Token ${tokenId} successfully updated.`);
+    //console.log(`✅ Token ${tokenId} successfully updated.`);
     return true;
   } catch (error) {
     console.error(`❌ Error updating token ${tokenId}:`, error);

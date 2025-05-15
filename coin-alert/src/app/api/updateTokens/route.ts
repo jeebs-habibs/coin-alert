@@ -4,7 +4,7 @@ import { updateUniqueTokens } from "../../lib/updateUniqueTokens";
 export async function GET(req: Request) {
   const apiKey = req.headers.get("Authorization");
 
-  if (apiKey !== process.env.API_SECRET_KEY) {
+  if (apiKey !== process.env.CRON_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
   }
   

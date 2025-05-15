@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/checkPriceAlerts",
+      "schedule": "*/3 * * * *"
+    },
+    {
+      "path": "/api/updatedTokens",
+      "schedule": "*/3 * * * *"
+    }
+  ]
+}

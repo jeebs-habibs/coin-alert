@@ -14,6 +14,7 @@ import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getLastHourPrices } from './utils/priceAlertHelper';
 import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
+import { start } from 'repl';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -31,6 +32,8 @@ let totalFailedPrice = 0;
 let totalSucceedPrice = 0;
 let totalSkippedPrice = 0;
 let totalUncachedPoolData = 0;
+let tokensSkippedWithNoPoolData = 0;
+let totalFailedToBuildPoolData = 0;
 
 interface URIMetadata {
   name?: string;
@@ -166,6 +169,24 @@ function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, p
     }
   }
   return finalResponse
+}
+
+function buildPoolDataFromTokenData(tokenData: TokenData): PoolData | undefined {
+  // Validate required fields
+  if (!tokenData.baseVault || !tokenData.quoteVault || !tokenData.baseMint || 
+      !tokenData.quoteMint || !tokenData.marketPoolId) {
+    return undefined
+  }
+
+  return {
+    quoteVault: new PublicKey(tokenData.quoteVault),
+    baseVault: new PublicKey(tokenData.baseVault),
+    baseMint: new PublicKey(tokenData.baseMint),
+    quoteMint: new PublicKey(tokenData.quoteMint),
+    pubKey: new PublicKey(tokenData.marketPoolId),
+    quoteLpVault: tokenData?.quoteLpVault ? new PublicKey(tokenData.quoteLpVault) : undefined,
+    baseLpVault: tokenData?.baseLpVault ? new PublicKey(tokenData.baseLpVault) : undefined,
+  };
 }
 
 // 🔹 Fetch Token Price from External APIs
@@ -387,68 +408,105 @@ export async function updateUniqueTokens() {
     uniqueWalletSet.forEach((wallet) => console.log(wallet))
 
     const updateTrackedTokensStartTime = Date.now()
-    // 🔹 2️⃣ Fetch Token Data from Blockchain and Associate with Users
+    // Collect all token mints across all wallets
+    // Precompute wallet-to-users map to avoid duplicate user lookups
+    const walletToUsers = new Map<string, Set<string>>();
+    usersSnapshot.docs.forEach((userDoc) => {
+      const userId = userDoc.id;
+      const wallets = userDoc.data().wallets || [];
+      wallets.forEach((wallet: string) => {
+        if (!walletToUsers.has(wallet)) walletToUsers.set(wallet, new Set());
+        (walletToUsers.get(wallet) || new Set()).add(userId);
+      });
+    });
+
+    // Process wallets
     await Promise.all(
       Array.from(uniqueWalletSet).map(async (wallet) => {
-          try {
-            const publicKey = new PublicKey(wallet);
-            const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() => connection.getParsedTokenAccountsByOwner(publicKey, {
-              programId: TOKEN_PROGRAM_ID,
-            }))
+        try {
+          const publicKey = new PublicKey(wallet);
+          const startTimeGettingTokenAccounts = Date.now();
+          const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() =>
+            connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })
+          );
+          console.log(
+            `Getting tokens owned by ${wallet} took ${
+              (Date.now() - startTimeGettingTokenAccounts) / 1000
+            } seconds`
+          );
 
-            // console.log("Wallet " + wallet + " has " + tokenAccountsForAddress.value.length + " token accounts")
+          // Get users for this wallet
+          const usersWithWallet = walletToUsers.get(wallet) || new Set();
 
-            // Find users with this wallet
-            const usersWithWallet = usersSnapshot.docs.filter((userDoc) => {
-              const userData = userDoc.data();
-              return Array.isArray(userData.wallets) && userData.wallets.includes(wallet);
-            });
+          // Collect unique token mints for this wallet
+          const tokenMints = new Set<string>();
+          const tokenInfoList: { mint: string; amount: number }[] = [];
+          tokenAccountsForAddress.value.forEach((value) => {
+            const tokenAccountData: TokenAccountData = value.account.data.parsed;
+            if (tokenAccountData.info.tokenAmount.uiAmount != null) {
+              const mint = tokenAccountData.info.mint;
+              tokenMints.add(mint);
+              tokenInfoList.push({ mint, amount: tokenAccountData.info.tokenAmount.uiAmount });
+            }
+          });
 
-            // console.log("Users with wallet " + wallet + ": " + usersWithWallet.map((user) => user.id).join(","))
-
-            // Process token accounts
-            for(const value of  tokenAccountsForAddress.value){
-              const tokenAccountData: TokenAccountData = value.account.data.parsed;
-              if(tokenAccountData.info.tokenAmount.uiAmount == null){
-                console.error("Token ui amount not defined for token: " +  tokenAccountData.info.mint)
-                continue
+          // Fetch token metadata in parallel
+          const tokenDataMap = new Map<string, any>();
+          await Promise.all(
+            Array.from(tokenMints).map(async (mint) => {
+              try {
+                console.log(`Fetching metadata for token: ${mint}`);
+                const tokenObj = await getTokenCached(mint, tokensCache);
+                tokenDataMap.set(mint, tokenObj);
+              } catch (error) {
+                console.error(`Error fetching token ${mint}:`, error);
               }
-              if (tokenAccountData.info.tokenAmount.uiAmount > 50 && !isInvalidMint(tokenAccountData.info.mint)) {
-                const tokenMint = tokenAccountData.info.mint;
-                const tokenObj = await getTokenCached(tokenMint, tokensCache)
-                if ((tokenObj[0]?.tokenData?.priceFetchFailures || 0 ) < PRICE_FETCH_THRESHOLD && isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, tokenAccountData.info.tokenAmount.uiAmount)) {
-                  // console.log("Adding " + tokenMint + " to unique tokens list.")
-                  uniqueTokensSet.add(tokenMint);
+            })
+          );
+
+          // Process tokens in parallel (extracted for loop)
+          await Promise.all(
+            tokenInfoList.map(async ({ mint, amount }) => {
+              try {
+                console.log(`Processing token: ${mint} for wallet ${wallet}`);
+                if (amount <= 50 || isInvalidMint(mint)) return;
+
+                const tokenObj = tokenDataMap.get(mint);
+                if (
+                  tokenObj &&
+                  (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
+                  isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, amount)
+                ) {
+                  uniqueTokensSet.add(mint);
                   const walletTokenInfo: TrackedToken = {
-                    mint: tokenMint,
-                    tokensOwned: tokenAccountData.info.tokenAmount.uiAmount ?? 0,
+                    mint,
+                    tokensOwned: amount,
                     isNotificationsOn: true,
                   };
-                  // Add token to each user's set
-                  usersWithWallet.forEach((userDoc) => {
-                    const userTokens = userTokenMap.get(userDoc.id)!
-                    //console.log("User tokens: ")
-                    //userTokens.forEach((tok) => console.log(tok.mint))
-                    const token = getTrackedToken(userTokens, tokenMint)
-                    if(token){
-                      //console.log(`Token ${token.mint} is already defined, adding to amount owned`)
-                      token.tokensOwned += walletTokenInfo.tokensOwned
+
+                  // Update user token sets
+                  usersWithWallet.forEach((userId: string) => {
+                    const userTokens = userTokenMap.get(userId)!;
+                    const token = getTrackedToken(userTokens, mint);
+                    if (token) {
+                      token.tokensOwned += walletTokenInfo.tokensOwned;
                     } else {
-                      //console.log(`Token ${tokenMint} not defined, adding`)
-                      userTokens.add(walletTokenInfo)
+                      userTokens.add(walletTokenInfo);
                     }
                   });
                 }
+              } catch (error) {
+                console.error(`Error processing token ${mint} for wallet ${wallet}:`, error);
               }
-            };
-          } catch (error) {
-            console.error(`Error processing wallet ${wallet}:`, error);
-          }
-        
+            })
+          );
+        } catch (error) {
+          console.error(`Error processing wallet ${wallet}:`, error);
+        }
       })
     );
 
-    // 🔹 3️⃣ Update Firestore with Tracked Tokens
+    // Update Firestore (unchanged)
     await updateUserTrackedTokens(userTokenMap, usersSnapshot);
 
     // userTokenMap.forEach((tokens, userId) => {
@@ -465,71 +523,92 @@ export async function updateUniqueTokens() {
     await Promise.all(
       Array.from(uniqueTokensSet).map(async (token) => {
         //console.log(`🔹 Processing token: ${token}`);
-        const performanceStart = Date.now();
+        try {
+          const performanceStart = Date.now();
 
-        const tokenFromFirestore: Token | undefined = (await getTokenCached(token, tokensCache))[0]
-        // if(tokenFromFirestore?.isDead == true){
-        //   totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
-        //   return;
-        // }
-        // const isTokenDead = await setTokenDead(token, tokenFromFirestore);
+          const tokenFromFirestore: Token | undefined = (await getTokenCached(token, tokensCache))[0]
+          // if(tokenFromFirestore?.isDead == true){
+          //   totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
+          //   return;
+          // }
+          // const isTokenDead = await setTokenDead(token, tokenFromFirestore);
 
-        // if (isTokenDead) {
-        //   totalDeadTokensSkipped = totalDeadTokensSkipped + 1
-        //   return;
-        // }
+          // if (isTokenDead) {
+          //   totalDeadTokensSkipped = totalDeadTokensSkipped + 1
+          //   return;
+          // }
 
-        if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
-          totalSkippedPrice = totalSkippedPrice + 1
-          return;
-        }
-
-        let blockchainMetadataFailures = 0
-        let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
-        if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 7){
-          const metadataFromBlockchain = await getTokenMetadataFromBlockchain(token)
-          if(metadataFromBlockchain){
-            tokenMetadata = metadataFromBlockchain
-            totalSucceededToGetMetadata++;
-          } else {
-            totalFailedToGetMetadata++
-            blockchainMetadataFailures = 1
+          if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
+            totalSkippedPrice = totalSkippedPrice + 1
+            return;
           }
-        } else {
-          totalMetadataFetchSkipped++
-        }
 
-        const data = await getTokenPrice(token, tokenFromFirestore);
-        if(!data){
-          totalFailedPrice++;
-          const tokenData = tokenFromFirestore?.tokenData || {}
-          tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
-
-          const updatedToken: Token = {
-            ...tokenFromFirestore,
-            tokenData
-          }
-          
-          updateToken(token, updatedToken)
-          
-        } else {
-          if (tokenMetadata) data.tokenData.tokenMetadata = tokenMetadata;
-
-          timesToGetTokenPrice.push(Date.now() - performanceStart);
-  
-          if (data?.price) {
-            totalSucceedPrice++;
-            data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
-   
-            if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
-              totalUncachedPoolData++
+          const isGetMetadata = false
+          let blockchainMetadataFailures = 0
+          let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
+          if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 7 && isGetMetadata){
+            const metadataFromBlockchain = await getTokenMetadataFromBlockchain(token)
+            if(metadataFromBlockchain){
+              tokenMetadata = metadataFromBlockchain
+              totalSucceededToGetMetadata++;
+            } else {
+              totalFailedToGetMetadata++
+              blockchainMetadataFailures = 1
             }
-            //console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
-            await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
           } else {
-            totalFailedPrice++;
+            totalMetadataFetchSkipped++
           }
+
+          // const data = await getTokenPrice(token, tokenFromFirestore);
+          let data: GetPriceResponse | undefined = undefined
+
+          if(tokenFromFirestore && tokenFromFirestore.tokenData?.pool){
+            const poolData: PoolData | undefined = buildPoolDataFromTokenData(tokenFromFirestore.tokenData)
+            if(poolData){
+              data = await calculateTokenPrice(token, poolData, tokenFromFirestore.tokenData?.pool)
+              if(!data){
+                totalFailedPrice++;
+                const tokenData = tokenFromFirestore?.tokenData || {}
+                tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
+
+                const updatedToken: Token = {
+                  ...tokenFromFirestore,
+                  tokenData
+                }
+                
+                updateToken(token, updatedToken)
+              }
+            } else {
+              totalFailedToBuildPoolData++
+            }
+
+          } else {
+            tokensSkippedWithNoPoolData++
+          }
+
+          if(data) {
+            if (tokenMetadata) data.tokenData.tokenMetadata = tokenMetadata;
+
+            timesToGetTokenPrice.push(Date.now() - performanceStart);
+    
+            if (data?.price) {
+              totalSucceedPrice++;
+              data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
+    
+              if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
+                totalUncachedPoolData++
+              }
+              console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
+              await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
+            } else {
+              totalFailedPrice++;
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing token ${token}:`, error);
+          throw error; // Ensure the promise rejects
         }
+
  
       })
     );
@@ -549,6 +628,8 @@ export async function updateUniqueTokens() {
       ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} 
       🗄️ Total uncached pool data: ${totalUncachedPoolData} 
       🚫 Total skipped prices: ${totalSkippedPrice}
+          Total skipped with no pool data: ${tokensSkippedWithNoPoolData}
+          Total failed to build pool data: ${totalFailedToBuildPoolData}
       ❌ Total Price Fetch Failures: ${totalFailedPrice} (${priceFailureRate.toFixed(2)}%)
       💵 Total Price Fetch Successes: ${totalSucceedPrice}
     `;
