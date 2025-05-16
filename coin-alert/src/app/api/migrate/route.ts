@@ -93,6 +93,13 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
         console.log("📦 Redis Memory Usage:", usedMemory);
       }
 
+      const keys = await redisClient.keys("*");
+      console.log("🔑 Redis Keys:", keys);
+
+      for (const key of keys) {
+        const memUsage = await redisClient.memoryUsage(key);
+        console.log(`📏 ${key}: ${memUsage} bytes`);
+      }
 
     }
 
