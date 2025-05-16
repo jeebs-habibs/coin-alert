@@ -84,6 +84,14 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
       console.log(`🔹 TTL: ${ttl}s\n`);
       const memoryInfo = await redisClient.info("MEMORY");
 
+      const keys = await redisClient.keys("*");
+      console.log("🔑 Redis Keys:", keys);
+
+      for (const key of keys) {
+        const memUsage = await redisClient.memoryUsage(key);
+        console.log(`📏 ${key}: ${memUsage} bytes`);
+      }
+
       const usedMemoryLine = memoryInfo
         .split("\n")
         .find((line) => line.startsWith("used_memory_human:"));
@@ -91,14 +99,6 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
       if (usedMemoryLine) {
         const usedMemory = usedMemoryLine.split(":")[1].trim();
         console.log("📦 Redis Memory Usage:", usedMemory);
-      }
-
-      const keys = await redisClient.keys("*");
-      console.log("🔑 Redis Keys:", keys);
-
-      for (const key of keys) {
-        const memUsage = await redisClient.memoryUsage(key);
-        console.log(`📏 ${key}: ${memUsage} bytes`);
       }
 
     }
@@ -111,7 +111,7 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
 
 export async function GET(request: NextRequest) {
     console.log(request)
-    await migrateTokens({ tokenId: "2Sg6jwTiNEv4WQmp24enA9CHePJfT1FbSE1e21cJpump" });
+    await migrateTokens({ migrateAll: true });
     return NextResponse.json({ message: "Migrating once"});
     
 }
