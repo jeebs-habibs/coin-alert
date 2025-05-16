@@ -88,7 +88,7 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
 
 export async function GET(request: NextRequest) {
     console.log(request)
-    migrateTokens({ tokenId: "2Sg6jwTiNEv4WQmp24enA9CHePJfT1FbSE1e21cJpump" });
+    await migrateTokens({ tokenId: "2Sg6jwTiNEv4WQmp24enA9CHePJfT1FbSE1e21cJpump" });
     return NextResponse.json({ message: "Migrating once"});
     
 }
