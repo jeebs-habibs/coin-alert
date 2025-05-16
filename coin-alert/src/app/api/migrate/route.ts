@@ -62,7 +62,12 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
         for (const priceData of data.prices) {
           await redisClient.zAdd(priceKey, {
             score: priceData.timestamp,
-            value: String(priceData.price),
+            value: JSON.stringify({
+              price: priceData.price,
+              timestamp: priceData.timestamp,
+              marketCapSol: priceData.marketCapSol,
+              pool: priceData.pool,
+            }),
           });
         }
         await redisClient.expire(priceKey, 2 * 60 * 60);
@@ -77,6 +82,18 @@ async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string
       console.log("🔹 Token Hash:", hash);
       console.log("🔹 Prices:", prices);
       console.log(`🔹 TTL: ${ttl}s\n`);
+      const memoryInfo = await redisClient.info("MEMORY");
+
+      const usedMemoryLine = memoryInfo
+        .split("\n")
+        .find((line) => line.startsWith("used_memory_human:"));
+
+      if (usedMemoryLine) {
+        const usedMemory = usedMemoryLine.split(":")[1].trim();
+        console.log("📦 Redis Memory Usage:", usedMemory);
+      }
+
+
     }
 
     await redisClient.quit();
