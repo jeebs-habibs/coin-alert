@@ -32,7 +32,6 @@ function tokenToRedisHash(token: Token): Record<string, string> {
 async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string; migrateAll?: boolean }) {
   try {
     const redisClient = await getRedisClient()
-    await redisClient.connect();
 
     let tokensToMigrate: { id: string; data: Token }[] = [];
 
