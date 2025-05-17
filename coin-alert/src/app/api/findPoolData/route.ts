@@ -64,10 +64,15 @@ export async function GET(request: NextRequest) {
           }
 
           const now = Date.now()
-          if((now - timeBeforeUpdate) / 1000 /60 > 4){
-            console.warn("Greated then 4 mintues of runtime, approacheing 5 minute limit")
+          const timeElapsedMinutes = (now - timeBeforeUpdate) / 1000 /60
+          if(timeElapsedMinutes > 4){
+            console.warn("Greated then 4 mintues of runtime, approaching 5 minute limit")
           }
 
+          if(timeElapsedMinutes > 4.75){
+            console.error("ERROR: Breaking loop at 4.75 minutes. Approaching 5 minute limit")
+            break
+          }
     }
 
 
