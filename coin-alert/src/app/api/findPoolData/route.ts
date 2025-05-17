@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     for await (const keys of iter) {
         for (const tokenKey of keys) {
             const tokenMint = tokenKey.split(":")[1]
-            const poolType = await redisClient.hGet(tokenMint, "poolType");
+            const poolType = await redisClient.hGet(tokenKey, "poolType");
             if (poolType === null || poolType === undefined) {
                 tokensWithoutPoolType.push(tokenMint);
                 tokensWithoutPoolData++
