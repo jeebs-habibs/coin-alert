@@ -1,5 +1,5 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
-import { getTokenCached, Token } from "@/app/lib/firebase/tokenUtils";
+import { getTokenCached, setTokenDead, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
@@ -126,10 +126,10 @@ export async function GET(request: NextRequest) {
         if(tokenObj[1] == "cache"){
           totalNumberOfTokensGottenFromCache++
         }
-        // const isTokenDead = await setTokenDead(token, tokenObj[0])
-        // if(isTokenDead){
-        //   return null
-        // }
+        const isTokenDead = await setTokenDead(token, tokenObj[0])
+        if(isTokenDead){
+          return null
+        }
         const priceHistory = getLastHourPrices(tokenObj[0]);
 
         // console.log("Price history: ")

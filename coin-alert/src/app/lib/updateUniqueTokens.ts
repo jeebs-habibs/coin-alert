@@ -4,7 +4,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
-import { GetPriceResponse, getTokenCached, PoolType, PriceData, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, getTokenCached, PoolType, PriceData, setTokenDead, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
 import { connection, umi } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { TrackedToken } from "./firebase/userUtils";
@@ -22,8 +22,8 @@ const SOL_THRESHOLD = .01
 // 🔹 Metrics Tracking
 let totalUsers = 0;
 let totalUniqueTokens = 0;
-// let totalDeadTokensSkipped = 0;
-// let totalDeadTokensSkippedFirestore = 0;
+let totalDeadTokensSkipped = 0;
+let totalDeadTokensSkippedFirestore = 0;
 let totalFailedToGetMetadata = 0;
 let totalMetadataFetchSkipped = 0;
 let totalSucceededToGetMetadata = 0;
@@ -473,7 +473,7 @@ export async function updateUniqueTokens() {
 
                 const tokenObj = tokenDataMap.get(mint);
                 if (
-                  tokenObj &&
+                  tokenObj && tokenObj[0]?.isDead != true &&
                   (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
                   isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, amount)
                 ) {
@@ -527,17 +527,16 @@ export async function updateUniqueTokens() {
           const performanceStart = Date.now();
 
           const tokenFromFirestore: Token | undefined = (await getTokenCached(token, tokensCache))[0]
-          // if(tokenFromFirestore?.isDead == true){
-          //   totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
-          //   return;
-          // }
-          // const isTokenDead = await setTokenDead(token, tokenFromFirestore);
+          if(tokenFromFirestore?.isDead == true){
+            totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
+            return;
+          }
+          const isTokenDead = await setTokenDead(token, tokenFromFirestore);
 
-          // if (isTokenDead) {
-          //   totalDeadTokensSkipped = totalDeadTokensSkipped + 1
-          //   return;
-          // }
-
+          if (isTokenDead) {
+            totalDeadTokensSkipped = totalDeadTokensSkipped + 1
+            return;
+          }
           if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
             totalSkippedPrice = totalSkippedPrice + 1
             return;
@@ -623,6 +622,8 @@ export async function updateUniqueTokens() {
       👤 Total Users Processed: ${totalUsers}
       👛 Total Unique Wallets Processed: ${uniqueWalletSet.size}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
+         Total dead tokens skipped from firestore: ${totalDeadTokensSkippedFirestore}
+          Total dead tokens skipped ${totalDeadTokensSkipped}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
       ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} 
