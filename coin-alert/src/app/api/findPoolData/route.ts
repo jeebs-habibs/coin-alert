@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
             console.warn("Greated then 4 mintues of runtime, approaching 5 minute limit")
           }
 
-          if(timeElapsedMinutes > 4.75){
-            console.error("ERROR: Breaking loop at 4.75 minutes. Approaching 5 minute limit")
+          if(timeElapsedMinutes > 4.5){
+            console.error("ERROR: Breaking loop at 4.5 minutes. Approaching 5 minute limit")
             break
           }
     }
