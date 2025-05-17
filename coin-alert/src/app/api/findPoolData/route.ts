@@ -14,7 +14,7 @@ let tokensWithPoolData = 0
 let tokensWithoutPoolData = 0
 let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
-let poolFetchTimes: number[] = []
+const poolFetchTimes: number[] = []
 
 const PRICE_FETCH_ERROR_THRESHOLD = 7
 
