@@ -70,6 +70,7 @@ export function isInvalidMint(mint: string): boolean {
 
 function buildPoolDataFromTokenData(tokenData: TokenData): PoolData | undefined {
   // Validate required fields
+  console.log("Building pool data from token " + JSON.stringify(tokenData))
   if (!tokenData.baseVault || !tokenData.quoteVault || !tokenData.baseMint || 
       !tokenData.quoteMint || !tokenData.marketPoolId) {
     return undefined
@@ -434,7 +435,7 @@ export async function updateUniqueTokens() {
     // 🔹 3️⃣ Process Each Token
     await Promise.all(
       Array.from(uniqueTokensSet).map(async (token) => {
-        console.log(`🔹 Getting price for token: ${token}`);
+        //console.log(`🔹 Getting price for token: ${token}`);
         try {
           const performanceStart = Date.now();
 
@@ -474,6 +475,7 @@ export async function updateUniqueTokens() {
           let data: GetPriceResponse | undefined = undefined
 
           if(tokenFromCache && tokenFromCache.tokenData?.pool){
+              console.log("Building pool data from token " + token)
             const poolData: PoolData | undefined = buildPoolDataFromTokenData(tokenFromCache.tokenData)
             if(poolData){
               data = await calculateTokenPrice(token, poolData, tokenFromCache.tokenData?.pool)
@@ -490,6 +492,7 @@ export async function updateUniqueTokens() {
                 updateTokenInRedis(token, updatedToken, redisClient)
               }
             } else {
+              console.log("Failed to build pool data from token: " + token)
               totalFailedToBuildPoolData++
             }
 

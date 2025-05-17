@@ -59,7 +59,7 @@ export async function setTokenDead(token: string, redisClient: RedisClient): Pro
     // Get the 15 most recent prices (timestamps are sorted)
     const rawPrices = await redisClient.zRangeWithScores(priceKey, -MIN_ENTRIES_REQUIRED, -1);
     if (rawPrices.length < MIN_ENTRIES_REQUIRED) {
-      console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${rawPrices.length}.`);
+      //console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${rawPrices.length}.`);
       return false;
     }
 
