@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
         for (const tokenKey of keys) {
             const tokenMint = tokenKey.split(":")[1]
             const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient)
-            console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
+            //console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
             const poolType = tokenFromRedis?.tokenData?.pool
-            console.log("Pooltype from redis: " + poolType)
+            //console.log("Pooltype from redis: " + poolType)
             if (poolType === null || poolType === undefined) {
                 tokensWithoutPoolType.push(tokenMint);
                 tokensWithoutPoolData++
@@ -53,14 +53,15 @@ export async function GET(request: NextRequest) {
 
     }
 
-    console.log("Number of tokens without pool data: " + tokensWithoutPoolData)
-    console.log("Number of tokens with pool data: " + tokensWithPoolData)
-    console.log("% of tokens with pool data: " + ((tokensWithPoolData)/(tokensWithPoolData+tokensWithoutPoolData) * 100))
-
     const timeAfterUpdate = Date.now()
 
-    console.log("✅ Updated pool data in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds.")
-    return NextResponse.json({ message: "✅ Pool data updated successfully in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds."});
+    const message = `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
+    `Tokens with pool data: ${tokensWithPoolData}, ` +
+    `without pool data: ${tokensWithoutPoolData}, ` +
+    `success rate: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.`;
+  
+    console.log(message);
+    return NextResponse.json({ message: message });
   } catch (error) {
     console.error("❌ Error updating pool data:", error);
     return NextResponse.json({ error: "Failed to update token pool data" }, { status: 500 });
