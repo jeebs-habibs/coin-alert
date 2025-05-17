@@ -265,6 +265,10 @@ export async function storeTokenPrice(
     // Store token metadata in hash
     await redisClient.hSet(tokenKey, tokenDataToRedisHash(tokenData));
 
+    const tokenDataFromRedis = await redisClient.hGetAll(tokenKey);
+
+    console.log("Price data from redis: " + JSON.stringify(tokenDataFromRedis, null, 2))
+
     // Optional: TTL on prices set (in case you want to expire the full key eventually)
     // await redisClient.expire(priceKey, 2 * 60 * 60); // 2 hours
 
@@ -368,15 +372,15 @@ export async function updateUniqueTokens() {
             })
           );
 
-          tokenDataMap.forEach((val, key) => {
-            console.log(`Key: ${key}, Value: ${JSON.stringify(val)}`)
-          })
+          // tokenDataMap.forEach((val, key) => {
+          //   console.log(`Key: ${key}, Value: ${JSON.stringify(val)}`)
+          // })
 
           // Process tokens in parallel (extracted for loop)
           await Promise.all(
             tokenInfoList.map(async ({ mint, amount }) => {
               try {
-                console.log(`Processing token: ${mint} for wallet ${wallet}`);
+                //console.log(`Processing token: ${mint} for wallet ${wallet}`);
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
                 const tokenObj = tokenDataMap.get(mint);
