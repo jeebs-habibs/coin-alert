@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 // import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
 // import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
 import { getRedisClient } from "@/app/lib/redis";
+import { getTokenFromRedis } from "@/app/lib/redis/tokens";
 
 
 let tokensWithPoolData = 0
@@ -38,7 +39,10 @@ export async function GET(request: NextRequest) {
     for await (const keys of iter) {
         for (const tokenKey of keys) {
             const tokenMint = tokenKey.split(":")[1]
+            const rawData = await getTokenFromRedis(tokenMint, redisClient)
+            console.log("Token from redis: " + JSON.stringify(rawData))
             const poolType = await redisClient.hGet(tokenKey, "poolType");
+            console.log("Pooltype from redis: " + poolType)
             if (poolType === null || poolType === undefined) {
                 tokensWithoutPoolType.push(tokenMint);
                 tokensWithoutPoolData++
