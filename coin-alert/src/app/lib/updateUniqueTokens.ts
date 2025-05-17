@@ -270,7 +270,6 @@ export async function storeTokenPrice(
 
     //timesToUpdateFirestore.push(Date.now() - oneHourAgo);
 
-    await redisClient.quit();
   } catch (error) {
     console.error(`❌ Error storing price for ${token} in Redis:`, error);
   }
@@ -484,7 +483,7 @@ export async function updateUniqueTokens() {
                   tokenData
                 }
                 
-                updateTokenInRedis(token, updatedToken)
+                updateTokenInRedis(token, updatedToken, redisClient)
               }
             } else {
               totalFailedToBuildPoolData++

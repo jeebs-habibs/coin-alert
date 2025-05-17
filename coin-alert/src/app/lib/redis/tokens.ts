@@ -1,4 +1,3 @@
-import { createClient } from "redis";
 import { Token, TokenData } from "../firebase/tokenUtils";
 import  {RedisClient} from "../redis";
 
@@ -7,7 +6,6 @@ export async function getTokenFromRedis(tokenId: string, redisClient: RedisClien
   try {
     const key = `token:${tokenId}`;
     const rawData = await redisClient.hGetAll(key);
-    await redisClient.quit();
 
     if (!rawData || Object.keys(rawData).length === 0) return undefined;
 
@@ -42,17 +40,10 @@ export async function getTokenFromRedis(tokenId: string, redisClient: RedisClien
   }
 }
 
-async function getRedisClient() {
-  const redisClient = await createClient({
-    url: process.env.REDIS_URL,
-  }).connect();
-  return redisClient;
-}
 
 // 🔹 Update Token in Redis
-export async function updateTokenInRedis(tokenId: string, updateData: Partial<Token>): Promise<boolean> {
+export async function updateTokenInRedis(tokenId: string, updateData: Partial<Token>, redisClient: RedisClient): Promise<boolean> {
   try {
-    const redisClient = await getRedisClient();
     const key = `token:${tokenId}`;
     const updateFields: Record<string, string> = {};
 
@@ -80,7 +71,6 @@ export async function updateTokenInRedis(tokenId: string, updateData: Partial<To
       await redisClient.hSet(key, updateFields);
     }
 
-    await redisClient.quit();
     return true;
   } catch (error) {
     console.error(`❌ Error updating token ${tokenId} in Redis:`, error);
