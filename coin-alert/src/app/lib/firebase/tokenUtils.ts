@@ -1,5 +1,6 @@
 import { FirestoreDataConverter, Timestamp } from "firebase/firestore";
 import { adminDB } from "./firebaseAdmin";
+import { getRedisClient } from "../redis";
 
 export interface PriceData {
     price: number;
@@ -46,72 +47,61 @@ export interface Token {
     isDead?: boolean;
 }
 
-export async function getTokenCached(token: string, tokenCache: Map<string, Token>): Promise<[Token | undefined, string]> {
-  if(tokenCache.has(token)){
-    return [tokenCache.get(token), "cache"]
-  } 
-  const tokenDb = await getToken(token)
-  if(tokenDb){
-    tokenCache.set(token, tokenDb)
-    return [tokenDb, "db"]
-  }
-  return [undefined, "not_found"]
-
-}
 
 const DEAD_PRICE_THRESHOLD = 0.000006;
 const PRICE_VARIATION_THRESHOLD = 0.00001; // 0.001% as a decimal
 const MIN_ENTRIES_REQUIRED = 15;
 
-export async function setTokenDead(token: string, tokenDb: Token | undefined): Promise<boolean> {
+export async function setTokenDead(token: string): Promise<boolean> {
   try {
-    // Validate input: ensure tokenDb exists, has prices, and has at least 15 entries
-    if (!tokenDb || !tokenDb.prices || tokenDb.prices.length < MIN_ENTRIES_REQUIRED) {
-      console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${tokenDb?.prices?.length || 0}.`);
+    const redisClient = await getRedisClient();
+    const priceKey = `prices:${token}`;
+    
+    // Get the 15 most recent prices (timestamps are sorted)
+    const rawPrices = await redisClient.zRangeWithScores(priceKey, -MIN_ENTRIES_REQUIRED, -1);
+    if (rawPrices.length < MIN_ENTRIES_REQUIRED) {
+      console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${rawPrices.length}.`);
       return false;
     }
 
-    // Get the 15 most recent price entries (sorted by timestamp descending)
-    const prices = tokenDb.prices
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, MIN_ENTRIES_REQUIRED);
+    const prices = rawPrices.map(entry => {
+      const parsed = JSON.parse(entry.value);
+      return {
+        price: parsed.price,
+        timestamp: parsed.timestamp,
+      };
+    });
 
     const mostRecent = prices.reduce((latest, entry) =>
       entry.timestamp > latest.timestamp ? entry : latest
     );
-    
-    // Check if the most recent price is below the DEAD_PRICE_THRESHOLD
+
     if (mostRecent.price >= DEAD_PRICE_THRESHOLD) {
       console.log(`🔹 Token ${token} has a recent price of ${mostRecent.price}, which is above DEAD_PRICE_THRESHOLD of (${DEAD_PRICE_THRESHOLD}). Not dead.`);
       return false;
     }
-    // Calculate the reference price (use the most recent price)
+
     const referencePrice = prices[0].price;
     if (referencePrice === 0) {
       console.log(`🔹 Token ${token} has a price of 0. Marking as dead...`);
-      // Update Firestore to mark the token as dead
-      const tokenDocRef = adminDB.collection("uniqueTokens").doc(token);
-      await tokenDocRef.update({ isDead: true });
+      await redisClient.hSet(`token:${token}`, { isDead: "true" });
       console.log(`✅ Token ${token} successfully marked as dead.`);
       return true;
     }
 
-    // Check if all prices are within 0.001% of the reference price
     const maxAllowedVariation = referencePrice * PRICE_VARIATION_THRESHOLD;
-    const allWithinVariation = prices.every(entry => 
+    const allWithinVariation = prices.every(entry =>
       Math.abs(entry.price - referencePrice) <= maxAllowedVariation
     );
 
     if (allWithinVariation) {
       console.log(`💀 Token ${token} detected as dead (price variation < 0.001% across ${MIN_ENTRIES_REQUIRED} entries). Marking as dead...`);
-      // Update Firestore to mark the token as dead
-      const tokenDocRef = adminDB.collection("uniqueTokens").doc(token);
-      await tokenDocRef.update({ isDead: true });
+      await redisClient.hSet(`token:${token}`, { isDead: "true" });
       console.log(`✅ Token ${token} successfully marked as dead.`);
       return true;
     }
 
-    console.log(`🔹 Token ${token} is still active (price variation exceeds 0.001% across ${MIN_ENTRIES_REQUIRED} entries).`);
+    console.log(`🔹 Token ${token} is still active (price variation exceeds 0.001%).`);
     return false;
   } catch (error) {
     console.error(`❌ Error marking token ${token} as dead:`, error);

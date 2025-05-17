@@ -1,11 +1,12 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
-import { getTokenCached, setTokenDead, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import chalk from "chalk";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 import { NextRequest } from "next/server";
+import { Token } from "@/app/lib/firebase/tokenUtils";
+import { getTokenCached, setTokenDead } from "@/app/lib/redis/tokens";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest) {
         if(tokenObj[1] == "cache"){
           totalNumberOfTokensGottenFromCache++
         }
-        const isTokenDead = await setTokenDead(token, tokenObj[0])
+        const isTokenDead = await setTokenDead(token)
         if(isTokenDead){
           return null
         }

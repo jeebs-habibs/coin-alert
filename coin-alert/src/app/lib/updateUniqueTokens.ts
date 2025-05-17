@@ -1,18 +1,20 @@
-import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
-import { publicKey } from "@metaplex-foundation/umi";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
-import { GetPriceResponse, getTokenCached, PoolType, PriceData, setTokenDead, Token, TokenData, TokenMetadata, updateToken } from "../lib/firebase/tokenUtils";
-import { connection, umi } from "./connection";
+import { GetPriceResponse, PriceData, setTokenDead, Token, TokenData } from "../lib/firebase/tokenUtils";
+import { connection } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { TrackedToken } from "./firebase/userUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 // import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 // import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
-import { BILLION, PoolData, TokenAccountData } from "./utils/solanaUtils";
+import { PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getLastHourPrices } from './utils/priceAlertHelper';
+import { getTokenCached, tokenDataToRedisHash, updateTokenInRedis } from './redis/tokens';
+import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
+import { calculateTokenPrice } from './utils/solanaServer';
+import { getRedisClient } from "./redis";
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
@@ -34,124 +36,20 @@ let totalUncachedPoolData = 0;
 let tokensSkippedWithNoPoolData = 0;
 let totalFailedToBuildPoolData = 0;
 
-interface URIMetadata {
-  name?: string;
-  image?: string;
-  symbol?: string;
-  description?: string;
-}
 
-async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number | null> {
-  const account = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(accountPubkey))
-  return account.value.uiAmount
-}
+
 
 // The number of max price failures we allow before skipping a token
 const PRICE_FETCH_THRESHOLD = 8
 
-async function calculateTokenPrice(token: string, poolData: PoolData, poolType: PoolType): Promise<GetPriceResponse | undefined> {
-  if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint || !poolData?.quoteVault) {
-    console.log(`ERROR: Insufficient token data for ${poolType} price calculation for token: ${token}`);
-    return undefined;
-  }
 
-
-  const baseBalance = poolType === "meteora" && poolData?.baseLpVault
-    ? await getTokenAccountBalance(new PublicKey(poolData.baseLpVault))
-    : poolData?.baseVault
-      ? await getTokenAccountBalance(new PublicKey(poolData.baseVault))
-      : undefined;
-
-  const quoteBalance = poolType === "meteora" && poolData?.quoteLpVault
-    ? await getTokenAccountBalance(new PublicKey(poolData.quoteLpVault))
-    : poolData?.quoteVault
-      ? await getTokenAccountBalance(new PublicKey(poolData.quoteVault))
-      : undefined;
-
-  if (baseBalance == null || quoteBalance == null) {
-    console.error(`Failed to fetch balances for ${poolType} token: ${token}`);
-    return undefined;
-  }
-
-  let price = 0;
-  if (quoteBalance !== 0 && baseBalance !== 0) {
-    price = poolData.baseMint.toString() === token ? (quoteBalance / baseBalance) : (baseBalance / quoteBalance);
-  }
-
-  if (price) {
-    return {
-      price: {
-        price,
-        marketCapSol: BILLION * price,
-        timestamp: new Date().getTime(),
-        pool: poolType,
-      },
-      tokenData: { pool: poolType },
-    };
-  } else {
-    console.error(`No ${poolType} price data found for token: ${token}`);
-    return undefined;
-  }
-}
 
 export function isInvalidMint(mint: string): boolean {
   const invalidEndings = ["bonk", "moon", "boop"];
   return invalidEndings.some(ending => mint.endsWith(ending));
 }
 
-async function fetchJsonFromUri(uri: string): Promise<URIMetadata | undefined> {
-  try {
-    const response = await fetch(uri);
 
-    if (!response.ok) {
-      console.error(`Failed to fetch JSON from ${uri}: ${response.status} ${response.statusText}`);
-      return undefined
-    }
-
-    const data: URIMetadata = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching JSON:", error);
-    return undefined
-  }
-}
-
-
-// 🔹 Fetch Metadata from Metaplex
-async function getTokenMetadataMetaplex(token: string) {
-  const mint = publicKey(token);
-  try {
-    const asset = await fetchDigitalAsset(umi, mint);
-    //console.log(chalk.green(`✅ Got metadata for token: ${token}`));
-    return {
-      name: asset.metadata.name,
-      symbol: asset.metadata.symbol,
-      uri: asset.metadata.uri
-    };
-  } catch (error) {
-    console.error(`❌ Error getting Metaplex metadata for ${token}:`, error);
-    return null;
-  }
-}
-
-// 🔹 Get Metadata from Blockchain (Fallback)
-async function getTokenMetadataFromBlockchain(token: string): Promise<TokenMetadata | undefined> {
-  const metaplexMetadata = await blockchainTaskQueue.addTask(() => getTokenMetadataMetaplex(token));
-
-  if (metaplexMetadata){
-      // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
-    const parsedMetadata: URIMetadata | undefined = await fetchJsonFromUri(metaplexMetadata.uri)
-    const tokenMetadata: TokenMetadata = {
-      image: parsedMetadata?.image,
-      description: parsedMetadata?.description,
-      name: parsedMetadata?.name,
-      symbol: parsedMetadata?.symbol,
-      uri: metaplexMetadata.uri
-    }
-    return tokenMetadata
-  } 
-  return undefined
-}
 
 // function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, poolType: PoolType): GetPriceResponse {
 //   const finalResponse: GetPriceResponse = {
@@ -342,48 +240,50 @@ function isTokenOverThreshold(price: number | null, tokenAmount: number): boolea
   return ((price * tokenAmount) > SOL_THRESHOLD)
 }
 
-// 🔹 Store Token Price in Firestore
+
+// 🔹 Store Token Price in Redis (instead of Firestore)
 export async function storeTokenPrice(
   token: string,
   price: PriceData,
   tokenData: TokenData,
-  timesToUpdateFirestore: number[]
 ) {
   try {
-    const tokenDocRef = adminDB.collection("uniqueTokens").doc(token);
-    const docSnapshot = await tokenDocRef.get();
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-    let updatedPrices = [];
+    const redisClient = await getRedisClient();
 
-    if (docSnapshot.exists) {
-      const tokenDataFromDB = docSnapshot.data();
-      updatedPrices = (tokenDataFromDB?.prices || []).filter((p: PriceData) => p.timestamp > oneHourAgo);
-    }
+    const priceKey = `prices:${token}`;
+    const tokenKey = `token:${token}`;
 
-    updatedPrices.push(price);
+    // Add price to sorted set
+    await redisClient.zAdd(priceKey, {
+      score: price.timestamp,
+      value: JSON.stringify(price),
+    });
 
-    await tokenDocRef.set(
-      {
-        tokenData: tokenData,
-        prices: updatedPrices,
-      },
-      { merge: true }
-    );
+    // Remove prices older than 1 hour
+    // const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    // await redisClient.zRemRangeByScore(priceKey, 0, oneHourAgo);
 
-    //console.log(`✅ Price stored for ${token}: $${price.price}`);
-    timesToUpdateFirestore.push(Date.now() - oneHourAgo);
+    // Store token metadata in hash
+    await redisClient.hSet(tokenKey, tokenDataToRedisHash(tokenData));
+
+    // Optional: TTL on prices set (in case you want to expire the full key eventually)
+    // await redisClient.expire(priceKey, 2 * 60 * 60); // 2 hours
+
+    //timesToUpdateFirestore.push(Date.now() - oneHourAgo);
+
+    await redisClient.quit();
   } catch (error) {
-    console.error(`❌ Error storing price for ${token}:`, error);
+    console.error(`❌ Error storing price for ${token} in Redis:`, error);
   }
 }
+
 
 // 🔹 Fetch All Unique Tokens and Store in Firestore
 export async function updateUniqueTokens() {
   try {
 
     console.log("🔄 Updating unique tokens...");
-    const timesToUpdateFirestore: number[] = [];
     const timesToGetTokenPrice: number[] = [];
 
     // 🔹 1️⃣ Fetch All Users' Wallets and Initialize Token Tracking
@@ -396,10 +296,13 @@ export async function updateUniqueTokens() {
     // Initialize userTokenMap for each user
     usersSnapshot.docs.forEach((userDoc) => {
       const userId = userDoc.id;
-      const userData = userDoc.data();
-      userTokenMap.set(userId, new Set<TrackedToken>());
-      if (Array.isArray(userData.wallets)) {
-        userData.wallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
+      // TEMP FOR TESTING
+      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13"){
+        const userData = userDoc.data();
+        userTokenMap.set(userId, new Set<TrackedToken>());
+        if (Array.isArray(userData.wallets)) {
+          userData.wallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
+        }
       }
     });
 
@@ -449,6 +352,8 @@ export async function updateUniqueTokens() {
             }
           });
 
+          console.log("Got " + tokenMints.size + " unique tokens fro wallet " + wallet)
+
           // Fetch token metadata in parallel
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const tokenDataMap = new Map<string, any>();
@@ -464,11 +369,15 @@ export async function updateUniqueTokens() {
             })
           );
 
+          tokenDataMap.forEach((val, key) => {
+            console.log(`Key: ${key}, Value: ${val}`)
+          })
+
           // Process tokens in parallel (extracted for loop)
           await Promise.all(
             tokenInfoList.map(async ({ mint, amount }) => {
               try {
-                //console.log(`Processing token: ${mint} for wallet ${wallet}`);
+                console.log(`Processing token: ${mint} for wallet ${wallet}`);
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
                 const tokenObj = tokenDataMap.get(mint);
@@ -509,12 +418,12 @@ export async function updateUniqueTokens() {
     // Update Firestore (unchanged)
     await updateUserTrackedTokens(userTokenMap, usersSnapshot);
 
-    // userTokenMap.forEach((tokens, userId) => {
-    //   console.log(`User ID: ${userId}`);
-    //   tokens.forEach((token) => {
-    //     console.log(`  Token: ${JSON.stringify(token, null, 2)}`);
-    //   });
-    // });    
+    userTokenMap.forEach((tokens, userId) => {
+      console.log(`User ID: ${userId}`);
+      tokens.forEach((token) => {
+        console.log(`  Token: ${JSON.stringify(token, null, 2)}`);
+      });
+    });    
     totalUniqueTokens = uniqueTokensSet.size;
     const updateTrackedTokensFinishTime = Date.now()
     console.log(`✅ Finished fetching ${totalUniqueTokens} unique tokens in ${(updateTrackedTokensFinishTime - updateTrackedTokensStartTime) / 1000} sec.`);
@@ -522,30 +431,30 @@ export async function updateUniqueTokens() {
     // 🔹 3️⃣ Process Each Token
     await Promise.all(
       Array.from(uniqueTokensSet).map(async (token) => {
-        //console.log(`🔹 Processing token: ${token}`);
+        console.log(`🔹 Getting price for token: ${token}`);
         try {
           const performanceStart = Date.now();
 
-          const tokenFromFirestore: Token | undefined = (await getTokenCached(token, tokensCache))[0]
-          if(tokenFromFirestore?.isDead == true){
+          const tokenFromCache: Token | undefined = (await getTokenCached(token, tokensCache))[0]
+          if(tokenFromCache?.isDead == true){
             totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
             return;
           }
-          const isTokenDead = await setTokenDead(token, tokenFromFirestore);
+          const isTokenDead = await setTokenDead(token);
 
           if (isTokenDead) {
             totalDeadTokensSkipped = totalDeadTokensSkipped + 1
             return;
           }
-          if((tokenFromFirestore?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
+          if((tokenFromCache?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
             totalSkippedPrice = totalSkippedPrice + 1
             return;
           }
 
           const isGetMetadata = false
           let blockchainMetadataFailures = 0
-          let tokenMetadata = tokenFromFirestore?.tokenData?.tokenMetadata
-          if(!tokenMetadata && (tokenFromFirestore?.tokenData?.metadataFetchFailures || 0) < 7 && isGetMetadata){
+          let tokenMetadata = tokenFromCache?.tokenData?.tokenMetadata
+          if(!tokenMetadata && (tokenFromCache?.tokenData?.metadataFetchFailures || 0) < 7 && isGetMetadata){
             const metadataFromBlockchain = await getTokenMetadataFromBlockchain(token)
             if(metadataFromBlockchain){
               tokenMetadata = metadataFromBlockchain
@@ -561,21 +470,21 @@ export async function updateUniqueTokens() {
           // const data = await getTokenPrice(token, tokenFromFirestore);
           let data: GetPriceResponse | undefined = undefined
 
-          if(tokenFromFirestore && tokenFromFirestore.tokenData?.pool){
-            const poolData: PoolData | undefined = buildPoolDataFromTokenData(tokenFromFirestore.tokenData)
+          if(tokenFromCache && tokenFromCache.tokenData?.pool){
+            const poolData: PoolData | undefined = buildPoolDataFromTokenData(tokenFromCache.tokenData)
             if(poolData){
-              data = await calculateTokenPrice(token, poolData, tokenFromFirestore.tokenData?.pool)
+              data = await calculateTokenPrice(token, poolData, tokenFromCache.tokenData?.pool)
               if(!data){
                 totalFailedPrice++;
-                const tokenData = tokenFromFirestore?.tokenData || {}
+                const tokenData = tokenFromCache?.tokenData || {}
                 tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
 
                 const updatedToken: Token = {
-                  ...tokenFromFirestore,
+                  ...tokenFromCache,
                   tokenData
                 }
                 
-                updateToken(token, updatedToken)
+                updateTokenInRedis(token, updatedToken)
               }
             } else {
               totalFailedToBuildPoolData++
@@ -594,11 +503,11 @@ export async function updateUniqueTokens() {
               totalSucceedPrice++;
               data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
     
-              if(!tokenFromFirestore?.tokenData?.baseVault || !tokenFromFirestore.tokenData.quoteVault){
+              if(!tokenFromCache?.tokenData?.baseVault || !tokenFromCache.tokenData.quoteVault){
                 totalUncachedPoolData++
               }
               console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
-              await storeTokenPrice(token, data.price, data.tokenData, timesToUpdateFirestore);
+              await storeTokenPrice(token, data.price, data.tokenData);
             } else {
               totalFailedPrice++;
             }

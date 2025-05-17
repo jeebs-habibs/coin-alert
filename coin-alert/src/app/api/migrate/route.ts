@@ -1,15 +1,7 @@
 import { Token } from "@/app/lib/firebase/tokenUtils";
 import { adminDB } from "@/app/lib/firebase/firebaseAdmin";
-import { createClient } from "redis";
 import { NextRequest, NextResponse } from "next/server";
-
-async function getRedisClient(){
-    const redisClient = await createClient({
-        url: process.env.REDIS_URL,
-    }).connect();
-    return redisClient
-}
-
+import { getRedisClient } from "@/app/lib/redis";
 
 // Helper: Convert token to Redis hash
 function tokenToRedisHash(token: Token): Record<string, string> {
