@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     for await (const keys of iter) {
         for (const tokenKey of keys) {
             const tokenMint = tokenKey.split(":")[1]
-            const rawData = await getTokenFromRedis(tokenMint, redisClient)
-            console.log("Token from redis: " + JSON.stringify(rawData))
-            const poolType = await redisClient.hGet(tokenKey, "poolType");
+            const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient)
+            console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
+            const poolType = tokenFromRedis?.tokenData?.pool
             console.log("Pooltype from redis: " + poolType)
             if (poolType === null || poolType === undefined) {
                 tokensWithoutPoolType.push(tokenMint);
