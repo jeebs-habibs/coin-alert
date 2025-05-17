@@ -1,10 +1,10 @@
 import { Token, TokenData } from "../firebase/tokenUtils";
-import { getRedisClient } from "../redis";
+import RedisSingleton from "../redis";
 
 // 🔹 Get Token from Redis
 export async function getTokenFromRedis(tokenId: string): Promise<Token | undefined> {
   try {
-    const redisClient = await getRedisClient();
+    const redisClient = await RedisSingleton.getClient();
     const key = `token:${tokenId}`;
     const rawData = await redisClient.hGetAll(key);
     await redisClient.quit();
@@ -45,7 +45,7 @@ export async function getTokenFromRedis(tokenId: string): Promise<Token | undefi
 // 🔹 Update Token in Redis
 export async function updateTokenInRedis(tokenId: string, updateData: Partial<Token>): Promise<boolean> {
   try {
-    const redisClient = await getRedisClient();
+    const redisClient = await RedisSingleton.getClient();
     const key = `token:${tokenId}`;
     const updateFields: Record<string, string> = {};
 
@@ -87,7 +87,7 @@ export async function setTokenDead(token: string): Promise<boolean> {
     const PRICE_VARIATION_THRESHOLD = 0.00001; // 0.001% as a decimal
     const MIN_ENTRIES_REQUIRED = 15;
   try {
-    const redisClient = await getRedisClient();
+    const redisClient = await RedisSingleton.getClient();
     const priceKey = `prices:${token}`;
     
     // Get the 15 most recent prices (timestamps are sorted)

@@ -1,7 +1,7 @@
 import { Token } from "@/app/lib/firebase/tokenUtils";
 import { adminDB } from "@/app/lib/firebase/firebaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
-import { getRedisClient } from "@/app/lib/redis";
+import RedisSingleton from "@/app/lib/redis";
 
 // Helper: Convert token to Redis hash
 function tokenToRedisHash(token: Token): Record<string, string> {
@@ -23,7 +23,7 @@ function tokenToRedisHash(token: Token): Record<string, string> {
 // Main migration function
 async function migrateTokens({ tokenId, migrateAll = false }: { tokenId?: string; migrateAll?: boolean }) {
   try {
-    const redisClient = await getRedisClient()
+    const redisClient = await RedisSingleton.getClient()
 
     let tokensToMigrate: { id: string; data: Token }[] = [];
 

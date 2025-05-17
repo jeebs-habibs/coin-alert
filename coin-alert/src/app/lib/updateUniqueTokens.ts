@@ -14,7 +14,7 @@ import { getLastHourPrices } from './utils/priceAlertHelper';
 import { getTokenCached, tokenDataToRedisHash, updateTokenInRedis } from './redis/tokens';
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
 import { calculateTokenPrice } from './utils/solanaServer';
-import { getRedisClient } from "./redis";
+import RedisSingleton from "./redis";
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
@@ -249,7 +249,7 @@ export async function storeTokenPrice(
 ) {
   try {
 
-    const redisClient = await getRedisClient();
+    const redisClient = await RedisSingleton.getClient();
 
     const priceKey = `prices:${token}`;
     const tokenKey = `token:${token}`;
