@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     `Token pool data fetch fail: ${tokenPoolDataNotFound}` + 
     `Average pool fetch time: ${avgPoolFetchTime} ms` + 
     `Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.` +
-    `Pool fetch success rate: ${tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound)}`;
+    `Pool fetch success rate: ${(tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound) * 100).toFixed(2)}%`;
   
     console.log(message);
     return NextResponse.json({ message: message });
