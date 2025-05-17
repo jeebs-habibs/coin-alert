@@ -14,7 +14,7 @@ import { getLastHourPrices } from './utils/priceAlertHelper';
 import { getTokenCached, tokenDataToRedisHash, updateTokenInRedis } from './redis/tokens';
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
 import { calculateTokenPrice } from './utils/solanaServer';
-import RedisSingleton from "./redis";
+import { createClient } from "redis";
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
@@ -240,6 +240,13 @@ function isTokenOverThreshold(price: number | null, tokenAmount: number): boolea
   return ((price * tokenAmount) > SOL_THRESHOLD)
 }
 
+async function getRedisClient() {
+  const redisClient = await createClient({
+    url: process.env.REDIS_URL,
+  }).connect();
+  return redisClient;
+}
+
 
 // 🔹 Store Token Price in Redis (instead of Firestore)
 export async function storeTokenPrice(
@@ -249,7 +256,7 @@ export async function storeTokenPrice(
 ) {
   try {
 
-    const redisClient = await RedisSingleton.getClient();
+    const redisClient = await getRedisClient();
 
     const priceKey = `prices:${token}`;
     const tokenKey = `token:${token}`;

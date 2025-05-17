@@ -1,3 +1,4 @@
+import { createClient } from "redis";
 import { Token, TokenData } from "../firebase/tokenUtils";
 import RedisSingleton from "../redis";
 
@@ -42,10 +43,17 @@ export async function getTokenFromRedis(tokenId: string): Promise<Token | undefi
   }
 }
 
+async function getRedisClient() {
+  const redisClient = await createClient({
+    url: process.env.REDIS_URL,
+  }).connect();
+  return redisClient;
+}
+
 // 🔹 Update Token in Redis
 export async function updateTokenInRedis(tokenId: string, updateData: Partial<Token>): Promise<boolean> {
   try {
-    const redisClient = await RedisSingleton.getClient();
+    const redisClient = await getRedisClient();
     const key = `token:${tokenId}`;
     const updateFields: Record<string, string> = {};
 
