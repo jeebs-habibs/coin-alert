@@ -1,19 +1,19 @@
 
-import { NextRequest, NextResponse } from "next/server";
-// // import { updateUniqueTokens } from "../../lib/updateUniqueTokens";
-// import { GetPriceResponse, PoolType} from "@/app/lib/firebase/tokenUtils";
-// // import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
-// import { PoolData } from "@/app/lib/utils/solanaUtils";
-// import { calculateTokenPrice } from "@/app/lib/utils/solanaServer";
-// import { PublicKey } from "@solana/web3.js";
-// import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
-// import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
+import { Token, TokenData } from "@/app/lib/firebase/tokenUtils";
 import { getRedisClient } from "@/app/lib/redis";
-import { getTokenFromRedis } from "@/app/lib/redis/tokens";
+import { getTokenFromRedis, updateTokenInRedis } from "@/app/lib/redis/tokens";
+import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
+import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
+import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
+import { PoolData } from "@/app/lib/utils/solanaUtils";
+import { PublicKey } from "@solana/web3.js";
+import { NextRequest, NextResponse } from "next/server";
 
 
 let tokensWithPoolData = 0
 let tokensWithoutPoolData = 0
+let tokenPoolDataFound = 0
+let tokenPoolDataNotFound = 0
 
 export async function GET(request: NextRequest) {
   // DISABLED FOR TESTING
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const timeBeforeUpdate = Date.now()
  
     const redisClient = await getRedisClient()
-    const tokensWithoutPoolType: string[] = [];
+    const tokensWithoutPoolType: [string, Token][] = [];
 
     const iter = redisClient.scanIterator({
         MATCH: "token:*",
@@ -41,10 +41,9 @@ export async function GET(request: NextRequest) {
             const tokenMint = tokenKey.split(":")[1]
             const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient)
             //console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
-            const poolType = tokenFromRedis?.tokenData?.pool
             //console.log("Pooltype from redis: " + poolType)
-            if (poolType === null || poolType === undefined) {
-                tokensWithoutPoolType.push(tokenMint);
+            if (tokenFromRedis && tokenFromRedis?.tokenData?.pool) {
+                tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
                 tokensWithoutPoolData++
             } else {
                 tokensWithPoolData++
@@ -53,11 +52,32 @@ export async function GET(request: NextRequest) {
 
     }
 
+    for (const token of tokensWithoutPoolType){
+          const updatedToken = token[1]
+          const poolData = await findTokenPoolData(token[0])
+          if(poolData){
+            updatedToken.tokenData = updateTokenDataWithPoolData((token[1]?.tokenData || {}), poolData)
+            updateTokenInRedis(token[0], updatedToken, redisClient)
+            tokenPoolDataFound++
+          } else {
+            tokenPoolDataNotFound++
+          }
+
+          const now = Date.now()
+          if((now - timeBeforeUpdate) / 1000 /60 > 4){
+            console.warn("Greated then 4 mintues of runtime, approacheing 5 minute limit")
+          }
+
+    }
+
+
     const timeAfterUpdate = Date.now()
 
     const message = `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
     `Tokens with pool data: ${tokensWithPoolData}, ` +
     `without pool data: ${tokensWithoutPoolData}, ` +
+    `Token pool data fetch: ${tokenPoolDataFound}` + 
+    `Token pool data fetch fail: ${tokenPoolDataNotFound}` + 
     `success rate: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.`;
   
     console.log(message);
@@ -66,6 +86,21 @@ export async function GET(request: NextRequest) {
     console.error("❌ Error updating pool data:", error);
     return NextResponse.json({ error: "Failed to update token pool data" }, { status: 500 });
   }
+}
+
+function updateTokenDataWithPoolData(tokenData: TokenData, poolData: PoolData): TokenData {
+  const updatedTokenData: TokenData = { ...tokenData };
+
+  if (poolData.pool !== undefined) updatedTokenData.pool = poolData.pool;
+  if (poolData.baseVault !== undefined) updatedTokenData.baseVault = poolData.baseVault.toString();
+  if (poolData.baseLpVault !== undefined) updatedTokenData.baseLpVault = poolData.baseLpVault.toString();
+  if (poolData.baseMint !== undefined) updatedTokenData.baseMint = poolData.baseMint.toString();
+  if (poolData.quoteVault !== undefined) updatedTokenData.quoteVault = poolData.quoteVault.toString();
+  if (poolData.quoteLpVault !== undefined) updatedTokenData.quoteLpVault = poolData.quoteLpVault.toString();
+  if (poolData.quoteMint !== undefined) updatedTokenData.quoteMint = poolData.quoteMint.toString();
+  if (poolData.pubKey !== undefined) updatedTokenData.marketPoolId = poolData.pubKey.toString();
+
+  return updatedTokenData;
 }
 
 // function decoratePoolData(priceResponse: GetPriceResponse, poolData: PoolData, poolType: PoolType): GetPriceResponse {
@@ -86,7 +121,41 @@ export async function GET(request: NextRequest) {
 // }
 
 
-// // 🔹 Fetch Token Price from External APIs
+async function findTokenPoolData(token: string): Promise<PoolData | undefined> {
+        if(token.endsWith("pump")){
+          const bondingCurvePrice = await getPriceFromBondingCurve(token)
+          if(bondingCurvePrice?.complete == false && bondingCurvePrice?.price){
+            return {
+              pool: "pump"
+            }
+          }
+          if(bondingCurvePrice?.complete){
+            // 2. If completed, check pump swap. Shouldn't have any pool data cached in db
+            const pumpPoolData: PoolData | undefined = await fetchPumpSwapAMM(new PublicKey(token))
+            if(pumpPoolData){
+              return pumpPoolData
+            }
+          }
+        }
+
+  
+        // 3. If cant find pump or raydium check meteora
+        const meteoraPoolData: PoolData | undefined = await fetchMeteoraPoolAccountsFromToken(new PublicKey(token))
+        if(meteoraPoolData){
+            return meteoraPoolData
+        }
+  
+        // 4. If cant find bonding curve account, check raydium
+        const raydiumPoolData: PoolData | undefined = await fetchRaydiumPoolAccountsFromToken(new PublicKey(token))
+        if(raydiumPoolData){
+          return raydiumPoolData
+        }
+        
+        return undefined
+  
+}
+
+// 🔹 Fetch Token Price from External APIs
 // async function getTokenPrice(token: string, tokenFromFirestore: Token | undefined): Promise<TokenData | undefined> {
 //   try {
 //     const poolType: PoolType | undefined = tokenFromFirestore?.tokenData?.pool
