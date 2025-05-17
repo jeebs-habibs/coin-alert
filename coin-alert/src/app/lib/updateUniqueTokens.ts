@@ -70,7 +70,7 @@ export function isInvalidMint(mint: string): boolean {
 
 function buildPoolDataFromTokenData(tokenData: TokenData): PoolData | undefined {
   // Validate required fields
-  console.log("Building pool data from token " + JSON.stringify(tokenData))
+  //console.log("Building pool data from token " + JSON.stringify(tokenData))
   if (!tokenData.baseVault || !tokenData.quoteVault || !tokenData.baseMint || 
       !tokenData.quoteMint || !tokenData.marketPoolId) {
     return undefined
@@ -259,16 +259,20 @@ export async function storeTokenPrice(
       value: JSON.stringify(price),
     });
 
+    const pricesWithScores = await redisClient.zRangeWithScores(priceKey, 0, -1);
+    const parsed = pricesWithScores.map(entry => ({
+      timestamp: entry.score,
+      ...JSON.parse(entry.value),
+    }));
+    console.log("🔹 Prices with timestamps:", parsed);
+
+
     // Remove prices older than 1 hour
     // const oneHourAgo = Date.now() - 60 * 60 * 1000;
     // await redisClient.zRemRangeByScore(priceKey, 0, oneHourAgo);
 
     // Store token metadata in hash
     await redisClient.hSet(tokenKey, tokenDataToRedisHash(tokenData));
-
-    const tokenDataFromRedis = await redisClient.hGetAll(tokenKey);
-
-    console.log("Price data from redis: " + JSON.stringify(tokenDataFromRedis, null, 2))
 
     // Optional: TTL on prices set (in case you want to expire the full key eventually)
     // await redisClient.expire(priceKey, 2 * 60 * 60); // 2 hours
