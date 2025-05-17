@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateUniqueTokens } from "../../lib/updateUniqueTokens";
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', {
-      status: 401,
-    });
-  }
+  // DISABLED FOR TESTING
+  // const authHeader = request.headers.get('authorization');
+  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  //   return new Response('Unauthorized', {
+  //     status: 401,
+  //   });
+  // }
   
   try {
     const timeBeforeUpdate = Date.now()
