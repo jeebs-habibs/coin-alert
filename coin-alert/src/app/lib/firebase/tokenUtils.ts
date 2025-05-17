@@ -1,6 +1,6 @@
 import { FirestoreDataConverter, Timestamp } from "firebase/firestore";
 import { adminDB } from "./firebaseAdmin";
-import RedisSingleton from "../redis";
+import { RedisClient } from "../redis";
 
 export interface PriceData {
     price: number;
@@ -52,9 +52,8 @@ const DEAD_PRICE_THRESHOLD = 0.000006;
 const PRICE_VARIATION_THRESHOLD = 0.00001; // 0.001% as a decimal
 const MIN_ENTRIES_REQUIRED = 15;
 
-export async function setTokenDead(token: string): Promise<boolean> {
-  try {
-    const redisClient = await RedisSingleton.getClient();
+export async function setTokenDead(token: string, redisClient: RedisClient): Promise<boolean> {
+  try {;
     const priceKey = `prices:${token}`;
     
     // Get the 15 most recent prices (timestamps are sorted)

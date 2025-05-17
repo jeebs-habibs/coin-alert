@@ -14,7 +14,7 @@ import { getLastHourPrices } from './utils/priceAlertHelper';
 import { getTokenCached, tokenDataToRedisHash, updateTokenInRedis } from './redis/tokens';
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
 import { calculateTokenPrice } from './utils/solanaServer';
-import { createClient } from "redis";
+import { getRedisClient, RedisClient } from "./redis";
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
@@ -240,23 +240,14 @@ function isTokenOverThreshold(price: number | null, tokenAmount: number): boolea
   return ((price * tokenAmount) > SOL_THRESHOLD)
 }
 
-async function getRedisClient() {
-  const redisClient = await createClient({
-    url: process.env.REDIS_URL,
-  }).connect();
-  return redisClient;
-}
-
-
 // 🔹 Store Token Price in Redis (instead of Firestore)
 export async function storeTokenPrice(
   token: string,
   price: PriceData,
   tokenData: TokenData,
+  redisClient: RedisClient
 ) {
   try {
-
-    const redisClient = await getRedisClient();
 
     const priceKey = `prices:${token}`;
     const tokenKey = `token:${token}`;
@@ -289,6 +280,8 @@ export async function storeTokenPrice(
 // 🔹 Fetch All Unique Tokens and Store in Firestore
 export async function updateUniqueTokens() {
   try {
+
+    const redisClient = await getRedisClient()
 
     console.log("🔄 Updating unique tokens...");
     const timesToGetTokenPrice: number[] = [];
@@ -368,7 +361,7 @@ export async function updateUniqueTokens() {
             Array.from(tokenMints).map(async (mint) => {
               try {
                 //console.log(`Fetching metadata for token: ${mint}`);
-                const tokenObj = await getTokenCached(mint, tokensCache);
+                const tokenObj = await getTokenCached(mint, tokensCache, redisClient);
                 tokenDataMap.set(mint, tokenObj);
               } catch (error) {
                 console.error(`Error fetching token ${mint}:`, error);
@@ -442,12 +435,12 @@ export async function updateUniqueTokens() {
         try {
           const performanceStart = Date.now();
 
-          const tokenFromCache: Token | undefined = (await getTokenCached(token, tokensCache))[0]
+          const tokenFromCache: Token | undefined = (await getTokenCached(token, tokensCache, redisClient))[0]
           if(tokenFromCache?.isDead == true){
             totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
             return;
           }
-          const isTokenDead = await setTokenDead(token);
+          const isTokenDead = await setTokenDead(token, redisClient);
 
           if (isTokenDead) {
             totalDeadTokensSkipped = totalDeadTokensSkipped + 1
@@ -514,7 +507,7 @@ export async function updateUniqueTokens() {
                 totalUncachedPoolData++
               }
               console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
-              await storeTokenPrice(token, data.price, data.tokenData);
+              await storeTokenPrice(token, data.price, data.tokenData, redisClient);
             } else {
               totalFailedPrice++;
             }

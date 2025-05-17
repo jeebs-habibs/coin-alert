@@ -7,6 +7,7 @@ import { sendNotification } from "../../lib/sendNotifications"; // Push notifica
 import { NextRequest } from "next/server";
 import { Token } from "@/app/lib/firebase/tokenUtils";
 import { getTokenCached, setTokenDead } from "@/app/lib/redis/tokens";
+import { getRedisClient } from "@/app/lib/redis";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
 
     const usersSnapshot = await getAllUsers();
     const notificationsToSend: (NotificationReturn | null)[] = [];
+    const redisClient = await getRedisClient()
 
     let solPriceUsd = undefined
     if(usersSnapshot.length){
@@ -120,14 +122,14 @@ export async function GET(request: NextRequest) {
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
-        const tokenObj = await getTokenCached(token, tokensCache)
+        const tokenObj = await getTokenCached(token, tokensCache, redisClient)
         if(tokenObj[1] == "db"){
           totalNumberOfTokensGottenFromDB++
         }
         if(tokenObj[1] == "cache"){
           totalNumberOfTokensGottenFromCache++
         }
-        const isTokenDead = await setTokenDead(token)
+        const isTokenDead = await setTokenDead(token, redisClient)
         if(isTokenDead){
           return null
         }

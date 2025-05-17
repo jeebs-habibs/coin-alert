@@ -1,11 +1,10 @@
 import { createClient } from "redis";
 import { Token, TokenData } from "../firebase/tokenUtils";
-import RedisSingleton from "../redis";
+import  {RedisClient} from "../redis";
 
 // 🔹 Get Token from Redis
-export async function getTokenFromRedis(tokenId: string): Promise<Token | undefined> {
+export async function getTokenFromRedis(tokenId: string, redisClient: RedisClient): Promise<Token | undefined> {
   try {
-    const redisClient = await RedisSingleton.getClient();
     const key = `token:${tokenId}`;
     const rawData = await redisClient.hGetAll(key);
     await redisClient.quit();
@@ -90,12 +89,11 @@ export async function updateTokenInRedis(tokenId: string, updateData: Partial<To
 }
 
 
-export async function setTokenDead(token: string): Promise<boolean> {
+export async function setTokenDead(token: string, redisClient: RedisClient): Promise<boolean> {
     const DEAD_PRICE_THRESHOLD = 0.000006;
     const PRICE_VARIATION_THRESHOLD = 0.00001; // 0.001% as a decimal
     const MIN_ENTRIES_REQUIRED = 15;
   try {
-    const redisClient = await RedisSingleton.getClient();
     const priceKey = `prices:${token}`;
     
     // Get the 15 most recent prices (timestamps are sorted)
@@ -150,11 +148,11 @@ export async function setTokenDead(token: string): Promise<boolean> {
   }
 }
 
-export async function getTokenCached(token: string, tokenCache: Map<string, Token>): Promise<[Token | undefined, string]> {
+export async function getTokenCached(token: string, tokenCache: Map<string, Token>, redisClient: RedisClient): Promise<[Token | undefined, string]> {
   if(tokenCache.has(token)){
     return [tokenCache.get(token), "cache"]
   } 
-  const tokenDb = await getTokenFromRedis(token)
+  const tokenDb = await getTokenFromRedis(token, redisClient)
   if(tokenDb){
     tokenCache.set(token, tokenDb)
     return [tokenDb, "db"]
