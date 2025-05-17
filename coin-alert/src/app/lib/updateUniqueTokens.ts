@@ -423,10 +423,7 @@ export async function updateUniqueTokens() {
     await updateUserTrackedTokens(userTokenMap, usersSnapshot);
 
     userTokenMap.forEach((tokens, userId) => {
-      console.log(`User ID: ${userId}`);
-      tokens.forEach((token) => {
-        console.log(`  Token: ${JSON.stringify(token, null, 2)}`);
-      });
+      console.log(`User ID: ${userId} has ${tokens.size} tracked tokens.`);
     });    
     totalUniqueTokens = uniqueTokensSet.size;
     const updateTrackedTokensFinishTime = Date.now()
@@ -475,7 +472,7 @@ export async function updateUniqueTokens() {
           let data: GetPriceResponse | undefined = undefined
 
           if(tokenFromCache && tokenFromCache.tokenData?.pool){
-              console.log("Building pool data from token " + token)
+              //console.log("Building pool data from token " + token)
             const poolData: PoolData | undefined = buildPoolDataFromTokenData(tokenFromCache.tokenData)
             if(poolData){
               data = await calculateTokenPrice(token, poolData, tokenFromCache.tokenData?.pool)
@@ -492,7 +489,7 @@ export async function updateUniqueTokens() {
                 updateTokenInRedis(token, updatedToken, redisClient)
               }
             } else {
-              console.log("Failed to build pool data from token: " + token)
+              //console.log("Failed to build pool data from token: " + token)
               totalFailedToBuildPoolData++
             }
 
