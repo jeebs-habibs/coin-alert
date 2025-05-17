@@ -369,7 +369,7 @@ export async function updateUniqueTokens() {
           );
 
           tokenDataMap.forEach((val, key) => {
-            console.log(`Key: ${key}, Value: ${val}`)
+            console.log(`Key: ${key}, Value: ${JSON.stringify(val)}`)
           })
 
           // Process tokens in parallel (extracted for loop)
