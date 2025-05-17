@@ -259,12 +259,12 @@ export async function storeTokenPrice(
       value: JSON.stringify(price),
     });
 
-    const pricesWithScores = await redisClient.zRangeWithScores(priceKey, 0, -1);
-    const parsed = pricesWithScores.map(entry => ({
-      timestamp: entry.score,
-      ...JSON.parse(entry.value),
-    }));
-    console.log("🔹 Prices with timestamps:", parsed);
+    // const pricesWithScores = await redisClient.zRangeWithScores(priceKey, 0, -1);
+    // const parsed = pricesWithScores.map(entry => ({
+    //   timestamp: entry.score,
+    //   ...JSON.parse(entry.value),
+    // }));
+    // console.log("🔹 Prices with timestamps:", parsed);
 
 
     // Remove prices older than 1 hour
@@ -305,7 +305,7 @@ export async function updateUniqueTokens() {
     usersSnapshot.docs.forEach((userDoc) => {
       const userId = userDoc.id;
       // TEMP FOR TESTING
-      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13"){
+      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13" || true){
         const userData = userDoc.data();
         userTokenMap.set(userId, new Set<TrackedToken>());
         if (Array.isArray(userData.wallets)) {
