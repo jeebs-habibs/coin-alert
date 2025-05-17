@@ -10,6 +10,10 @@ import { NextRequest, NextResponse } from "next/server";
 // import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
 import { getRedisClient } from "@/app/lib/redis";
 
+
+let tokensWithPoolData = 0
+let tokensWithoutPoolData = 0
+
 export async function GET(request: NextRequest) {
   // DISABLED FOR TESTING
   console.log(request)
@@ -31,23 +35,26 @@ export async function GET(request: NextRequest) {
         COUNT: 100,
     });
 
-    for await (const key of iter) {
-        console.log("key " + key)
-        // const poolType = await redisClient.hGet(key, "poolType");
-        // if (poolType === null || poolType === undefined) {
-        //     tokensWithoutPoolType.push(key);
-        // }
+    for await (const keys of iter) {
+        for (const tokenKey of keys) {
+            const tokenMint = tokenKey.split(":")[1]
+            const poolType = await redisClient.hGet(tokenMint, "poolType");
+            if (poolType === null || poolType === undefined) {
+                tokensWithoutPoolType.push(tokenMint);
+                tokensWithoutPoolData++
+            } else {
+                tokensWithPoolData++
+            }
+        }
+
     }
 
-    console.log("🧯 Tokens without poolType:", tokensWithoutPoolType);
-
-
-
+    console.log("Number of tokens without pool data: " + tokensWithoutPoolData)
+    console.log("Number of tokens with pool data: " + tokensWithPoolData)
+    console.log("% of tokens with pool data: " + ((tokensWithPoolData)/(tokensWithPoolData+tokensWithoutPoolData) * 100))
 
     const timeAfterUpdate = Date.now()
 
-
-  
     console.log("✅ Updated pool data in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds.")
     return NextResponse.json({ message: "✅ Pool data updated successfully in " + ((timeAfterUpdate - timeBeforeUpdate) / 1000) + " seconds."});
   } catch (error) {
