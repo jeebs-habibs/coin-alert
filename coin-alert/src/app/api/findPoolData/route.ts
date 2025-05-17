@@ -14,6 +14,9 @@ let tokensWithPoolData = 0
 let tokensWithoutPoolData = 0
 let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
+let poolFetchTimes: number[] = []
+
+const PRICE_FETCH_ERROR_THRESHOLD = 7
 
 export async function GET(request: NextRequest) {
   // DISABLED FOR TESTING
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
             const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient)
             //console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
             //console.log("Pooltype from redis: " + poolType)
-            if (tokenFromRedis && tokenFromRedis?.tokenData?.pool) {
+            if (tokenFromRedis && tokenFromRedis?.tokenData?.pool && (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD) {
                 tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
                 tokensWithoutPoolData++
             } else {
@@ -54,7 +57,11 @@ export async function GET(request: NextRequest) {
 
     for (const token of tokensWithoutPoolType){
           const updatedToken = token[1]
+          const timeBeforeFetchPoolData = Date.now()
           const poolData = await findTokenPoolData(token[0])
+          const timeAfterFetchPoolData = Date.now()
+          const timeTakenToFetchPoolDataMs = timeAfterFetchPoolData - timeBeforeFetchPoolData
+          poolFetchTimes.push(timeTakenToFetchPoolDataMs)
           if(poolData){
             updatedToken.tokenData = updateTokenDataWithPoolData((token[1]?.tokenData || {}), poolData)
             updateTokenInRedis(token[0], updatedToken, redisClient)
@@ -78,11 +85,14 @@ export async function GET(request: NextRequest) {
 
     const timeAfterUpdate = Date.now()
 
+    const avgPoolFetchTime = getAverage(poolFetchTimes)
+
     const message = `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
     `Tokens with pool data: ${tokensWithPoolData}, ` +
     `without pool data: ${tokensWithoutPoolData}, ` +
     `Token pool data fetch: ${tokenPoolDataFound}` + 
     `Token pool data fetch fail: ${tokenPoolDataNotFound}` + 
+    `Average pool fetch time: ${avgPoolFetchTime} ms` + 
     `Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.` +
     `Pool fetch success rate: ${tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound)}`;
   
@@ -92,6 +102,12 @@ export async function GET(request: NextRequest) {
     console.error("❌ Error updating pool data:", error);
     return NextResponse.json({ error: "Failed to update token pool data" }, { status: 500 });
   }
+}
+
+function getAverage(numbers: number[]): number {
+  if (numbers.length === 0) return 0;
+  const sum = numbers.reduce((acc, num) => acc + num, 0);
+  return sum / numbers.length;
 }
 
 function updateTokenDataWithPoolData(tokenData: TokenData, poolData: PoolData): TokenData {
