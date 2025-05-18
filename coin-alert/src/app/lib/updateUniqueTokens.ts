@@ -265,15 +265,15 @@ export async function storeTokenPrice(
     //   timestamp: entry.score,
     //   ...JSON.parse(entry.value),
     // }));
-    // console.log("🔹 Prices with timestamps:", parsed);
+    //console.log("🔹 Prices with timestamps:", parsed);
 
 
-    // Remove prices older than 1 hour
-    // const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    // await redisClient.zRemRangeByScore(priceKey, 0, oneHourAgo);
+    //Remove prices older than 1 hour
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    await redisClient.zRemRangeByScore(priceKey, 0, oneHourAgo);
 
     // Store token metadata in hash
-    await redisClient.hSet(tokenKey, tokenDataToRedisHash(tokenData));
+    //await redisClient.hSet(tokenKey, tokenDataToRedisHash(tokenData));
 
     // Optional: TTL on prices set (in case you want to expire the full key eventually)
     // await redisClient.expire(priceKey, 2 * 60 * 60); // 2 hours
