@@ -20,14 +20,12 @@ const poolFetchTimes: number[] = []
 const PRICE_FETCH_ERROR_THRESHOLD = 7
 
 export async function GET(request: NextRequest) {
-  // DISABLED FOR TESTING
-  console.log(request)
-//   const authHeader = request.headers.get('authorization');
-//   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-//     return new Response('Unauthorized', {
-//       status: 401,
-//     });
-//   }
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', {
+      status: 401,
+    });
+  }
   
   try {
     const timeBeforeUpdate = Date.now()
