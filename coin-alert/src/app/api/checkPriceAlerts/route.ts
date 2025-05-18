@@ -5,11 +5,13 @@ import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationRe
 import chalk from "chalk";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 import { NextRequest } from "next/server";
-import { Token } from "@/app/lib/firebase/tokenUtils";
+import { PriceData, Token } from "@/app/lib/firebase/tokenUtils";
 import { getTokenCached, setTokenDead } from "@/app/lib/redis/tokens";
 import { getRedisClient } from "@/app/lib/redis";
+import { getTokenPrices, getTokenPricesCached } from "@/app/lib/redis/prices";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
+const pricesCache: Map<string, PriceData[]> = new Map<string, PriceData[]>()
 
 // Metrics
 let numberOfNotisSkipped = 0
@@ -133,7 +135,7 @@ export async function GET(request: NextRequest) {
         if(isTokenDead){
           return null
         }
-        const priceHistory = getLastHourPrices(tokenObj[0]);
+        const priceHistory = (await getTokenPricesCached(token, pricesCache, redisClient)) || [];
 
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest) {
         //   console.log("Timestamp: " + p.timestamp)
         // })
         // if (priceHistory.length < 10){
-        //   console.error("Not enough price history to send notifications.")
+        //   //console.error("Not enough price history to send notifications.")
         //   return null; // Skip if not enough data
         // } 
 
