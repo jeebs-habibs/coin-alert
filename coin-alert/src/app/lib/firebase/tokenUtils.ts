@@ -1,6 +1,6 @@
 import { FirestoreDataConverter, Timestamp } from "firebase/firestore";
-import { adminDB } from "./firebaseAdmin";
 import { RedisClient } from "../redis";
+import { adminDB } from "./firebaseAdmin";
 
 export interface PriceData {
     price: number;
@@ -76,7 +76,7 @@ export async function setTokenDead(token: string, redisClient: RedisClient): Pro
     );
 
     if (mostRecent.price >= DEAD_PRICE_THRESHOLD) {
-      console.log(`🔹 Token ${token} has a recent price of ${mostRecent.price}, which is above DEAD_PRICE_THRESHOLD of (${DEAD_PRICE_THRESHOLD}). Not dead.`);
+      //console.log(`🔹 Token ${token} has a recent price of ${mostRecent.price}, which is above DEAD_PRICE_THRESHOLD of (${DEAD_PRICE_THRESHOLD}). Not dead.`);
       return false;
     }
 
