@@ -2,6 +2,7 @@
 import { Token, TokenData } from "@/app/lib/firebase/tokenUtils";
 import { getRedisClient } from "@/app/lib/redis";
 import { getTokenFromRedis, updateTokenInRedis } from "@/app/lib/redis/tokens";
+import { retryOnServerError } from "@/app/lib/retry";
 import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
@@ -56,30 +57,36 @@ export async function GET(request: NextRequest) {
     }
 
     for (const token of tokensWithoutPoolType){
-          const updatedToken = token[1]
-          const timeBeforeFetchPoolData = Date.now()
-          const poolData = await findTokenPoolData(token[0])
-          const timeAfterFetchPoolData = Date.now()
-          const timeTakenToFetchPoolDataMs = timeAfterFetchPoolData - timeBeforeFetchPoolData
-          poolFetchTimes.push(timeTakenToFetchPoolDataMs)
-          if(poolData){
-            updatedToken.tokenData = updateTokenDataWithPoolData((token[1]?.tokenData || {}), poolData)
-            updateTokenInRedis(token[0], updatedToken, redisClient)
-            tokenPoolDataFound++
-          } else {
-            tokenPoolDataNotFound++
-          }
+      try {
+        const updatedToken = token[1]
+        const timeBeforeFetchPoolData = Date.now()
+        const poolData = await findTokenPoolData(token[0])
+        const timeAfterFetchPoolData = Date.now()
+        const timeTakenToFetchPoolDataMs = timeAfterFetchPoolData - timeBeforeFetchPoolData
+        poolFetchTimes.push(timeTakenToFetchPoolDataMs)
+        if(poolData){
+          updatedToken.tokenData = updateTokenDataWithPoolData((token[1]?.tokenData || {}), poolData)
+          await retryOnServerError(() => updateTokenInRedis(token[0], updatedToken, redisClient))
+          tokenPoolDataFound++
+        } else {
+          tokenPoolDataNotFound++
+        }
 
-          const now = Date.now()
-          const timeElapsedMinutes = (now - timeBeforeUpdate) / 1000 /60
-          if(timeElapsedMinutes > 4){
-            console.warn("Greated then 4 mintues of runtime, approaching 5 minute limit")
-          }
+        const now = Date.now()
+        const timeElapsedMinutes = (now - timeBeforeUpdate) / 1000 /60
+        if(timeElapsedMinutes > 4){
+          console.warn("Greated then 4 mintues of runtime, approaching 5 minute limit")
+        }
 
-          if(timeElapsedMinutes > 4.5){
-            console.error("ERROR: Breaking loop at 4.5 minutes. Approaching 5 minute limit")
-            break
-          }
+        if(timeElapsedMinutes > 4.5){
+          console.error("ERROR: Breaking loop at 4.5 minutes. Approaching 5 minute limit")
+          break
+        }
+      } catch (e) {
+        console.error(`ERROR for token ${token[0]}:\n${e instanceof Error ? e.stack : e}`)
+      }
+
+
     }
 
 
