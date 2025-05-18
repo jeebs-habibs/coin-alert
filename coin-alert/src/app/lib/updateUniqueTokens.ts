@@ -11,7 +11,7 @@ import { blockchainTaskQueue } from "./taskQueue";
 // import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getLastHourPrices } from './utils/priceAlertHelper';
-import { getTokenCached, tokenDataToRedisHash, updateTokenInRedis } from './redis/tokens';
+import { getTokenCached, updateTokenInRedis } from './redis/tokens';
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
 import { calculateTokenPrice } from './utils/solanaServer';
 import { getRedisClient, RedisClient } from "./redis";
@@ -252,7 +252,7 @@ export async function storeTokenPrice(
   try {
 
     const priceKey = `prices:${token}`;
-    const tokenKey = `token:${token}`;
+    // const tokenKey = `token:${token}`;
 
     // Add price to sorted set
     await redisClient.zAdd(priceKey, {

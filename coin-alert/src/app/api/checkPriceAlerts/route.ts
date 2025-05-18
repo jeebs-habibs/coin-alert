@@ -1,14 +1,14 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
-import { calculatePriceChange, getAlarmConfig, getLastHourPrices, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
+import { calculatePriceChange, getAlarmConfig, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import chalk from "chalk";
 import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 import { NextRequest } from "next/server";
 import { PriceData, Token } from "@/app/lib/firebase/tokenUtils";
 import { getTokenCached, setTokenDead } from "@/app/lib/redis/tokens";
 import { getRedisClient } from "@/app/lib/redis";
-import { getTokenPrices, getTokenPricesCached } from "@/app/lib/redis/prices";
+import { getTokenPricesCached } from "@/app/lib/redis/prices";
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 const pricesCache: Map<string, PriceData[]> = new Map<string, PriceData[]>()
