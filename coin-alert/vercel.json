@@ -7,6 +7,10 @@
     {
       "path": "/api/updateTokens",
       "schedule": "*/3 * * * *"
+    },
+    {
+      "path": "/api/findPoolData",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
