@@ -21,8 +21,8 @@ export function getLastHourPrices(token: Token | undefined): PriceData[] {
         const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour ago in milliseconds
 
         if (!token?.prices || !Array.isArray(token.prices)) {
-        console.warn(`⚠️ No price history found for token`);
-        return [];
+            //console.warn(`⚠️ No price history found for token`);
+            return [];
         }
 
         // 🔹 Filter prices to only include last 60 minutes
