@@ -89,7 +89,7 @@ export async function setTokenDead(token: string, redisClient: RedisClient): Pro
     // Get the 15 most recent prices (timestamps are sorted)
     const rawPrices = await redisClient.zRangeWithScores(priceKey, -MIN_ENTRIES_REQUIRED, -1);
     if (rawPrices.length < MIN_ENTRIES_REQUIRED) {
-      console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${rawPrices.length}.`);
+      //console.log(`🔹 Not enough price data to determine if ${token} is dead. Need at least ${MIN_ENTRIES_REQUIRED} entries, got ${rawPrices.length}.`);
       return false;
     }
 
@@ -112,9 +112,9 @@ export async function setTokenDead(token: string, redisClient: RedisClient): Pro
 
     const referencePrice = prices[0].price;
     if (referencePrice === 0) {
-      console.log(`🔹 Token ${token} has a price of 0. Marking as dead...`);
+      //console.log(`🔹 Token ${token} has a price of 0. Marking as dead...`);
       await redisClient.hSet(`token:${token}`, { isDead: "true" });
-      console.log(`✅ Token ${token} successfully marked as dead.`);
+      //console.log(`✅ Token ${token} successfully marked as dead.`);
       return true;
     }
 
