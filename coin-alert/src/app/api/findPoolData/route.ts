@@ -15,6 +15,7 @@ let tokensWithPoolData = 0
 let tokensWithoutPoolData = 0
 let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
+let tokensNotFoundInRedis = 0
 const poolFetchTimes: number[] = []
 
 const PRICE_FETCH_ERROR_THRESHOLD = 7
@@ -44,11 +45,15 @@ export async function GET(request: NextRequest) {
             const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient)
             //console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
             //console.log("Pooltype from redis: " + poolType)
-            if (tokenFromRedis && tokenFromRedis?.tokenData?.pool && (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD) {
+            if(!tokenFromRedis){
+              tokensNotFoundInRedis++
+            }
+            if (tokenFromRedis?.tokenData?.pool) {
+              tokensWithPoolData++
+            } 
+            if (tokenFromRedis && !tokenFromRedis?.tokenData?.pool && (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD) {
                 tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
                 tokensWithoutPoolData++
-            } else {
-                tokensWithPoolData++
             }
         }
 
@@ -98,6 +103,7 @@ export async function GET(request: NextRequest) {
     `Token pool data fetch: ${tokenPoolDataFound}` + 
     `Token pool data fetch fail: ${tokenPoolDataNotFound}` + 
     `Average pool fetch time: ${avgPoolFetchTime} ms` + 
+    `Tokens not found in redis: ${tokensNotFoundInRedis}` +
     `Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.` +
     `Pool fetch success rate: ${(tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound) * 100).toFixed(2)}%`;
   
