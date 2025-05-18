@@ -73,6 +73,7 @@ function buildPoolDataFromTokenData(tokenData: TokenData): PoolData | undefined 
   //console.log("Building pool data from token " + JSON.stringify(tokenData))
   if (!tokenData.baseVault || !tokenData.quoteVault || !tokenData.baseMint || 
       !tokenData.quoteMint || !tokenData.marketPoolId) {
+    totalFailedToBuildPoolData++
     return undefined
   }
 
@@ -478,25 +479,20 @@ export async function updateUniqueTokens() {
           if(tokenFromCache && tokenFromCache.tokenData?.pool){
               //console.log("Building pool data from token " + token)
             const poolData: PoolData | undefined = buildPoolDataFromTokenData(tokenFromCache.tokenData)
-            if(poolData){
-              data = await calculateTokenPrice(token, poolData, tokenFromCache.tokenData?.pool)
-              if(!data){
-                totalFailedPrice++;
-                const tokenData = tokenFromCache?.tokenData || {}
-                tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
+            data = await calculateTokenPrice(token, poolData, tokenFromCache.tokenData.pool)
+            if(!data){
+              totalFailedPrice++;
+              const tokenData = tokenFromCache?.tokenData || {}
+              tokenData.priceFetchFailures = (tokenData?.priceFetchFailures || 0) + 1
 
-                const updatedToken: Token = {
-                  ...tokenFromCache,
-                  tokenData
-                }
-                
-                updateTokenInRedis(token, updatedToken, redisClient)
+              const updatedToken: Token = {
+                ...tokenFromCache,
+                tokenData
               }
-            } else {
-              //console.log("Failed to build pool data from token: " + token)
-              totalFailedToBuildPoolData++
+              
+              // Update token with incremented failure counter
+              updateTokenInRedis(token, updatedToken, redisClient)
             }
-
           } else {
             tokensSkippedWithNoPoolData++
           }
@@ -514,7 +510,7 @@ export async function updateUniqueTokens() {
                 totalUncachedPoolData++
               }
               console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
-              await storeTokenPrice(token, data.price, data.tokenData, redisClient);
+              storeTokenPrice(token, data.price, data.tokenData, redisClient);
             } else {
               totalFailedPrice++;
             }

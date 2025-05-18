@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
 
       const allTokens = user?.trackedTokens?.filter((token) => token.isNotificationsOn)?.map((token) => token.mint) || []
 
-      console.log("Checking prices for user: " + user.uid + " and maybe sending notis for tokens: " + allTokens.join(","))
+      //console.log("Checking prices for user: " + user.uid + " and maybe sending notis for tokens: " + allTokens.join(","))
 
       // await Promise.all(tokenPromises);
       // const allTokens = Array.from(allTokensSet);
