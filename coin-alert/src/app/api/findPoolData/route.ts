@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
       COUNT: 100,
     });
 
+    const timeBeforeGettingTokens = Date.now()
+
     for await (const keys of iter) {
       for (const tokenKey of keys) {
         const tokenMint = tokenKey.split(":")[1];
@@ -61,6 +63,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const timeAfterGettingTokens = Date.now()
+    const timeToGetTokensSeconds = (timeAfterGettingTokens - timeBeforeGettingTokens) / 1000
+    console.log("Got tokens with missing pool data in " + timeToGetTokensSeconds  + " seconds.")
     // LIMIT how many tokens you process to stay under time limit
     const tokensToProcess = tokensWithoutPoolType.slice(0, MAX_TOKENS_TO_PROCESS);
 
@@ -88,6 +93,7 @@ export async function GET(request: NextRequest) {
 
     const message =
       `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
+      `Got tokens with missing pool data in ${timeToGetTokensSeconds} seconds.` + 
       `Tokens with pool data: ${tokensWithPoolData}, ` +
       `without pool data: ${tokensWithoutPoolData}, ` +
       `Token pool data fetch: ${tokenPoolDataFound} ` +
