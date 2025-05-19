@@ -18,7 +18,7 @@ let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
 const poolFetchTimes: number[] = []
 
-const MAX_TOKENS_TO_PROCESS = 500; // Adjust based on your average fetch time
+const MAX_TOKENS_TO_PROCESS = 250; // Adjust based on your average fetch time
 const PRICE_FETCH_ERROR_THRESHOLD = 7;
 
 export async function GET(request: NextRequest) {
