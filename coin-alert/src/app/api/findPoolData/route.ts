@@ -97,14 +97,18 @@ export async function GET(request: NextRequest) {
         const poolData = await findTokenPoolData(mint);
         const timeAfterFetchPoolData = Date.now();
         poolFetchTimes.push(timeAfterFetchPoolData - timeBeforeFetchPoolData);
-
         if (poolData) {
           token.tokenData = updateTokenDataWithPoolData(token.tokenData || {}, poolData);
-          retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
           tokenPoolDataFound++;
         } else {
           tokenPoolDataNotFound++;
+          const existingPriceFetchFailures = token.tokenData?.priceFetchFailures || 0
+          token.tokenData = {
+            ...(token.tokenData || {}),
+            priceFetchFailures: existingPriceFetchFailures + 1
+          }
         }
+        retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
       } catch (e) {
         console.error(`ERROR for token ${mint}:\n${e instanceof Error ? e.stack : e}`);
       }
