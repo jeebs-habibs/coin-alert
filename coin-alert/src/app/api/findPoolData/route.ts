@@ -1,8 +1,10 @@
 
+import { connection } from "@/app/lib/connection";
 import { Token, TokenData } from "@/app/lib/firebase/tokenUtils";
 import { getRedisClient } from "@/app/lib/redis";
 import { getTokenFromRedis, updateTokenInRedis } from "@/app/lib/redis/tokens";
 import { retryOnServerError } from "@/app/lib/retry";
+import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
@@ -16,10 +18,12 @@ let tokensWithoutPoolData = 0
 let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
+let tokensDeadFromTransactions = 0
 const poolFetchTimes: number[] = []
 
 const MAX_TOKENS_TO_PROCESS = 150; // Adjust based on your average fetch time
 const PRICE_FETCH_ERROR_THRESHOLD = 7;
+const MONTH_IN_MILLIS = 1000 * 60 * 60 * 24 * 28
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -55,7 +59,9 @@ export async function GET(request: NextRequest) {
         if (
           tokenFromRedis &&
           !tokenFromRedis?.tokenData?.pool &&
+          tokenFromRedis?.isDead != true &&
           (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD
+           
         ) {
           tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
           tokensWithoutPoolData++;
@@ -71,6 +77,21 @@ export async function GET(request: NextRequest) {
 
     await Promise.all(tokensToProcess.map(async ([mint, token]) => {
       try {
+        // First, see when the last transaction once and set isDead = true if its over 1 month.
+        const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(mint), {limit: 1}))
+        const mostRecentTransactionTimestamp = signatures[0].blockTime
+        if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
+          const now = Date.now()
+          if((now - mostRecentTransactionTimestamp) > MONTH_IN_MILLIS){
+            // Last transaction was from over a month ago, set it as dead
+            token.isDead = true
+            tokensDeadFromTransactions++
+            retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+            return 
+          }
+        }
+
+
         const timeBeforeFetchPoolData = Date.now();
         const poolData = await findTokenPoolData(mint);
         const timeAfterFetchPoolData = Date.now();
@@ -96,6 +117,7 @@ export async function GET(request: NextRequest) {
       `Got tokens with missing pool data in ${timeToGetTokensSeconds} seconds.` + 
       `Tokens with pool data: ${tokensWithPoolData}, ` +
       `without pool data: ${tokensWithoutPoolData}, ` +
+      `Tokens dead from transactions ${tokensDeadFromTransactions}` + 
       `Token pool data fetch: ${tokenPoolDataFound} ` +
       `Token pool data fetch fail: ${tokenPoolDataNotFound} ` +
       `Average pool fetch time: ${avgPoolFetchTime} ms ` +
