@@ -73,7 +73,7 @@ const meteoraMarketSchema = borsh.struct([
 ]);
 
 export async function fetchMeteoraPoolAccountsFromToken(mint: PublicKey): Promise<PoolData | undefined> {
-    console.log("Getting meteora pool accounts for token: " + mint.toString())
+    //console.log("Getting meteora pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(METEORA_POOLS_PROGRAM),
         {

@@ -12,7 +12,7 @@ const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24w
 
 // Define a function to fetch and decode OpenBook accounts
 export async function fetchRaydiumPoolAccountsFromToken(mint: PublicKey): Promise<PoolData | undefined> {
-    console.log("Getting raydium pool accounts for token: " + mint.toString())
+    //console.log("Getting raydium pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(RAYDIUM_SWAP_PROGRAM),
         {

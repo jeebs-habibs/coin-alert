@@ -25,7 +25,7 @@ const pumpSwapSchema = borsh.struct([
 
 // Define a function to fetch and decode OpenBook accounts
 export async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | undefined>{
-    console.log("Getting pump pool accounts for token: " + mint.toString())
+    //console.log("Getting pump pool accounts for token: " + mint.toString())
     let accounts = await heliusPoolQueue.addTask(() => heliusConnection.getProgramAccounts(
         new PublicKey(PUMP_SWAP_PROGRAM),
         {
