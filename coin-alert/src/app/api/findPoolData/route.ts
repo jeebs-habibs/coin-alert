@@ -71,14 +71,15 @@ export async function GET(request: NextRequest) {
 
     const timeAfterGettingTokens = Date.now()
     const timeToGetTokensSeconds = (timeAfterGettingTokens - timeBeforeGettingTokens) / 1000
-    console.log("Got tokens with missing pool data in " + timeToGetTokensSeconds  + " seconds.")
+    console.log("Got " + tokensWithoutPoolType.length + " total tokens with missing pool data in " + timeToGetTokensSeconds  + " seconds.")
     // LIMIT how many tokens you process to stay under time limit
     const tokensToProcess = tokensWithoutPoolType.slice(0, MAX_TOKENS_TO_PROCESS);
 
     await Promise.all(tokensToProcess.map(async ([mint, token]) => {
       try {
         // First, see when the last transaction once and set isDead = true if its over 1 month.
-        const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(new PublicKey(mint), {limit: 1}))
+        const mintPubkey = new PublicKey(mint)
+        const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(mintPubkey, {limit: 1}))
         const mostRecentTransactionTimestamp = signatures[0].blockTime
         if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
           const now = Date.now()

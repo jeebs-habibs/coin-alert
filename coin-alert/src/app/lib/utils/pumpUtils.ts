@@ -184,7 +184,8 @@ export async function getPriceFromBondingCurve(token: string):  Promise<GetPrice
         const virtualSolReserves: number = Number(parsedData.virtualSolReserves.valueOf())
         const virtualTokenReserves: number = Number(parsedData.virtualTokenReserves.valueOf())
 
-        const price: number = virtualTokenReserves == 0 ? 0 : virtualSolReserves/virtualTokenReserves
+        // Not sure why we need to divide by 1000 here but we do
+        const price: number = virtualTokenReserves == 0 ? 0 : virtualSolReserves/1000/virtualTokenReserves
         return {
             price: {
                 price: price, 
