@@ -372,7 +372,7 @@ export async function updateUniqueTokens() {
                 const tokenObj = await getTokenCached(mint, tokensCache, redisClient);
                 if(!tokenObj[0]){
                   // Create entry for token in redis
-                  redisClient.hSet(mint, {})
+                  redisClient.hSet(mint, { isDead: 'false' })
                 }
                 tokenDataMap.set(mint, tokenObj);
               } catch (error) {
