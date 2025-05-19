@@ -18,7 +18,8 @@ let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
 const poolFetchTimes: number[] = []
 
-const PRICE_FETCH_ERROR_THRESHOLD = 7
+const MAX_TOKENS_TO_PROCESS = 500; // Adjust based on your average fetch time
+const PRICE_FETCH_ERROR_THRESHOLD = 7;
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -27,93 +28,84 @@ export async function GET(request: NextRequest) {
       status: 401,
     });
   }
-  
+
   try {
-    const timeBeforeUpdate = Date.now()
- 
-    const redisClient = await getRedisClient()
+    const timeBeforeUpdate = Date.now();
+
+    const redisClient = await getRedisClient();
     const tokensWithoutPoolType: [string, Token][] = [];
 
     const iter = redisClient.scanIterator({
-        MATCH: "token:*",
-        COUNT: 100,
+      MATCH: "token:*",
+      COUNT: 100,
     });
 
     for await (const keys of iter) {
-        for (const tokenKey of keys) {
-            const tokenMint = tokenKey.split(":")[1]
-            const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient)
-            //console.log("Token from redis: " + JSON.stringify(tokenFromRedis))
-            //console.log("Pooltype from redis: " + poolType)
-            if(!tokenFromRedis){
-              tokensNotFoundInRedis++
-            }
-            if (tokenFromRedis?.tokenData?.pool) {
-              tokensWithPoolData++
-            } 
-            if (tokenFromRedis && !tokenFromRedis?.tokenData?.pool && (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD) {
-                tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
-                tokensWithoutPoolData++
-            }
+      for (const tokenKey of keys) {
+        const tokenMint = tokenKey.split(":")[1];
+        const tokenFromRedis = await getTokenFromRedis(tokenMint, redisClient);
+        if (!tokenFromRedis) {
+          tokensNotFoundInRedis++;
         }
-
+        if (tokenFromRedis?.tokenData?.pool) {
+          tokensWithPoolData++;
+        }
+        if (
+          tokenFromRedis &&
+          !tokenFromRedis?.tokenData?.pool &&
+          (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD
+        ) {
+          tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
+          tokensWithoutPoolData++;
+        }
+      }
     }
 
-    for (const token of tokensWithoutPoolType){
+    // LIMIT how many tokens you process to stay under time limit
+    const tokensToProcess = tokensWithoutPoolType.slice(0, MAX_TOKENS_TO_PROCESS);
+
+    await Promise.all(tokensToProcess.map(async ([mint, token]) => {
       try {
-        const updatedToken = token[1]
-        const timeBeforeFetchPoolData = Date.now()
-        const poolData = await findTokenPoolData(token[0])
-        const timeAfterFetchPoolData = Date.now()
-        const timeTakenToFetchPoolDataMs = timeAfterFetchPoolData - timeBeforeFetchPoolData
-        poolFetchTimes.push(timeTakenToFetchPoolDataMs)
-        if(poolData){
-          updatedToken.tokenData = updateTokenDataWithPoolData((token[1]?.tokenData || {}), poolData)
-          await retryOnServerError(() => updateTokenInRedis(token[0], updatedToken, redisClient))
-          tokenPoolDataFound++
+        const timeBeforeFetchPoolData = Date.now();
+        const poolData = await findTokenPoolData(mint);
+        const timeAfterFetchPoolData = Date.now();
+        poolFetchTimes.push(timeAfterFetchPoolData - timeBeforeFetchPoolData);
+
+        if (poolData) {
+          token.tokenData = updateTokenDataWithPoolData(token.tokenData || {}, poolData);
+          await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+          tokenPoolDataFound++;
         } else {
-          tokenPoolDataNotFound++
-        }
-
-        const now = Date.now()
-        const timeElapsedMinutes = (now - timeBeforeUpdate) / 1000 /60
-        if(timeElapsedMinutes > 4){
-          console.warn("Greated then 4 mintues of runtime, approaching 5 minute limit")
-        }
-
-        if(timeElapsedMinutes > 4.5){
-          console.error("ERROR: Breaking loop at 4.5 minutes. Approaching 5 minute limit")
-          break
+          tokenPoolDataNotFound++;
         }
       } catch (e) {
-        console.error(`ERROR for token ${token[0]}:\n${e instanceof Error ? e.stack : e}`)
+        console.error(`ERROR for token ${mint}:\n${e instanceof Error ? e.stack : e}`);
       }
+    }));
 
+    const timeAfterUpdate = Date.now();
+    const avgPoolFetchTime = getAverage(poolFetchTimes);
 
-    }
+    const message =
+      `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
+      `Tokens with pool data: ${tokensWithPoolData}, ` +
+      `without pool data: ${tokensWithoutPoolData}, ` +
+      `Token pool data fetch: ${tokenPoolDataFound} ` +
+      `Token pool data fetch fail: ${tokenPoolDataNotFound} ` +
+      `Average pool fetch time: ${avgPoolFetchTime} ms ` +
+      `Tokens not found in redis: ${tokensNotFoundInRedis} ` +
+      `Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%. ` +
+      `Pool fetch success rate: ${(tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound) * 100).toFixed(2)}%.`;
 
-
-    const timeAfterUpdate = Date.now()
-
-    const avgPoolFetchTime = getAverage(poolFetchTimes)
-
-    const message = `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
-    `Tokens with pool data: ${tokensWithPoolData}, ` +
-    `without pool data: ${tokensWithoutPoolData}, ` +
-    `Token pool data fetch: ${tokenPoolDataFound}` + 
-    `Token pool data fetch fail: ${tokenPoolDataNotFound}` + 
-    `Average pool fetch time: ${avgPoolFetchTime} ms` + 
-    `Tokens not found in redis: ${tokensNotFoundInRedis}` +
-    `Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.` +
-    `Pool fetch success rate: ${(tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound) * 100).toFixed(2)}%`;
-  
     console.log(message);
-    return NextResponse.json({ message: message });
+    return NextResponse.json({ message });
   } catch (error) {
     console.error("❌ Error updating pool data:", error);
     return NextResponse.json({ error: "Failed to update token pool data" }, { status: 500 });
   }
 }
+
+
 
 function getAverage(numbers: number[]): number {
   if (numbers.length === 0) return 0;
