@@ -1,14 +1,14 @@
 import { AlarmConfig } from "@/app/lib/constants/alarmConstants";
+import { PriceData, Token } from "@/app/lib/firebase/tokenUtils";
 import { getAllUsers, RecentNotification, SirenUser } from "@/app/lib/firebase/userUtils";
+import { getRedisClient } from "@/app/lib/redis";
+import { getTokenPricesCached } from "@/app/lib/redis/prices";
+import { getTokenCached } from "@/app/lib/redis/tokens";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import chalk from "chalk";
-import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 import { NextRequest } from "next/server";
-import { PriceData, Token } from "@/app/lib/firebase/tokenUtils";
-import { getTokenCached, setTokenDead } from "@/app/lib/redis/tokens";
-import { getRedisClient } from "@/app/lib/redis";
-import { getTokenPricesCached } from "@/app/lib/redis/prices";
+import { sendNotification } from "../../lib/sendNotifications"; // Push notification logic
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
 const pricesCache: Map<string, PriceData[]> = new Map<string, PriceData[]>()
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
 
       // });
 
-      const allTokens = user?.trackedTokens?.filter((token) => token.isNotificationsOn)?.map((token) => token.mint) || []
+      const trackedTokensForUser = user?.trackedTokens?.filter((token) => token.isNotificationsOn)?.map((token) => token.mint) || []
 
       //console.log("Checking prices for user: " + user.uid + " and maybe sending notis for tokens: " + allTokens.join(","))
 
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       // const allTokens = Array.from(allTokensSet);
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
-      const tokenPricePromises: Promise<NotificationReturn | null>[] = allTokens.map(async (token) => {
+      const tokenPricePromises: Promise<NotificationReturn | null>[] = trackedTokensForUser.map(async (token) => {
         const tokenObj = await getTokenCached(token, tokensCache, redisClient)
         if(tokenObj[1] == "db"){
           totalNumberOfTokensGottenFromDB++
@@ -131,10 +131,10 @@ export async function GET(request: NextRequest) {
         if(tokenObj[1] == "cache"){
           totalNumberOfTokensGottenFromCache++
         }
-        const isTokenDead = await setTokenDead(token, redisClient)
-        if(isTokenDead){
-          return null
-        }
+        // const isTokenDead = await setTokenDead(token, redisClient)
+        // if(isTokenDead){
+        //   return null
+        // }
         const priceHistory = (await getTokenPricesCached(token, pricesCache, redisClient)) || [];
 
         // console.log("Price history: ")

@@ -2,19 +2,19 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
-import { GetPriceResponse, PriceData, setTokenDead, Token, TokenData } from "../lib/firebase/tokenUtils";
+import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
 import { connection } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
 import { TrackedToken } from "./firebase/userUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 // import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 // import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
-import { PoolData, TokenAccountData } from "./utils/solanaUtils";
-import { getLastHourPrices } from './utils/priceAlertHelper';
-import { getTokenCached, updateTokenInRedis } from './redis/tokens';
-import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
-import { calculateTokenPrice } from './utils/solanaServer';
 import { getRedisClient, RedisClient } from "./redis";
+import { getTokenCached, updateTokenInRedis } from './redis/tokens';
+import { getLastHourPrices } from './utils/priceAlertHelper';
+import { calculateTokenPrice } from './utils/solanaServer';
+import { PoolData, TokenAccountData } from "./utils/solanaUtils";
+import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
@@ -24,7 +24,6 @@ const SOL_THRESHOLD = .01
 // 🔹 Metrics Tracking
 let totalUsers = 0;
 let totalUniqueTokens = 0;
-let totalDeadTokensSkipped = 0;
 let totalDeadTokensSkippedFirestore = 0;
 let totalFailedToGetMetadata = 0;
 let totalMetadataFetchSkipped = 0;
@@ -371,6 +370,10 @@ export async function updateUniqueTokens() {
               try {
                 //console.log(`Fetching metadata for token: ${mint}`);
                 const tokenObj = await getTokenCached(mint, tokensCache, redisClient);
+                if(!tokenObj[0]){
+                  // Create entry for token in redis
+                  redisClient.hSet(mint, {})
+                }
                 tokenDataMap.set(mint, tokenObj);
               } catch (error) {
                 console.error(`Error fetching token ${mint}:`, error);
@@ -391,9 +394,9 @@ export async function updateUniqueTokens() {
 
                 const tokenObj = tokenDataMap.get(mint);
                 if (
-                  tokenObj && tokenObj[0]?.isDead != true &&
+                  !tokenObj || (tokenObj[0]?.isDead != true &&
                   (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
-                  isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, amount)
+                  isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, amount))
                 ) {
                   uniqueTokensSet.add(mint);
                   const walletTokenInfo: TrackedToken = {
@@ -446,12 +449,12 @@ export async function updateUniqueTokens() {
             totalDeadTokensSkippedFirestore = totalDeadTokensSkippedFirestore + 1
             return;
           }
-          const isTokenDead = await setTokenDead(token, redisClient);
+          // const isTokenDead = await setTokenDead(token, redisClient);
 
-          if (isTokenDead) {
-            totalDeadTokensSkipped = totalDeadTokensSkipped + 1
-            return;
-          }
+          // if (isTokenDead) {
+          //   totalDeadTokensSkipped = totalDeadTokensSkipped + 1
+          //   return;
+          // }
           if((tokenFromCache?.tokenData?.priceFetchFailures || 0) >= PRICE_FETCH_THRESHOLD){
             totalSkippedPrice = totalSkippedPrice + 1
             return;
@@ -509,7 +512,6 @@ export async function updateUniqueTokens() {
               if(!tokenFromCache?.tokenData?.baseVault || !tokenFromCache.tokenData.quoteVault){
                 totalUncachedPoolData++
               }
-              console.log("Updated token " + token + " with price of " + data.price.marketCapSol + " SOL MC at " + data.price.timestamp + " from pool " + data.tokenData.pool)
               storeTokenPrice(token, data.price, data.tokenData, redisClient);
             } else {
               totalFailedPrice++;
@@ -535,7 +537,6 @@ export async function updateUniqueTokens() {
       👛 Total Unique Wallets Processed: ${uniqueWalletSet.size}
       💰 Total Unique Tokens Found: ${totalUniqueTokens}
          Total dead tokens skipped from firestore: ${totalDeadTokensSkippedFirestore}
-          Total dead tokens skipped ${totalDeadTokensSkipped}
       🔍 Total Metadata Fetch Failures: ${totalFailedToGetMetadata} (${metadataFailureRate.toFixed(2)}%)
       ✅ Total Metadata Fetch Successes: ${totalSucceededToGetMetadata}
       ⏭️ Total Metadata Fetch Skipped: ${totalMetadataFetchSkipped} 
