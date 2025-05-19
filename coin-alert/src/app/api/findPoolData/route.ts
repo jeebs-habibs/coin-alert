@@ -21,7 +21,7 @@ let tokensNotFoundInRedis = 0
 let tokensDeadFromTransactions = 0
 const poolFetchTimes: number[] = []
 
-const MAX_TOKENS_TO_PROCESS = 500; // Adjust based on your average fetch time
+const MAX_TOKENS_TO_PROCESS = 200; // Adjust based on your average fetch time
 const PRICE_FETCH_ERROR_THRESHOLD = 7;
 const MONTH_IN_MILLIS = 1000 * 60 * 60 * 24 * 28
 
