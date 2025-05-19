@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
         if (poolData) {
           token.tokenData = updateTokenDataWithPoolData(token.tokenData || {}, poolData);
-          await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+          retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
           tokenPoolDataFound++;
         } else {
           tokenPoolDataNotFound++;
