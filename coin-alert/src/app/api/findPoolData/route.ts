@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
     console.log("Got " + tokensWithoutPoolType.length + " total tokens with missing pool data in " + timeToGetTokensSeconds  + " seconds.")
     // LIMIT how many tokens you process to stay under time limit
     const tokensToProcess = tokensWithoutPoolType.slice(0, MAX_TOKENS_TO_PROCESS);
+    console.log("Getting pool data for tokens: " + tokensToProcess.join(","))
 
     await Promise.all(tokensToProcess.map(async ([mint, token]) => {
       try {
