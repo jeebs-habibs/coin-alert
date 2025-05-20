@@ -509,7 +509,7 @@ export async function updateUniqueTokens() {
               totalSucceedPrice++;
               data.tokenData.metadataFetchFailures = (data?.tokenData.metadataFetchFailures || 0 ) + blockchainMetadataFailures
     
-              if(!tokenFromCache?.tokenData?.baseVault || !tokenFromCache.tokenData.quoteVault){
+              if(!tokenFromCache?.tokenData?.pool){
                 totalUncachedPoolData++
               }
               storeTokenPrice(token, data.price, data.tokenData, redisClient);

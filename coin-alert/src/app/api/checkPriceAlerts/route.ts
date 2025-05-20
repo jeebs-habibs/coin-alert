@@ -36,11 +36,15 @@ function isTokenMinuteAfterCooldown(
 ): boolean {
   // 🔹 Convert nested Firestore object properly
   const recentNotifications = new Map<string, RecentNotification>();
+  let mostRecentNotification: RecentNotification | undefined = undefined
 
   for (const [key, value] of Object.entries(recentNotificationsObj)) {
     if (value && typeof value === "object") {
       //console.log("setting a val in recentnotfs")
       recentNotifications.set(key, { ...value }); // Ensure deep copy
+      if(key.split("_")[0] == token && (!mostRecentNotification || (mostRecentNotification && value.timestamp >= mostRecentNotification.timestamp))){
+        mostRecentNotification = value
+      }
     } else {
       //console.error(`❌ Skipping invalid entry in recentNotificationsObj:`, key, value);
     }
@@ -55,7 +59,9 @@ function isTokenMinuteAfterCooldown(
   const lastNotificationTime = lastNotification.timestamp;
   const elapsedTime = (now - lastNotificationTime) / (60 * 1000); // Convert to minutes
 
-  return elapsedTime > minutes; // ✅ Return true if notification is older than cooldown
+  const is10MinsSinceLastNotiForToken = !mostRecentNotification?.timestamp ? true : (now - mostRecentNotification.timestamp) >= (1000 * 60 * 5)
+
+  return (elapsedTime > minutes) || is10MinsSinceLastNotiForToken; // ✅ Return true if notification is older than cooldown
 }
 
 // 🔹 Main API Function
@@ -160,7 +166,10 @@ export async function GET(request: NextRequest) {
           const oldPriceEntry = priceHistory.find(
             (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
           );
-          if (!oldPriceEntry) continue;
+          if (!oldPriceEntry) {
+            console.warn("No price entry exists older than " + config[0] + " minutes.")
+            continue;
+          }
 
           // If token_minute got alarmed within minute threshold, skip
           if(!isTokenMinuteAfterCooldown(token, config[0], user.recentNotifications || {})){
@@ -172,7 +181,7 @@ export async function GET(request: NextRequest) {
           // console.log("Latest price: " + latestPrice)
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
-          //console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
+          console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
           if (priceChange > config[1].criticalAlarmPercentage || priceChange < (config[1].criticalAlarmPercentage * -1)) {
