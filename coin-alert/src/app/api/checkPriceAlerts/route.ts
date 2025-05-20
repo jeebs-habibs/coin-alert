@@ -21,7 +21,7 @@ let totalNumberOfUsers = 0
 let totalUsersSkipped = 0
 //let totalNumberOfDeadTokens = 0
 let totalNotisSent = 0
-
+let nonZeroPriceChanges = 0 
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
  * @param token - The token symbol or ID
@@ -181,7 +181,10 @@ export async function GET(request: NextRequest) {
           // console.log("Latest price: " + latestPrice)
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
-          console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
+          if(priceChange != 0){
+            nonZeroPriceChanges++
+            console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
+          }
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
           if (priceChange > config[1].criticalAlarmPercentage || priceChange < (config[1].criticalAlarmPercentage * -1)) {
@@ -253,6 +256,7 @@ export async function GET(request: NextRequest) {
       totalNumberOfUsers = ${totalNumberOfUsers}
       totalNotisSent = ${totalNotisSent}
       totalUsersSkipped = ${totalUsersSkipped}
+      nonZeroPriceChanges = ${nonZeroPriceChanges}
     `
     console.log(chalk.green("API METRICS \n" + metrics))
     return new Response(JSON.stringify({ message: "Alerts checked successfully in " + timeInSeconds + " seconds. \n ======Metrics===== \n " + metrics }), { status: 200 });
