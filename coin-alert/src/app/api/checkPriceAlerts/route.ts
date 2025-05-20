@@ -22,6 +22,7 @@ let totalUsersSkipped = 0
 //let totalNumberOfDeadTokens = 0
 let totalNotisSent = 0
 let nonZeroPriceChanges = 0 
+let numberOfTokensNoPriceEntryForMinute = 0
 /**
  * Checks if the last notification for a given token and minute interval is older than the cooldown period.
  * @param token - The token symbol or ID
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
             (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
           );
           if (!oldPriceEntry) {
-            console.warn("No price entry exists older than " + config[0] + " minutes.")
+            numberOfTokensNoPriceEntryForMinute++
             continue;
           }
 
@@ -257,6 +258,7 @@ export async function GET(request: NextRequest) {
       totalNotisSent = ${totalNotisSent}
       totalUsersSkipped = ${totalUsersSkipped}
       nonZeroPriceChanges = ${nonZeroPriceChanges}
+      numberOfTokensNoPriceEntryForMinute = ${numberOfTokensNoPriceEntryForMinute}
     `
     console.log(chalk.green("API METRICS \n" + metrics))
     return new Response(JSON.stringify({ message: "Alerts checked successfully in " + timeInSeconds + " seconds. \n ======Metrics===== \n " + metrics }), { status: 200 });
