@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         const mintPubkey = new PublicKey(mint)
         const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(mintPubkey, {limit: 1}))
         const mostRecentTransactionTimestamp = signatures[0].blockTime
-        console.log("mostRecentTransactionTimestamp for token: " + mint)
+        console.log("mostRecentTransactionTimestamp for token: " + mint + " is " + mostRecentTransactionTimestamp)
         if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
           const now = Date.now()
           if((now - mostRecentTransactionTimestamp) > MONTH_IN_MILLIS){
