@@ -23,7 +23,7 @@ const poolFetchTimes: number[] = []
 
 const MAX_TOKENS_TO_PROCESS = 200; // Adjust based on your average fetch time
 const PRICE_FETCH_ERROR_THRESHOLD = 7;
-const MONTH_IN_MILLIS = 1000 * 60 * 60 * 24 * 28
+const MONTH_IN_SECONDS = 60 * 60 * 24 * 28
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -82,13 +82,13 @@ export async function GET(request: NextRequest) {
         const mintPubkey = new PublicKey(mint)
         const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(mintPubkey, {limit: 1}))
         console.log("sigs: " + JSON.stringify(signatures))
-        const mostRecentTransactionTimestamp = signatures[0].blockTime
-        console.log("mostRecentTransactionTimestamp for token: " + mint + " is " + mostRecentTransactionTimestamp)
-        if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
-          const now = Date.now()
-          console.log("Now: " + now)
-          console.log("Is " + (now - mostRecentTransactionTimestamp) + " greater than " + MONTH_IN_MILLIS)
-          if((now - mostRecentTransactionTimestamp) > MONTH_IN_MILLIS){
+        const mostRecentTransactionTimestampSeconds = signatures[0].blockTime
+        console.log("mostRecentTransactionTimestampSeconds for token: " + mint + " is " + mostRecentTransactionTimestampSeconds)
+        if(mostRecentTransactionTimestampSeconds != null && mostRecentTransactionTimestampSeconds){
+          const nowSeconds = Date.now() / 1000
+          console.log("Now: " + nowSeconds)
+          console.log("Is " + (nowSeconds - mostRecentTransactionTimestampSeconds) + " greater than " + MONTH_IN_SECONDS)
+          if((nowSeconds - mostRecentTransactionTimestampSeconds) > MONTH_IN_SECONDS){
             // Last transaction was from over a month ago, set it as dead
             console.warn("Marking " + mint + " as dead")
             token.isDead = true
