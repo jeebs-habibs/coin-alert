@@ -143,13 +143,13 @@ export async function GET(request: NextRequest) {
         // if(isTokenDead){
         //   return null
         // }
-        const priceHistory = (await getTokenPricesCached(token, pricesCache, redisClient)) || [];
+        const priceHistory = (await getTokenPricesCached(token, pricesCache, redisClient)) || [];''
 
-        // console.log("Price history: ")
-        // priceHistory.forEach((p) => {
-        //   console.log("Price: " + p.price)
-        //   console.log("Timestamp: " + p.timestamp)
-        // })
+        console.log("Price history: ")
+        priceHistory.forEach((p) => {
+          console.log("Price: " + p.price)
+          console.log("Timestamp: " + p.timestamp)
+        })
         // if (priceHistory.length < 10){
         //   //console.error("Not enough price history to send notifications.")
         //   return null; // Skip if not enough data
