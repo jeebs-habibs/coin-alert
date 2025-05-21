@@ -123,6 +123,7 @@ export async function fetchMeteoraPoolAccountsFromToken(mint: PublicKey): Promis
     if(accounts.length && accounts[0].account.data){
         const data = meteoraMarketSchema.decode(accounts[0].account.data)
         return {
+            pool: "meteora",
             quoteVault: data.aVault,
             baseVault: data.bVault,
             quoteLpVault: data.aVaultLp,

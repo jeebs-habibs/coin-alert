@@ -63,6 +63,7 @@ export async function fetchRaydiumPoolAccountsFromToken(mint: PublicKey): Promis
     if(accounts.length && accounts[0].account.data){
         const data = LIQUIDITY_STATE_LAYOUT_V4.decode(accounts[0].account.data)
         return {
+            pool: "raydium",
             quoteVault: data.quoteVault,
             baseVault: data.baseVault,
             baseMint: data.baseMint,

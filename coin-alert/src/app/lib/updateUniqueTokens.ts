@@ -529,7 +529,7 @@ export async function updateUniqueTokens() {
           }
         } catch (error) {
           console.error(`Error processing token ${token}:`, error);
-          throw error; // Ensure the promise rejects
+          return 
         }
 
  

@@ -83,6 +83,7 @@ export async function fetchPumpSwapAMM(mint: PublicKey): Promise<PoolData | unde
     if(data){
       const parsedData = pumpSwapSchema.decode(data)
       return {
+        pool: "pump-swap",
         quoteVault: new PublicKey(parsedData.pool_quote_token_account),
         baseVault: new PublicKey(parsedData.pool_base_token_account),
         baseMint: new PublicKey(parsedData.base_mint),
