@@ -422,7 +422,7 @@ export async function updateUniqueTokens() {
                     }
                   });
                 } else {
-                  console.warn("Token not marked as tracked: " + mint)
+                  //console.warn("Token not marked as tracked: " + mint)
                 }
               } catch (error) {
                 console.error(`Error processing token ${mint} for wallet ${wallet}:`, error);
