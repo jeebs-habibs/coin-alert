@@ -394,7 +394,7 @@ export async function updateUniqueTokens() {
           await Promise.all(
             walletTokenInfoList.map(async ({ mint, amount }) => {
               try {
-                //console.log(`Processing token: ${mint} for wallet ${wallet}`);
+                console.log(`Processing token: ${mint} for wallet ${wallet}`);
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
                 const tokenObj = mintToToken.get(mint);
