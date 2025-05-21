@@ -118,18 +118,19 @@ export async function GET(request: NextRequest) {
     const timeAfterUpdate = Date.now();
     const avgPoolFetchTime = getAverage(poolFetchTimes);
 
-    const message =
-      `✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds. ` +
-      `Got tokens with missing pool data in ${timeToGetTokensSeconds} seconds.` + 
-      `Tokens with pool data: ${tokensWithPoolData}, ` +
-      `without pool data: ${tokensWithoutPoolData}, ` +
-      `Tokens dead from transactions ${tokensDeadFromTransactions}` + 
-      `Token pool data fetch: ${tokenPoolDataFound} ` +
-      `Token pool data fetch fail: ${tokenPoolDataNotFound} ` +
-      `Average pool fetch time: ${avgPoolFetchTime} ms ` +
-      `Tokens not found in redis: ${tokensNotFoundInRedis} ` +
-      `Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%. ` +
-      `Pool fetch success rate: ${(tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound) * 100).toFixed(2)}%.`;
+    const message = `
+      ✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds.
+      Got tokens with missing pool data in ${timeToGetTokensSeconds} seconds.
+      Tokens with pool data: ${tokensWithPoolData},
+      without pool data: ${tokensWithoutPoolData},
+      Tokens dead from transactions ${tokensDeadFromTransactions} 
+      Token pool data fetch: ${tokenPoolDataFound} 
+      Token pool data fetch fail: ${tokenPoolDataNotFound} 
+      Average pool fetch time: ${avgPoolFetchTime} ms 
+      Tokens not found in redis: ${tokensNotFoundInRedis} 
+      Coverage percentage: ${(tokensWithPoolData / (tokensWithPoolData + tokensWithoutPoolData) * 100).toFixed(2)}%.
+      Pool fetch success rate: ${(tokenPoolDataFound / (tokenPoolDataFound + tokenPoolDataNotFound) * 100).toFixed(2)}%.
+      `
 
     console.log(message);
     return NextResponse.json({ message });
