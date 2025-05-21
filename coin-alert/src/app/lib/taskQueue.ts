@@ -36,8 +36,8 @@ class TaskQueue {
     this.isProcessing = true;
 
     //console.log("Processing queue")
-    let recordsProcessed = 0
-    let initialTime = Date.now()
+    // let recordsProcessed = 0
+    // let initialTime = Date.now()
     
     while (this.queue.length > 0) {
       const task = this.queue.shift();
@@ -46,12 +46,12 @@ class TaskQueue {
           //console.log(`Processing task`);
           //const beforeTaskTime = Date.now()
           task();
-          recordsProcessed++
-          if(Date.now() - initialTime >= 1000){
-            console.log(`Processed ${recordsProcessed} records in ${(Date.now() - initialTime) / 1000} seconds.`)
-            recordsProcessed = 0
-            initialTime = Date.now()
-          }
+          // recordsProcessed++
+          // if(Date.now() - initialTime >= 1000){
+          //   //console.log(`Processed ${recordsProcessed} records in ${(Date.now() - initialTime) / 1000} seconds.`)
+          //   recordsProcessed = 0
+          //   initialTime = Date.now()
+          // }
           // const afterTaskTime = Date.now()
           // console.log("Processed task in " + (afterTaskTime - beforeTaskTime)/1000 + " seconds.")
         } catch (error) {

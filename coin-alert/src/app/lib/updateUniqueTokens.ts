@@ -318,7 +318,6 @@ export async function updateUniqueTokens() {
     uniqueWalletSet.forEach((wallet) => console.log(wallet))
 
     const updateTrackedTokensStartTime = Date.now()
-    // Collect all token mints across all wallets
     // Precompute wallet-to-users map to avoid duplicate user lookups
     const walletToUsers = new Map<string, Set<string>>();
     usersSnapshot.docs.forEach((userDoc) => {
@@ -330,7 +329,7 @@ export async function updateUniqueTokens() {
       });
     });
 
-    // Process wallets
+    // Updating tracked tokens for each user
     await Promise.all(
       Array.from(uniqueWalletSet).map(async (wallet) => {
         try {
@@ -349,32 +348,35 @@ export async function updateUniqueTokens() {
           const usersWithWallet = walletToUsers.get(wallet) || new Set();
 
           // Collect unique token mints for this wallet
-          const tokenMints = new Set<string>();
-          const tokenInfoList: { mint: string; amount: number }[] = [];
+          const walletTokenMints = new Set<string>();
+          // Collect list of mints with amounts for this wallet
+          const walletTokenInfoList: { mint: string; amount: number }[] = [];
           tokenAccountsForAddress.value.forEach((value) => {
             const tokenAccountData: TokenAccountData = value.account.data.parsed;
             if (tokenAccountData.info.tokenAmount.uiAmount != null) {
               const mint = tokenAccountData.info.mint;
-              tokenMints.add(mint);
-              tokenInfoList.push({ mint, amount: tokenAccountData.info.tokenAmount.uiAmount });
+              walletTokenMints.add(mint);
+              walletTokenInfoList.push({ mint, amount: tokenAccountData.info.tokenAmount.uiAmount });
             }
           });
 
-          console.log("Got " + tokenMints.size + " unique tokens fro wallet " + wallet)
+          console.log("Got " + walletTokenMints.size + " unique tokens from wallet " + wallet)
 
-          // Fetch token metadata in parallel
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tokenDataMap = new Map<string, any>();
+          // Get each token from redis, and if it doesn't exist create an entry
+          const mintToToken = new Map<string, Token>();
           await Promise.all(
-            Array.from(tokenMints).map(async (mint) => {
+            Array.from(walletTokenMints).map(async (mint) => {
               try {
                 //console.log(`Fetching metadata for token: ${mint}`);
                 const tokenObj = await getTokenCached(mint, tokensCache, redisClient);
                 if(!tokenObj[0]){
                   // Create entry for token in redis
                   redisClient.hSet(`token:${mint}`, { isDead: 'false' })
+                  mintToToken.set(mint, { isDead: false })
+                } else {
+                  mintToToken.set(mint, tokenObj[0]);
                 }
-                tokenDataMap.set(mint, tokenObj);
+                
               } catch (error) {
                 console.error(`Error fetching token ${mint}:`, error);
               }
@@ -387,17 +389,18 @@ export async function updateUniqueTokens() {
 
           // Process tokens in parallel (extracted for loop)
           await Promise.all(
-            tokenInfoList.map(async ({ mint, amount }) => {
+            walletTokenInfoList.map(async ({ mint, amount }) => {
               try {
                 //console.log(`Processing token: ${mint} for wallet ${wallet}`);
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
-                const tokenObj = tokenDataMap.get(mint);
+                const tokenObj = mintToToken.get(mint);
                 if (
-                  !tokenObj || (tokenObj[0]?.isDead != true &&
-                  (tokenObj[0]?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
-                  isTokenOverThreshold(getLastHourPrices(tokenObj[0])[0]?.price, amount))
+                  !tokenObj || (tokenObj?.isDead != true &&
+                  (tokenObj?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
+                  isTokenOverThreshold(getLastHourPrices(tokenObj)[0]?.price, amount))
                 ) {
+                  console.log("Adding tracked token: " + mint)
                   uniqueTokensSet.add(mint);
                   const walletTokenInfo: TrackedToken = {
                     mint,
@@ -437,7 +440,7 @@ export async function updateUniqueTokens() {
     const updateTrackedTokensFinishTime = Date.now()
     console.log(`✅ Finished fetching ${totalUniqueTokens} unique tokens in ${(updateTrackedTokensFinishTime - updateTrackedTokensStartTime) / 1000} sec.`);
 
-    // 🔹 3️⃣ Process Each Token
+    // 🔹 Update price for each unique token
     await Promise.all(
       Array.from(uniqueTokensSet).map(async (token) => {
         //console.log(`🔹 Getting price for token: ${token}`);
