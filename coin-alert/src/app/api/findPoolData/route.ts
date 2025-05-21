@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         if (
           tokenFromRedis &&
           !tokenFromRedis?.tokenData?.pool &&
-          tokenFromRedis?.isDead != true &&
+          // tokenFromRedis?.isDead != true &&
           (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD
            
         ) {
@@ -81,16 +81,12 @@ export async function GET(request: NextRequest) {
         // First, see when the last transaction once and set isDead = true if its over 1 month.
         const mintPubkey = new PublicKey(mint)
         const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(mintPubkey, {limit: 1}))
-        console.log("sigs: " + JSON.stringify(signatures))
         const mostRecentTransactionTimestampSeconds = signatures[0].blockTime
-        console.log("mostRecentTransactionTimestampSeconds for token: " + mint + " is " + mostRecentTransactionTimestampSeconds)
         if(mostRecentTransactionTimestampSeconds != null && mostRecentTransactionTimestampSeconds){
           const nowSeconds = Date.now() / 1000
-          console.log("Now: " + nowSeconds)
-          console.log("Is " + (nowSeconds - mostRecentTransactionTimestampSeconds) + " greater than " + MONTH_IN_SECONDS)
           if((nowSeconds - mostRecentTransactionTimestampSeconds) > MONTH_IN_SECONDS){
             // Last transaction was from over a month ago, set it as dead
-            console.warn("Marking " + mint + " as dead")
+            // console.warn("Marking " + mint + " as dead")
             token.isDead = true
             tokensDeadFromTransactions++
             retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));

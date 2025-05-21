@@ -305,7 +305,7 @@ export async function updateUniqueTokens() {
     usersSnapshot.docs.forEach((userDoc) => {
       const userId = userDoc.id;
       // TEMP FOR TESTING
-      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13"){
+      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13" || true){
         const userData = userDoc.data();
         userTokenMap.set(userId, new Set<TrackedToken>());
         if (Array.isArray(userData.wallets)) {
@@ -394,7 +394,7 @@ export async function updateUniqueTokens() {
           await Promise.all(
             walletTokenInfoList.map(async ({ mint, amount }) => {
               try {
-                console.log(`Processing token: ${mint} for wallet ${wallet}`);
+                //console.log(`Processing token: ${mint} for wallet ${wallet}`);
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
                 const tokenObj = mintToToken.get(mint);
@@ -403,7 +403,7 @@ export async function updateUniqueTokens() {
                   (tokenObj?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
                   isTokenOverThreshold(getLastHourPrices(tokenObj)[0]?.price, amount))
                 ) {
-                  console.log("Adding tracked token: " + mint)
+                  //console.log("Adding tracked token: " + mint)
                   uniqueTokensSet.add(mint);
                   const walletTokenInfo: TrackedToken = {
                     mint,
@@ -521,7 +521,7 @@ export async function updateUniqueTokens() {
               if(!tokenFromCache?.tokenData?.pool){
                 totalUncachedPoolData++
               }
-              console.log("Got price for token: " + token + " price: " + data.price.marketCapSol)
+              //console.log("Got price for token: " + token + " price: " + data.price.marketCapSol)
               storeTokenPrice(token, data.price, data.tokenData, redisClient);
             } else {
               totalFailedPrice++;
