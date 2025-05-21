@@ -501,6 +501,7 @@ export async function updateUniqueTokens() {
               updateTokenInRedis(token, updatedToken, redisClient)
             }
           } else {
+            console.error("No pool data for token: " + token)
             tokensSkippedWithNoPoolData++
           }
 
