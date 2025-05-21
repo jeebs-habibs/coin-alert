@@ -357,6 +357,8 @@ export async function updateUniqueTokens() {
               const mint = tokenAccountData.info.mint;
               walletTokenMints.add(mint);
               walletTokenInfoList.push({ mint, amount: tokenAccountData.info.tokenAmount.uiAmount });
+            } else {
+              console.warn("NO UI AMOUNT FOR TOKEN " + tokenAccountData.info.mint)
             }
           });
 
