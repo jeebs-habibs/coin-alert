@@ -273,7 +273,7 @@ export default function Dashboard() {
                       />
                       <div>
                         <p className={styles.tokenSymbol}>
-                          {tokenFromDb?.tokenData?.tokenMetadata?.symbol || token.mint}
+                          {tokenFromDb?.tokenData?.tokenMetadata?.symbol ? `${tokenFromDb?.tokenData?.tokenMetadata?.symbol} (${shortenString(token.mint)})` : shortenString(token.mint)}
                         </p>
                         <p className={styles.tokenLabel}>Tokens Owned: {formatNumber(token.tokensOwned)}</p>
                       </div>
