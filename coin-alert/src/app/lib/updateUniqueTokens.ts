@@ -305,7 +305,7 @@ export async function updateUniqueTokens() {
     usersSnapshot.docs.forEach((userDoc) => {
       const userId = userDoc.id;
       // TEMP FOR TESTING
-      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13" || true){
+      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13"){
         const userData = userDoc.data();
         userTokenMap.set(userId, new Set<TrackedToken>());
         if (Array.isArray(userData.wallets)) {
