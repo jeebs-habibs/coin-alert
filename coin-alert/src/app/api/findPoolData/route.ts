@@ -81,6 +81,7 @@ export async function GET(request: NextRequest) {
         // First, see when the last transaction once and set isDead = true if its over 1 month.
         const mintPubkey = new PublicKey(mint)
         const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(mintPubkey, {limit: 1}))
+        console.log("sigs: " + JSON.stringify(signatures))
         const mostRecentTransactionTimestamp = signatures[0].blockTime
         console.log("mostRecentTransactionTimestamp for token: " + mint + " is " + mostRecentTransactionTimestamp)
         if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
