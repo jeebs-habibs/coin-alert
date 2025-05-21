@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
         console.log("mostRecentTransactionTimestamp for token: " + mint + " is " + mostRecentTransactionTimestamp)
         if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
           const now = Date.now()
+          console.log("Now: " + now)
           console.log("Is " + (now - mostRecentTransactionTimestamp) + " greater than " + MONTH_IN_MILLIS)
           if((now - mostRecentTransactionTimestamp) > MONTH_IN_MILLIS){
             // Last transaction was from over a month ago, set it as dead
