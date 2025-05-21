@@ -82,10 +82,12 @@ export async function GET(request: NextRequest) {
         const mintPubkey = new PublicKey(mint)
         const signatures = await blockchainTaskQueue.addTask(() => connection.getSignaturesForAddress(mintPubkey, {limit: 1}))
         const mostRecentTransactionTimestamp = signatures[0].blockTime
+        console.log("mostRecentTransactionTimestamp for token: " + mint)
         if(mostRecentTransactionTimestamp != null && mostRecentTransactionTimestamp){
           const now = Date.now()
           if((now - mostRecentTransactionTimestamp) > MONTH_IN_MILLIS){
             // Last transaction was from over a month ago, set it as dead
+            console.warn("Marking " + mint + " as dead")
             token.isDead = true
             tokensDeadFromTransactions++
             retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));

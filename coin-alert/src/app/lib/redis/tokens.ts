@@ -71,6 +71,7 @@ export async function updateTokenInRedis(tokenId: string, updateData: Partial<To
       await redisClient.hSet(key, updateFields);
     }
 
+    console.log("Updated token in redis with isDead: " + updateData?.isDead)
     return true;
   } catch (error) {
     console.error(`❌ Error updating token ${tokenId} in Redis:`, error);
