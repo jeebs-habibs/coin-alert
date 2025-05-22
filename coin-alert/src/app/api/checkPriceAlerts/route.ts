@@ -132,6 +132,9 @@ export async function GET(request: NextRequest) {
 
       // 🔹 3️⃣ Check Price Changes for Each Token in Parallel
       const tokenPricePromises: Promise<NotificationReturn | null>[] = trackedTokensForUser.map(async (token) => {
+        if(token == "HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump" || token == "BmMu5Mtuf3gsG8tX9qwdrFEpCa7JiAQpFncaMpa5pump"){
+          console.log("Checking price for user " + user.uid + " and token " + token)
+        }
         const tokenObj = await getTokenCached(token, tokensCache, redisClient)
         if(tokenObj[1] == "db"){
           totalNumberOfTokensGottenFromDB++
@@ -193,7 +196,7 @@ export async function GET(request: NextRequest) {
             nonZeroPriceChanges++
             console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
           } else {
-            console.warn("Token " + token + " has not changed in price over " + config[0] + " minutes.")
+            //console.warn("Token " + token + " has not changed in price over " + config[0] + " minutes.")
           }
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
