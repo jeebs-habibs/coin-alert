@@ -55,14 +55,18 @@ export async function getTokenMetadataFromBlockchain(token: string): Promise<Tok
   if (metaplexMetadata){
       // TODO: Once we setup images in notis, retest this code. Now its failing a lot and needs to not be running
     const parsedMetadata: URIMetadata | undefined = await fetchJsonFromUri(metaplexMetadata.uri)
-    const tokenMetadata: TokenMetadata = {
-      image: parsedMetadata?.image,
-      description: parsedMetadata?.description,
-      name: parsedMetadata?.name,
-      symbol: parsedMetadata?.symbol,
-      uri: metaplexMetadata.uri
+    if(parsedMetadata){
+      const tokenMetadata: TokenMetadata = {
+        image: parsedMetadata?.image,
+        description: parsedMetadata?.description,
+        name: parsedMetadata?.name,
+        symbol: parsedMetadata?.symbol,
+        uri: metaplexMetadata.uri
+      }
+      return tokenMetadata
+    } else {
+      return undefined
     }
-    return tokenMetadata
   } 
   return undefined
 }
