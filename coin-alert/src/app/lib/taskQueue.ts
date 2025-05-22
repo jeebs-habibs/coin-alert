@@ -67,7 +67,7 @@ class TaskQueue {
 }
 
 // Export as a singleton so all files share the same queue
-export const blockchainTaskQueue = new TaskQueue(40);
+export const blockchainTaskQueue = new TaskQueue(30);
 
 export const heliusPoolQueue = new TaskQueue(3);
 
