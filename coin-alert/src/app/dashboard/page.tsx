@@ -16,6 +16,7 @@ import { BILLION } from "../lib/utils/solanaUtils";
 import { formatNumber, shortenString } from "../lib/utils/stringUtils";
 import { useAuth } from "../providers/auth-provider";
 import styles from "./page.module.css";
+import NotificationChart from "../components/NotificationChart";
 
 // Simple in-memory cache
 const cache = {
@@ -72,7 +73,7 @@ function getMarketCapUSDFromPrices(prices: PriceData[], solPriceUSD: number): To
 type Currency = "SOL" | "USD"
 
 export default function Dashboard() {
-  const { userData, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const [mintToTokenData, setMintToTokenData] = useState<Map<string, Token | undefined>>(new Map());
   const [solPrice, setSolPrice] = useState<CryptoDataDb | undefined>(cache.solPrice.data);
   const [currency, setCurrency] = useState<Currency>("USD"); // Default to USD
@@ -349,6 +350,7 @@ export default function Dashboard() {
           )}
         </div>
       </section>
+      {user != null && user.uid == "D7gDyfspTANknhFTJwYlCEM9NLW2" ? <NotificationChart/> : <></>}
     </div>
   );
 }
