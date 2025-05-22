@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         if (
           tokenFromRedis &&
           !tokenFromRedis?.tokenData?.pool &&
-          // tokenFromRedis?.isDead != true &&
+          tokenFromRedis?.isDead != true &&
           (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD
            
         ) {
