@@ -23,7 +23,7 @@ let tokensDeadFromTransactions = 0
 let totalTokensWithoutMetadata = 0
 let totalSucceededToGetMetadata = 0
 let totalFailedToGetMetadata = 0
-const METADATA_FETCH_FAILURE_LIMIT = 7
+const METADATA_FETCH_FAILURE_LIMIT = 3
 
 const poolFetchTimes: number[] = []
 
