@@ -1,17 +1,16 @@
 'use server';
 
-import { getToken, Token } from "../lib/firebase/tokenUtils";
+import { Token } from "../lib/firebase/tokenUtils";
+import { getRedisClient } from "../lib/redis";
+import { getTokenPrices } from "../lib/redis/prices";
+import { getTokenFromRedis } from "../lib/redis/tokens";
 
 export async function getTokenAction(id: string): Promise<Token | undefined> {
   try {
-    console.log("Getting token with id: " + id)
-    const token = await getToken(id);
-    if (token && 'lastUpdated' in token) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { lastUpdated, ...updatedToken } = token;
-      return updatedToken as Token;
-    }
-    return token;
+    const redisClient = await getRedisClient()
+    const token = await getTokenFromRedis(id, redisClient)
+    const prices = await getTokenPrices(id, redisClient)
+    return {...token, prices}
   } catch (error) {
     console.error('Failed to fetch token:', error);
     return undefined;
