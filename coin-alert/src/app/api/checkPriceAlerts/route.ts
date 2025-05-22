@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
 
       const trackedTokensForUser = user?.trackedTokens?.filter((token) => token.isNotificationsOn)?.map((token) => token.mint) || []
 
-      //console.log("Checking prices for user: " + user.uid + " and maybe sending notis for tokens: " + allTokens.join(","))
+      console.log("Checking prices for user: " + user.uid + " and maybe sending notis for tokens: " + trackedTokensForUser.join(","))
 
       // await Promise.all(tokenPromises);
       // const allTokens = Array.from(allTokensSet);
@@ -144,8 +144,8 @@ export async function GET(request: NextRequest) {
         //   return null
         // }
         const priceHistory = (await getTokenPricesCached(token, pricesCache, redisClient)) || [];
-        if(token == "HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump"){
-          console.log("Price history for token HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump")
+        if(token == "HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump" || token == "BmMu5Mtuf3gsG8tX9qwdrFEpCa7JiAQpFncaMpa5pump"){
+          console.log("Price history for token " + token)
           console.log(JSON.stringify(priceHistory))
         }
 
