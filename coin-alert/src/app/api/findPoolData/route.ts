@@ -9,6 +9,7 @@ import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils"
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
 import { PoolData } from "@/app/lib/utils/solanaUtils";
+import { getTokenMetadataFromBlockchain } from "@/app/lib/utils/tokenMetadata";
 import { PublicKey } from "@solana/web3.js";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -19,6 +20,11 @@ let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
 let tokensDeadFromTransactions = 0
+let totalTokensWithoutMetadata = 0
+let totalMetadataFetchSkipped = 0
+let totalSucceededToGetMetadata = 0
+let totalFailedToGetMetadata = 0
+
 const poolFetchTimes: number[] = []
 
 const MAX_TOKENS_TO_PROCESS = 200; // Adjust based on your average fetch time
@@ -38,6 +44,7 @@ export async function GET(request: NextRequest) {
 
     const redisClient = await getRedisClient();
     const tokensWithoutPoolType: [string, Token][] = [];
+    const tokensWithoutMetadata: [string, Token][] = [];
 
     const iter = redisClient.scanIterator({
       MATCH: "token:*",
@@ -61,10 +68,16 @@ export async function GET(request: NextRequest) {
           !tokenFromRedis?.tokenData?.pool &&
           tokenFromRedis?.isDead != true &&
           (tokenFromRedis?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_ERROR_THRESHOLD
-           
         ) {
           tokensWithoutPoolType.push([tokenMint, tokenFromRedis]);
           tokensWithoutPoolData++;
+        }
+
+        if(tokenFromRedis &&
+          !tokenFromRedis.tokenData?.tokenMetadata?.symbol
+        ){
+          tokensWithoutMetadata.push([tokenMint, tokenFromRedis])
+          totalTokensWithoutMetadata++;
         }
       }
     }
@@ -116,14 +129,52 @@ export async function GET(request: NextRequest) {
       }
     }));
 
-    const timeAfterUpdate = Date.now();
+    const timeAfterPoolUpdate = Date.now();
+
+    await Promise.all(
+      tokensWithoutMetadata.map(async ([mint, token]) => {
+        try {
+          if(!token?.tokenData?.tokenMetadata && (token?.tokenData?.metadataFetchFailures || 0) < 7){
+            const metadataFromBlockchain = await getTokenMetadataFromBlockchain(mint)
+            if(metadataFromBlockchain){
+              token.tokenData = {
+                ...token.tokenData,
+                tokenMetadata: metadataFromBlockchain
+              }
+              totalSucceededToGetMetadata++;
+              console.log("Updating redis with metadata for token: " + mint)
+            } else {
+              totalFailedToGetMetadata++
+              token.tokenData = {
+                ...token.tokenData,
+                metadataFetchFailures: (token?.tokenData?.metadataFetchFailures || 0) + 1
+              }
+            }
+            updateTokenInRedis(mint, token, redisClient)
+          } else {
+            totalMetadataFetchSkipped++
+          }
+        } catch (e) {
+          console.error("Error fetching metadata for token " + mint + e)
+        }
+      }
+    )
+  )
+
+    const timeAfterMetadata = Date.now()
+
     const avgPoolFetchTime = getAverage(poolFetchTimes);
 
     const message = `
-      ✅ Pool data updated successfully in ${((timeAfterUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds.
+      ✅ Pool data updated successfully in ${((timeAfterPoolUpdate - timeBeforeUpdate) / 1000).toFixed(2)} seconds.
+      Metadata updated successfully in ${((timeAfterMetadata - timeAfterPoolUpdate) / 1000).toFixed(2)} seconds.
+      Succeeded to get metadata for ${totalSucceededToGetMetadata} tokens.
+      Failed to get metadata for ${totalFailedToGetMetadata} tokens.
+      Skipped getting metadata for ${totalMetadataFetchSkipped} tokens
       Got tokens with missing pool data in ${timeToGetTokensSeconds} seconds.
       Tokens with pool data: ${tokensWithPoolData},
       without pool data: ${tokensWithoutPoolData},
+      without metadata: ${totalTokensWithoutMetadata},
       Tokens dead from transactions ${tokensDeadFromTransactions} 
       Token pool data fetch: ${tokenPoolDataFound} 
       Token pool data fetch fail: ${tokenPoolDataNotFound} 
