@@ -142,13 +142,14 @@ export async function GET(request: NextRequest) {
                 tokenMetadata: metadataFromBlockchain
               }
               totalSucceededToGetMetadata++;
-              console.log("Updating redis with metadata for token: " + mint)
+              //console.log("Updating redis with metadata for token: " + mint)
             } else {
               totalFailedToGetMetadata++
               token.tokenData = {
                 ...token.tokenData,
                 metadataFetchFailures: (token?.tokenData?.metadataFetchFailures || 0) + 1
               }
+              console.warn("Failed to get metadata for token: " + mint)
             }
             updateTokenInRedis(mint, token, redisClient)
         } catch (e) {
