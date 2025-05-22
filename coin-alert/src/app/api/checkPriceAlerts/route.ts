@@ -188,6 +188,8 @@ export async function GET(request: NextRequest) {
           if(priceChange != 0){
             nonZeroPriceChanges++
             console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
+          } else {
+            console.warn("Token " + token + " has not changed in price over " + config[0] + " minutes.")
           }
 
           // 🔹 5️⃣ If Change > 50%, Send Critical Alert
