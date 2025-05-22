@@ -161,9 +161,9 @@ export async function GET(request: NextRequest) {
         //   //console.error("Not enough price history to send notifications.")
         //   return null; // Skip if not enough data
         // } 
-
-        const latestPrice = priceHistory[0]?.price;
-        const latestPriceMarketCapUsd = priceHistory[0]?.marketCapSol && solPriceUsd ? priceHistory[0].marketCapSol * solPriceUsd : undefined
+        const mostRecentPriceData: PriceData = priceHistory[priceHistory.length - 1]
+        const latestPrice = mostRecentPriceData?.price;
+        const latestPriceMarketCapUsd = mostRecentPriceData?.marketCapSol && solPriceUsd ? mostRecentPriceData.marketCapSol * solPriceUsd : undefined
         let alertType: "normal" | "critical" | null = null;
         let alarmedConfig: AlarmConfig | null = null
         const minuteToAlarmConfig = getAlarmConfig(user.alarmPreset)
@@ -187,6 +187,7 @@ export async function GET(request: NextRequest) {
 
           // If token_minute got alarmed within minute threshold, skip
           if(!isTokenMinuteAfterCooldown(token, config[0], user.recentNotifications || {})){
+            console.warn("Skipping token due to cooldown")
             numberOfNotisSkipped++
             continue;
           }
