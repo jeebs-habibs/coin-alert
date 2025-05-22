@@ -272,37 +272,35 @@ export async function GET(request: NextRequest) {
         if (notification != null) {
           totalNotisSent++;
           try {
-          
-          const timestampMillis = Date.now()
+            const timestampMillis = Date.now();
 
-          // Prepare notification data for Redis
-          const notificationData: RecentNotification = {
-            uid: notification.userId,
-            mint: notification.token,
-            percentChange: notification.priceChange,
-            alertType: notification.alertType,
-            minutes: notification.minutes,
-            percentageBreached: notification.percentageBreached,
-            timestamp: timestampMillis
-          };
+            // Prepare notification data for Redis
+            const notificationData: RecentNotification = {
+              uid: notification.userId,
+              mint: notification.token,
+              percentChange: notification.priceChange,
+              alertType: notification.alertType,
+              minutes: notification.minutes,
+              percentageBreached: notification.percentageBreached,
+              timestamp: timestampMillis,
+            };
 
-          // Use current timestamp as the score
+            // Generate daily key (e.g., notifications:2025-05-21)
+            const date = new Date();
+            const dateKey = `notifications:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-          // Generate daily key (e.g., notifications:2025-05-21)
-          const date = new Date();
-          const dateKey = `notifications:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            // Add to Redis sorted set using zAdd
+            await redisClient.zAdd(dateKey, {
+              score: timestampMillis,
+              value: JSON.stringify(notificationData),
+            });
 
-          
-            // Add to Redis sorted set
-            await redisClient.zadd(
-              dateKey,
-              timestampMillis,
-              JSON.stringify(notificationData)
-            );
-
-            // Set TTL of 7 days (259200 seconds) if the key is new
+            // Set TTL of 7 days (259200 seconds)
             await redisClient.expire(dateKey, 7 * 24 * 60 * 60);
-
+          } catch (error){
+            console.error(`Failed to store notification in redis for user ${notification.userId}:`, error);
+          }
+          try {
             // Send the notification
             await sendNotification(
               notification.userId,
@@ -315,11 +313,12 @@ export async function GET(request: NextRequest) {
               notification?.marketCapUsd
             );
           } catch (error) {
-            console.error(`Failed to store or send notification for user ${notification.userId}:`, error);
+            console.error(`Failed to send notification for user ${notification.userId}:`, error);
           }
         }
       })
     );
+
     const endTime = Date.now()
     const timeInSeconds = (endTime - startTime) / 1000
     const metrics = `
