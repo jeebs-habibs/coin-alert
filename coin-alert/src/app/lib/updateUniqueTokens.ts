@@ -362,8 +362,8 @@ export async function updateUniqueTokens() {
             }
           });
 
-          console.log("Got " + walletTokenMints.size + " unique tokens from wallet " + wallet)
-          console.log(wallet + " owns tokens: " + [...walletTokenMints].join())
+          //console.log("Got " + walletTokenMints.size + " unique tokens from wallet " + wallet)
+          //console.log(wallet + " owns tokens: " + [...walletTokenMints].join())
 
           // Get each token from redis, and if it doesn't exist create an entry
           const mintToToken = new Map<string, Token>();
