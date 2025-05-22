@@ -21,9 +21,9 @@ let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
 let tokensDeadFromTransactions = 0
 let totalTokensWithoutMetadata = 0
-let totalMetadataFetchSkipped = 0
 let totalSucceededToGetMetadata = 0
 let totalFailedToGetMetadata = 0
+const METADATA_FETCH_FAILURE_LIMIT = 7
 
 const poolFetchTimes: number[] = []
 
@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
         }
 
         if(tokenFromRedis &&
-          !tokenFromRedis.tokenData?.tokenMetadata?.symbol
+          !tokenFromRedis.tokenData?.tokenMetadata?.symbol &&
+          (tokenFromRedis.tokenData?.metadataFetchFailures || 0) < METADATA_FETCH_FAILURE_LIMIT
         ){
           tokensWithoutMetadata.push([tokenMint, tokenFromRedis])
           totalTokensWithoutMetadata++;
@@ -134,7 +135,6 @@ export async function GET(request: NextRequest) {
     await Promise.all(
       tokensWithoutMetadata.map(async ([mint, token]) => {
         try {
-          if(!token?.tokenData?.tokenMetadata && (token?.tokenData?.metadataFetchFailures || 0) < 7){
             const metadataFromBlockchain = await getTokenMetadataFromBlockchain(mint)
             if(metadataFromBlockchain){
               token.tokenData = {
@@ -151,9 +151,6 @@ export async function GET(request: NextRequest) {
               }
             }
             updateTokenInRedis(mint, token, redisClient)
-          } else {
-            totalMetadataFetchSkipped++
-          }
         } catch (e) {
           console.error("Error fetching metadata for token " + mint + e)
         }
@@ -170,7 +167,6 @@ export async function GET(request: NextRequest) {
       Metadata updated successfully in ${((timeAfterMetadata - timeAfterPoolUpdate) / 1000).toFixed(2)} seconds.
       Succeeded to get metadata for ${totalSucceededToGetMetadata} tokens.
       Failed to get metadata for ${totalFailedToGetMetadata} tokens.
-      Skipped getting metadata for ${totalMetadataFetchSkipped} tokens
       Got tokens with missing pool data in ${timeToGetTokensSeconds} seconds.
       Tokens with pool data: ${tokensWithPoolData},
       without pool data: ${tokensWithoutPoolData},
