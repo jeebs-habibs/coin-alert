@@ -66,6 +66,19 @@ function isTokenMinuteAfterCooldown(
   return (elapsedTime > minutes) || is10MinsSinceLastNotiForToken; // ✅ Return true if notification is older than cooldown
 }
 
+function getLastPriceBeforeTimestamp(
+  timestamp: number,
+  prices: PriceData[]
+): PriceData | undefined {
+  // Iterate backwards since the list is sorted from oldest to newest
+  for (let i = prices.length - 1; i >= 0; i--) {
+    if (prices[i].timestamp < timestamp) {
+      return prices[i];
+    }
+  }
+  return undefined; // No price older than the given timestamp
+}
+
 // 🔹 Main API Function
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -172,9 +185,9 @@ export async function GET(request: NextRequest) {
         let percentageBreached = 0
 
         for (const config of minuteToAlarmConfig) {
-          const oldPriceEntry = priceHistory.find(
-            (entry) => entry.timestamp <= Date.now() - config[0] * 60 * 1000
-          );
+          const nowMinusMinutesMillis = Date.now() - config[0] * 60 * 1000
+          const oldPriceEntry = getLastPriceBeforeTimestamp(nowMinusMinutesMillis, priceHistory)
+
           if(token == "HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump" || token == "BmMu5Mtuf3gsG8tX9qwdrFEpCa7JiAQpFncaMpa5pump"){
             console.log(`Old price: ${oldPriceEntry?.price} and latest price ${latestPrice} for token ${token}`)
           }
