@@ -144,6 +144,10 @@ export async function GET(request: NextRequest) {
         //   return null
         // }
         const priceHistory = (await getTokenPricesCached(token, pricesCache, redisClient)) || [];
+        if(token == "HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump"){
+          console.log("Price history for token HZju4Hc1dmK3d1b8Vz4DXDiPiHcUu9vZQiqUT8RDpump")
+          console.log(JSON.stringify(priceHistory))
+        }
 
         // console.log("Price history: ")
         // priceHistory.forEach((p) => {
