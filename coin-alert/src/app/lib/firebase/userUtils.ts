@@ -3,6 +3,8 @@ import { adminDB } from "./firebaseAdmin";
 import { TokenMetadata } from "./tokenUtils";
 
 export interface RecentNotification {
+  uid?: string;
+  mint?: string;
   timestamp: number;
   percentageBreached: number;
   minutes: number;

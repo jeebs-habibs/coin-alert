@@ -242,14 +242,58 @@ export async function GET(request: NextRequest) {
 
     // 🔹 8️⃣ Send Notifications in Bulk
     await Promise.all(
-      notificationsToSend.map((notification) => {
-        if(notification != null){
-          totalNotisSent++
-          sendNotification(notification.userId, notification.token, notification.priceChange, notification.alertType, notification.minutes, notification.percentageBreached, tokensCache.get(notification.token), notification?.marketCapUsd)
+      notificationsToSend.map(async (notification) => {
+        if (notification != null) {
+          totalNotisSent++;
+          try {
+          
+          const timestampMillis = Date.now()
+
+          // Prepare notification data for Redis
+          const notificationData: RecentNotification = {
+            uid: notification.userId,
+            mint: notification.token,
+            percentChange: notification.priceChange,
+            alertType: notification.alertType,
+            minutes: notification.minutes,
+            percentageBreached: notification.percentageBreached,
+            timestamp: timestampMillis
+          };
+
+          // Use current timestamp as the score
+
+          // Generate daily key (e.g., notifications:2025-05-21)
+          const date = new Date();
+          const dateKey = `notifications:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+          
+            // Add to Redis sorted set
+            await redisClient.zadd(
+              dateKey,
+              timestampMillis,
+              JSON.stringify(notificationData)
+            );
+
+            // Set TTL of 7 days (259200 seconds) if the key is new
+            await redisClient.expire(dateKey, 7 * 24 * 60 * 60);
+
+            // Send the notification
+            await sendNotification(
+              notification.userId,
+              notification.token,
+              notification.priceChange,
+              notification.alertType,
+              notification.minutes,
+              notification.percentageBreached,
+              tokensCache.get(notification.token),
+              notification?.marketCapUsd
+            );
+          } catch (error) {
+            console.error(`Failed to store or send notification for user ${notification.userId}:`, error);
+          }
         }
       })
     );
-
     const endTime = Date.now()
     const timeInSeconds = (endTime - startTime) / 1000
     const metrics = `
