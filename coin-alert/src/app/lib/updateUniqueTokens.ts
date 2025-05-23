@@ -239,9 +239,17 @@ function isTokenOverThreshold(prices: PriceData[] | undefined, tokenAmount: numb
     return true
   }
   if(prices.length == 1){
-    return ((prices[0].price * tokenAmount) > SOL_THRESHOLD)
+    const priceData = prices[0]
+    if(priceData?.price){
+      return ((priceData.price * tokenAmount) > SOL_THRESHOLD)
+    }
+    return true
   }
-  return ((prices[prices.length - 1].price * tokenAmount) > SOL_THRESHOLD)
+  const priceData = prices[prices.length - 1]
+  if(priceData?.price){
+    return ((priceData.price * tokenAmount) > SOL_THRESHOLD)
+  }
+  return true
 }
 
 // 🔹 Store Token Price in Redis (instead of Firestore)
