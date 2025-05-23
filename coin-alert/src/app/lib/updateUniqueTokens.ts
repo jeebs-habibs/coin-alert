@@ -11,10 +11,10 @@ import { blockchainTaskQueue } from "./taskQueue";
 // import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { getRedisClient, RedisClient } from "./redis";
 import { getTokenCached, updateTokenInRedis } from './redis/tokens';
-import { getLastHourPrices } from './utils/priceAlertHelper';
 import { calculateTokenPrice } from './utils/solanaServer';
 import { PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
+import { getTokenPrices } from "./redis/prices";
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()
@@ -234,11 +234,14 @@ function getTrackedToken(set: Set<TrackedToken>, mint: string): TrackedToken | u
   return undefined;
 }
 
-function isTokenOverThreshold(price: number | null, tokenAmount: number): boolean {
-  if(price == null){
+function isTokenOverThreshold(prices: PriceData[] | undefined, tokenAmount: number): boolean {
+  if(!prices){
     return true
   }
-  return ((price * tokenAmount) > SOL_THRESHOLD)
+  if(prices.length == 1){
+    return ((prices[0].price * tokenAmount) > SOL_THRESHOLD)
+  }
+  return ((prices[prices.length - 1].price * tokenAmount) > SOL_THRESHOLD)
 }
 
 // 🔹 Store Token Price in Redis (instead of Firestore)
@@ -367,6 +370,7 @@ export async function updateUniqueTokens() {
 
           // Get each token from redis, and if it doesn't exist create an entry
           const mintToToken = new Map<string, Token>();
+          const mintToPrices = new Map<string, PriceData[]>();
           await Promise.all(
             Array.from(walletTokenMints).map(async (mint) => {
               try {
@@ -379,7 +383,10 @@ export async function updateUniqueTokens() {
                 } else {
                   mintToToken.set(mint, tokenObj[0]);
                 }
-                
+
+                const priceData = await getTokenPrices(mint, redisClient)
+                mintToPrices.set(mint, priceData)
+              
               } catch (error) {
                 console.error(`Error fetching token ${mint}:`, error);
               }
@@ -398,10 +405,11 @@ export async function updateUniqueTokens() {
                 if (amount <= 50 || isInvalidMint(mint)) return;
 
                 const tokenObj = mintToToken.get(mint);
+                const tokenPrices = mintToPrices.get(mint);
                 if (
                   !tokenObj || (tokenObj?.isDead != true &&
                   (tokenObj?.tokenData?.priceFetchFailures || 0) < PRICE_FETCH_THRESHOLD &&
-                  isTokenOverThreshold(getLastHourPrices(tokenObj)[0]?.price, amount))
+                  isTokenOverThreshold(tokenPrices, amount))
                 ) {
                   //console.log("Adding tracked token: " + mint)
                   uniqueTokensSet.add(mint);
@@ -502,7 +510,7 @@ export async function updateUniqueTokens() {
               }
               
               // Update token with incremented failure counter
-              updateTokenInRedis(token, updatedToken, redisClient)
+              await updateTokenInRedis(token, updatedToken, redisClient)
             }
           } else {
             console.error("No pool data for token: " + token)
@@ -522,7 +530,7 @@ export async function updateUniqueTokens() {
                 totalUncachedPoolData++
               }
               //console.log("Got price for token: " + token + " price: " + data.price.marketCapSol)
-              storeTokenPrice(token, data.price, data.tokenData, redisClient);
+              await storeTokenPrice(token, data.price, data.tokenData, redisClient);
             } else {
               totalFailedPrice++;
             }
@@ -536,7 +544,7 @@ export async function updateUniqueTokens() {
       })
     );
 
-    redisClient.close()
+    await redisClient.quit()
 
     // 🔹 Metrics Summary
     const totalProcessed = totalSucceedPrice + totalFailedPrice;

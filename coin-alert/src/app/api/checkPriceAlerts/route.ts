@@ -290,7 +290,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    redisClient.close()
+    await redisClient.quit()
 
     const endTime = Date.now()
     const timeInSeconds = (endTime - startTime) / 1000

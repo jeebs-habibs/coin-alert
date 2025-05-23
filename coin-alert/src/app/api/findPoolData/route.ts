@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
             // console.warn("Marking " + mint + " as dead")
             token.isDead = true
             tokensDeadFromTransactions++
-            retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+            await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
             return 
           }
         }
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
         if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
             token.isDead = true
             tokenDeadFromScam++
-            retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+            await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
             return 
         }
 
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
             priceFetchFailures: existingPriceFetchFailures + 1
           }
         }
-        retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+        await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
       } catch (e) {
         console.error(`ERROR for token ${mint}:\n${e instanceof Error ? e.stack : e}`);
       }
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
               }
               console.warn("Failed to get metadata for token: " + mint)
             }
-            updateTokenInRedis(mint, token, redisClient)
+            await updateTokenInRedis(mint, token, redisClient)
         } catch (e) {
           console.error("Error fetching metadata for token " + mint + e)
         }
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
     )
   )
 
-    redisClient.close()
+    await redisClient.quit()
 
     const timeAfterMetadata = Date.now()
 
