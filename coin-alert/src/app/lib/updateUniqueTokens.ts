@@ -536,6 +536,8 @@ export async function updateUniqueTokens() {
       })
     );
 
+    redisClient.close()
+
     // 🔹 Metrics Summary
     const totalProcessed = totalSucceedPrice + totalFailedPrice;
     const metadataFailureRate = (totalFailedToGetMetadata / totalUniqueTokens) * 100;

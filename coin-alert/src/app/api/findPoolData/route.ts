@@ -170,6 +170,8 @@ export async function GET(request: NextRequest) {
     )
   )
 
+    redisClient.close()
+
     const timeAfterMetadata = Date.now()
 
     const avgPoolFetchTime = getAverage(poolFetchTimes);

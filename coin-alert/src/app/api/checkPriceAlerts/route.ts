@@ -290,6 +290,8 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    redisClient.close()
+
     const endTime = Date.now()
     const timeInSeconds = (endTime - startTime) / 1000
     const metrics = `

@@ -131,6 +131,7 @@ async function updateRedisWithNotification(uid: string, token: string, percentCh
 
     // Set TTL of 7 days (259200 seconds)
     redisClient.expire(dateKey, 7 * 24 * 60 * 60);
+    redisClient.close()
   } catch (error){
     console.error(`Failed to store notification in redis for user ${uid}:`, error);
   }
