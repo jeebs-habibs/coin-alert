@@ -20,6 +20,7 @@ let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
 let tokensDeadFromTransactions = 0
+let tokenDeadFromScam = 0
 let totalTokensWithoutMetadata = 0
 let totalSucceededToGetMetadata = 0
 let totalFailedToGetMetadata = 0
@@ -87,10 +88,11 @@ export async function GET(request: NextRequest) {
     const timeToGetTokensSeconds = (timeAfterGettingTokens - timeBeforeGettingTokens) / 1000
     console.log("Got " + tokensWithoutPoolType.length + " total tokens with missing pool data in " + timeToGetTokensSeconds  + " seconds.")
     // LIMIT how many tokens you process to stay under time limit
-    const tokensToProcess = tokensWithoutPoolType.slice(0, MAX_TOKENS_TO_PROCESS);
-    console.log("Getting pool data for tokens: " + tokensToProcess.map(a => a[0]).join(","))
+    const tokensWithoutPoolTypeToProcess = tokensWithoutPoolType.slice(0, MAX_TOKENS_TO_PROCESS);
+    console.log("Getting pool data for tokens: " + tokensWithoutPoolTypeToProcess.map(a => a[0]).join(","))
 
-    await Promise.all(tokensToProcess.map(async ([mint, token]) => {
+    // Check if dead and if not get pool data for subset of tokens
+    await Promise.all(tokensWithoutPoolTypeToProcess.map(async ([mint, token]) => {
       try {
         // First, see when the last transaction once and set isDead = true if its over 1 month.
         const mintPubkey = new PublicKey(mint)
@@ -108,6 +110,14 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Then set isDead = true if someone holds over 500M tokens
+        const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(mintPubkey))
+        if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
+            token.isDead = true
+            tokenDeadFromScam++
+            retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+            return 
+        }
 
         const timeBeforeFetchPoolData = Date.now();
         const poolData = await findTokenPoolData(mint);
@@ -132,6 +142,7 @@ export async function GET(request: NextRequest) {
 
     const timeAfterPoolUpdate = Date.now();
 
+    // Get metadata for tokens missing it
     await Promise.all(
       tokensWithoutMetadata.map(async ([mint, token]) => {
         try {
@@ -173,6 +184,7 @@ export async function GET(request: NextRequest) {
       without pool data: ${tokensWithoutPoolData},
       without metadata: ${totalTokensWithoutMetadata},
       Tokens dead from transactions ${tokensDeadFromTransactions} 
+      Token dead from scam ${tokenDeadFromScam}
       Token pool data fetch: ${tokenPoolDataFound} 
       Token pool data fetch fail: ${tokenPoolDataNotFound} 
       Average pool fetch time: ${avgPoolFetchTime} ms 
