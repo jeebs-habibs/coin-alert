@@ -24,6 +24,8 @@ let tokenDeadFromScam = 0
 let totalTokensWithoutMetadata = 0
 let totalSucceededToGetMetadata = 0
 let totalFailedToGetMetadata = 0
+let totalTokensAlive = 0
+
 const METADATA_FETCH_FAILURE_LIMIT = 3
 
 const poolFetchTimes: number[] = []
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
     const redisClient = await getRedisClient();
     const tokensWithoutPoolType: [string, Token][] = [];
     const tokensWithoutMetadata: [string, Token][] = [];
+    const tokensAlive: [string, Token][] = [];
 
     const iter = redisClient.scanIterator({
       MATCH: "token:*",
@@ -81,6 +84,11 @@ export async function GET(request: NextRequest) {
           tokensWithoutMetadata.push([tokenMint, tokenFromRedis])
           totalTokensWithoutMetadata++;
         }
+
+        if(tokenFromRedis && tokenFromRedis.isDead == false){
+          tokensAlive.push([tokenMint, tokenFromRedis])
+          totalTokensAlive++;
+        }
       }
     }
 
@@ -108,15 +116,6 @@ export async function GET(request: NextRequest) {
             await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
             return 
           }
-        }
-
-        // Then set isDead = true if someone holds over 500M tokens
-        const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(mintPubkey))
-        if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
-            token.isDead = true
-            tokenDeadFromScam++
-            await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
-            return 
         }
 
         const timeBeforeFetchPoolData = Date.now();
@@ -168,8 +167,20 @@ export async function GET(request: NextRequest) {
         }
       }
     )
-  )
+    )
 
+    await Promise.all(tokensAlive.map(async ([mint, token]) => {
+        // Then set isDead = true if someone holds over 500M tokens
+        const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(new PublicKey(mint)))
+        if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
+            token.isDead = true
+            tokenDeadFromScam++
+            await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+            return 
+        }
+      })
+    )
+  
     await redisClient.quit()
 
     const timeAfterMetadata = Date.now()
@@ -187,6 +198,7 @@ export async function GET(request: NextRequest) {
       without metadata: ${totalTokensWithoutMetadata},
       Tokens dead from transactions ${tokensDeadFromTransactions} 
       Token dead from scam ${tokenDeadFromScam}
+      Tokens alive ${totalTokensAlive}
       Token pool data fetch: ${tokenPoolDataFound} 
       Token pool data fetch fail: ${tokenPoolDataNotFound} 
       Average pool fetch time: ${avgPoolFetchTime} ms 
