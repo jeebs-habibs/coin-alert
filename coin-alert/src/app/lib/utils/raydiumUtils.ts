@@ -8,7 +8,7 @@ import { heliusConnection } from "../connection";
 import { heliusPoolQueue } from "../taskQueue";
 import { PoolData } from "./solanaUtils";
 
-const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
+export const RAYDIUM_SWAP_PROGRAM = new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 
 // Define a function to fetch and decode OpenBook accounts
 export async function fetchRaydiumPoolAccountsFromToken(mint: PublicKey): Promise<PoolData | undefined> {

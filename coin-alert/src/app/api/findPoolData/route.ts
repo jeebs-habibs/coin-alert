@@ -6,7 +6,7 @@ import { getTokenFromRedis, updateTokenInRedis } from "@/app/lib/redis/tokens";
 import { retryOnServerError } from "@/app/lib/retry";
 import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
-import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
+import { fetchPumpSwapAMM, getPriceFromBondingCurve} from "@/app/lib/utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
 import { PoolData } from "@/app/lib/utils/solanaUtils";
 import { getTokenMetadataFromBlockchain } from "@/app/lib/utils/tokenMetadata";
@@ -20,7 +20,7 @@ let tokenPoolDataFound = 0
 let tokenPoolDataNotFound = 0
 let tokensNotFoundInRedis = 0
 let tokensDeadFromTransactions = 0
-let tokenDeadFromScam = 0
+// let tokenDeadFromScam = 0
 let totalTokensWithoutMetadata = 0
 let totalSucceededToGetMetadata = 0
 let totalFailedToGetMetadata = 0
@@ -33,6 +33,11 @@ const poolFetchTimes: number[] = []
 const MAX_TOKENS_TO_PROCESS = 200; // Adjust based on your average fetch time
 const PRICE_FETCH_ERROR_THRESHOLD = 7;
 const MONTH_IN_SECONDS = 60 * 60 * 24 * 28
+
+
+// function isAddressPool(address: string){
+//   return (address == PUMP_FUN_PROGRAM.toString() || address == PUMP_SWAP_PROGRAM.toString() || address == METEORA_POOLS_PROGRAM || address == RAYDIUM_SWAP_PROGRAM.toString())
+// }
 
 // function getRandomSubsetByPercent<T>(list: T[], percent: number): T[] {
 //   if (percent < 0 || percent > 100) {
@@ -134,13 +139,18 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(new PublicKey(mint)))
-        if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
-            token.isDead = true
-            tokenDeadFromScam++
-            await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
-            return 
-        }
+
+        // Most coins, the liquidity 
+        // const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(new PublicKey(mint)))
+        // const whaleHolder = largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)
+        // if(whaleHolder){
+        //     const whaleAccountInfo = await blockchainTaskQueue.addTask(() => connection.getAccountInfo(whaleHolder.address))
+        //     whaleAccountInfo?.owner
+        //     token.isDead = true
+        //     tokenDeadFromScam++
+        //     await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+        //     return 
+        // }
 
         const timeBeforeFetchPoolData = Date.now();
         const poolData = await findTokenPoolData(mint);
@@ -223,7 +233,6 @@ export async function GET(request: NextRequest) {
       without pool data: ${tokensWithoutPoolData},
       without metadata: ${totalTokensWithoutMetadata},
       Tokens dead from transactions ${tokensDeadFromTransactions} 
-      Token dead from scam ${tokenDeadFromScam}
       Tokens alive ${totalTokensAlive}
       Token pool data fetch: ${tokenPoolDataFound} 
       Token pool data fetch fail: ${tokenPoolDataNotFound} 

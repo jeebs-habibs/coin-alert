@@ -5,7 +5,7 @@ import { heliusConnection } from "../connection";
 import * as borsh from "@coral-xyz/borsh";
 import { PoolData } from "./solanaUtils";
 
-const METEORA_POOLS_PROGRAM = "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB"
+export const METEORA_POOLS_PROGRAM = "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB"
 
 const meteoraMarketSchema = borsh.struct([
 // Discriminator (8 bytes, program-specific identifier for the account type)

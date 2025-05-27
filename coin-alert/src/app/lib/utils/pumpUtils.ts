@@ -6,8 +6,8 @@ import { GetPriceResponse } from "../firebase/tokenUtils";
 import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
 import { BILLION, PoolData } from "./solanaUtils";
 
-const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-const PUMP_SWAP_PROGRAM = new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
+export const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+export const PUMP_SWAP_PROGRAM = new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
 
 const pumpSwapSchema = borsh.struct([
     borsh.array(borsh.u8(), 8, "discriminator"), // 8 bytes (f19a6d0411b16dbc)
