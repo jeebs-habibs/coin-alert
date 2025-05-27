@@ -34,21 +34,21 @@ const MAX_TOKENS_TO_PROCESS = 200; // Adjust based on your average fetch time
 const PRICE_FETCH_ERROR_THRESHOLD = 7;
 const MONTH_IN_SECONDS = 60 * 60 * 24 * 28
 
-function getRandomSubsetByPercent<T>(list: T[], percent: number): T[] {
-  if (percent < 0 || percent > 100) {
-    throw new Error("Percent must be between 0 and 100");
-  }
+// function getRandomSubsetByPercent<T>(list: T[], percent: number): T[] {
+//   if (percent < 0 || percent > 100) {
+//     throw new Error("Percent must be between 0 and 100");
+//   }
 
-  const subsetSize = Math.floor((percent / 100) * list.length);
+//   const subsetSize = Math.floor((percent / 100) * list.length);
 
-  const indices = new Set<number>();
-  while (indices.size < subsetSize) {
-    const randomIndex = Math.floor(Math.random() * list.length);
-    indices.add(randomIndex);
-  }
+//   const indices = new Set<number>();
+//   while (indices.size < subsetSize) {
+//     const randomIndex = Math.floor(Math.random() * list.length);
+//     indices.add(randomIndex);
+//   }
 
-  return Array.from(indices).map(index => list[index]);
-}
+//   return Array.from(indices).map(index => list[index]);
+// }
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -194,18 +194,18 @@ export async function GET(request: NextRequest) {
     )
 
     // TODO: Here we are checking random 20 coins to see if they are actually alive or are scam tokens. 
-    // Above logic only checks i 
-    await Promise.all(getRandomSubsetByPercent(tokensAlive, 20).map(async ([mint, token]) => {
-        // Then set isDead = true if someone holds over 500M tokens
-        const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(new PublicKey(mint)))
-        if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
-            token.isDead = true
-            tokenDeadFromScam++
-            await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
-            return 
-        }
-      })
-    )
+    // Commenting out bc too many requests.
+    // await Promise.all(getRandomSubsetByPercent(tokensAlive, 20).map(async ([mint, token]) => {
+    //     // Then set isDead = true if someone holds over 500M tokens
+    //     const largestHolders = await blockchainTaskQueue.addTask(() => connection.getTokenLargestAccounts(new PublicKey(mint)))
+    //     if(largestHolders.value.find((val) => val.uiAmount != null && val.uiAmount > 500000000)){
+    //         token.isDead = true
+    //         tokenDeadFromScam++
+    //         await retryOnServerError(() => updateTokenInRedis(mint, token, redisClient));
+    //         return 
+    //     }
+    //   })
+    // )
   
     await redisClient.quit()
 
