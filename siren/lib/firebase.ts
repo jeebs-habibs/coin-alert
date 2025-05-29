@@ -1,30 +1,33 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getMessaging } from "firebase/messaging";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+// firebaseConfig.ts
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE",
-  authDomain: "auth.sirennotify.com",
-  projectId: "coinalert-1872e",
-  storageBucket: "coinalert-1872e.firebasestorage.app",
-  messagingSenderId: "738018911031",
-  appId: "1:738018911031:web:a5ea56051bd5a2423630b2",
-  measurementId: "G-L5X3EPT8GM"
+  apiKey: 'AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE',
+  authDomain: 'auth.sirennotify.com',
+  projectId: 'coinalert-1872e',
+  storageBucket: 'coinalert-1872e.appspot.com',
+  messagingSenderId: '738018911031',
+  appId: '1:738018911031:web:a5ea56051bd5a2423630b2',
+  measurementId: 'G-L5X3EPT8GM',
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase App safely (avoid duplicate-app error)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Enable persistence.  `synchronizeTabs` is optional, but recommended
+// Initialize Auth with React Native persistence
+const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+});
 
-//const analytics = getAnalytics(app);
-export const auth = getAuth(app);
-export const db = getFirestore(app)
-export const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
+// Initialize Firestore
+const db = getFirestore(app);
 
+// Firebase messaging is not supported in Expo
+const messaging = null;
+
+export { app, auth, db, messaging };
