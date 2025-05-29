@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "738018911031-guac37nghico45bjo7e7o762kqa6tsmq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sirennotify.myapp",
+            "certificate_hash": "2147a686a17370cdc7670b8fbe2eb42c18260384"
+          }
+        },
+        {
           "client_id": "738018911031-i1ohtqlkva5a5k87uanrkojiafa0rkgh.apps.googleusercontent.com",
           "client_type": 3
         }

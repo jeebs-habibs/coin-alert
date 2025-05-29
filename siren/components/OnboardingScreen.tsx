@@ -5,10 +5,16 @@ import * as WebBrowser from 'expo-web-browser';
 import { colors } from '../constants/theme';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { useAuthRequest } from 'expo-auth-session/providers/google';
+
+
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Replace this with your real Firebase Web Client ID from Google Sign-In provider
+const CLIENT_ID = '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com';
 
 const TIERS = [
   { label: 'Basic', value: 'basic', price: '$9.99/mo' },
@@ -25,25 +31,37 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
 
   const [step, setStep] = useState(0); // 0 = auth, 1 = tier, 2 = referral
 
-  // const redirectUri = AuthSession.makeRedirectUri({
-  //   scheme: "com.googleusercontent.apps.738018911031-vp60on8brljuoubnfe6dhti3jerghu7e"
-  // });
-
-  // console.log("Redirect uri: " + redirectUri)
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  
+  const [request, response, promptAsync] = useAuthRequest({
     clientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
-    iosClientId: "738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com",
+    scopes: ['profile', 'email'],
+    responseType: 'id_token',
+    redirectUri: AuthSession.makeRedirectUri({
+      preferLocalhost: false,
+    }),
   });
 
   useEffect(() => {
     if (response?.type === 'success') {
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential);
+      signInWithCredential(auth, credential)
+        .then(() => console.log('User signed in'))
+        .catch((err) => console.error('Firebase sign-in error:', err));
     }
   }, [response]);
-  
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log(`Logged in as ${user.email}`);
+      } else {
+        console.log('User logged out');
+      }
+    });
+    return unsubscribe;
+  }, []);
+
 
 
   React.useEffect(() => {
