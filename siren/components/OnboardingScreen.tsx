@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Animated, Image, TextInput } from 'react-native';
 import { Button, Text, Icon } from 'react-native-elements';
+import * as WebBrowser from 'expo-web-browser';
 import { colors } from '../constants/theme';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const TIERS = [
   { label: 'Basic', value: 'basic', price: '$9.99/mo' },
@@ -23,14 +26,14 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
   const [step, setStep] = useState(0); // 0 = auth, 1 = tier, 2 = referral
 
   // const redirectUri = AuthSession.makeRedirectUri({
-  //   preferLocalhost: false, // Use Expo's proxy URI
+  //   scheme: "com.googleusercontent.apps.738018911031-vp60on8brljuoubnfe6dhti3jerghu7e"
   // });
 
   // console.log("Redirect uri: " + redirectUri)
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
-    iosClientId: "738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com"
+    iosClientId: "738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com",
   });
 
   useEffect(() => {
