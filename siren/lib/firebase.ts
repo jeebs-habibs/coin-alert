@@ -1,13 +1,13 @@
 // firebaseConfig.ts
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: 'AIzaSyBhXEAWxOXuRgkFAQdkkN7WYI4j7iyZCPE',
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: 'auth.sirennotify.com',
   projectId: 'coinalert-1872e',
   storageBucket: 'coinalert-1872e.appspot.com',
