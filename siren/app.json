@@ -33,8 +33,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "@react-native-google-signin/google-signin"
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true

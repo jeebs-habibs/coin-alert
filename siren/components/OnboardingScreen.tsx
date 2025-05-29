@@ -29,8 +29,8 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
   // console.log("Redirect uri: " + redirectUri)
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: '738018911031-i1ohtqlkva5a5k87uanrkojiafa0rkgh.apps.googleusercontent.com',
-    redirectUri: "https://auth.sirennotify.com/__/auth/handler"
+    clientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
+    iosClientId: "738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com"
   });
 
   useEffect(() => {
