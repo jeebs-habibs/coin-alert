@@ -1,96 +1,178 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import React, { useState } from 'react';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { LineChart as Chart } from 'react-native-chart-kit';
 
 export type DataPoint = {
-  timestamp: number; // UNIX timestamp (seconds or ms)
-  value: number; // USD value
+  timestamp: number; // UNIX timestamp
+  value: number;     // USD value
 };
 
-export type Props = {
+type Props = {
   data: DataPoint[];
   width?: number;
   height?: number;
 };
 
-export default function LineChart({ data, width = 350, height = 200 }: Props) {
-  if (!data || data.length === 0) {
-    return <View style={[styles.container, { width, height }]} />;
-  }
-
-  // Sort data by timestamp (just in case)
-  const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp);
-
-  // Extract min/max for scaling
-  const minX = sortedData[0].timestamp;
-  const maxX = sortedData[sortedData.length - 1].timestamp;
-  const values = sortedData.map((d) => d.value);
-  const minY = Math.min(...values);
-  const maxY = Math.max(...values);
-
-  // Normalize points to SVG coords
-  // X scaled between 0 and width
-  // Y scaled between height and 0 (SVG Y is top to bottom)
-  const points = sortedData.map(({ timestamp, value }) => {
-    const x = ((timestamp - minX) / (maxX - minX)) * width;
-    const y = height - ((value - minY) / (maxY - minY)) * height;
-    return { x, y };
+export default function LineChart({ data, width = Dimensions.get('window').width - 40, height = 200 }: Props) {
+  const [tooltipPos, setTooltipPos] = useState<{
+    x: number;
+    y: number;
+    value: number;
+    visible: boolean;
+    index: number;
+  }>({
+    x: 0,
+    y: 0,
+    value: 0,
+    visible: false,
+    index: -1,
   });
 
-  // Build path string
-  // We'll create a smooth path with quadratic Bezier curves for smoothness
-  // But if you want simple linear, just join with L
-  let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)} `;
-
-  for (let i = 1; i < points.length; i++) {
-    const midX = ((points[i].x + points[i - 1].x) / 2).toFixed(2);
-    const midY = ((points[i].y + points[i - 1].y) / 2).toFixed(2);
-    const prevX = points[i - 1].x.toFixed(2);
-    const prevY = points[i - 1].y.toFixed(2);
-    const currX = points[i].x.toFixed(2);
-    const currY = points[i].y.toFixed(2);
-
-    // Quadratic curve to midpoint, then line to current point
-    path += `Q ${prevX} ${prevY} ${midX} ${midY} T ${currX} ${currY} `;
+  if (!data || data.length === 0) {
+    return <View style={styles.emptyContainer}><Text>No data available</Text></View>;
   }
 
-  // For fill, close the path down to the bottom
-  const fillPath = `${path} L ${points[points.length - 1].x.toFixed(2)} ${height} L 0 ${height} Z`;
+  // Sort data by timestamp and prepare chart data
+  const sorted = [...data].sort((a, b) => a.timestamp - b.timestamp);
+  const values = sorted.map((point) => point.value);
+
+  // Calculate tooltip position with bounds checking
+  const getTooltipPosition = (x: number, y: number) => {
+    const tooltipWidth = 80;
+    const tooltipHeight = 40;
+    const padding = 10;
+    
+    // Ensure tooltip stays within chart boundaries
+    const adjustedX = Math.max(padding, Math.min(x - tooltipWidth / 2, width - tooltipWidth - padding));
+    const adjustedY = y < height / 2 ? y + 10 : y - tooltipHeight - 10;
+
+    return { adjustedX, adjustedY };
+  };
 
   return (
-    <View style={[styles.container, { width, height }]}>
-      <Svg width={width} height={height}>
-        <Defs>
-          <LinearGradient id="gradient" x1="0" y1="0" x2="0" y2={height.toString()}>
-            <Stop offset="0%" stopColor="#4c669f" stopOpacity={0.6} />
-            <Stop offset="100%" stopColor="#3b5998" stopOpacity={0.1} />
-          </LinearGradient>
-        </Defs>
+    <View style={styles.container}>
+      <Chart
+        data={{
+          labels: [],
+          datasets: [
+            {
+              data: values,
+              strokeWidth: 2,
+              color: () => '#10B981',
+            },
+          ],
+        }}
+        width={width}
+        height={height}
+        withDots={true}
+        withInnerLines={false}
+        withOuterLines={false}
+        withShadow={false}
+        withVerticalLabels={false}
+        withHorizontalLabels={false}
+        transparent={true}
+        chartConfig={{
+          backgroundColor: 'transparent',
+          backgroundGradientFrom: 'transparent',
+          backgroundGradientTo: 'transparent',
+          fillShadowGradient: 'transparent',
+          fillShadowGradientOpacity: 0,
+          decimalPlaces: 2,
+          color: () => '#10B981',
+          labelColor: () => 'transparent',
+          propsForBackgroundLines: {
+            stroke: 'transparent',
+            strokeWidth: 0,
+          },
+          propsForDots: {
+            r: '4',
+            strokeWidth: '2',
+            stroke: '#fff',
+            fill: '#10B981',
+          },
+          propsForLabels: {
+            fontSize: 0,
+          },
+        }}
+        bezier
+        style={styles.chart}
+        onDataPointClick={({ x, y, value, index }) => {
+          const isSamePoint = tooltipPos.index === index;
+          const { adjustedX, adjustedY } = getTooltipPosition(x, y);
 
-        {/* Filled area */}
-        <Path d={fillPath} fill="url(#gradient)" />
+          setTooltipPos({
+            x: adjustedX,
+            y: adjustedY,
+            value,
+            visible: !isSamePoint,
+            index,
+          });
+        }}
+        decorator={() => {
+          if (!tooltipPos.visible) return null;
 
-        {/* Line path */}
-        <Path
-          d={path}
-          fill="none"
-          stroke="#3b5998"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
+          return (
+            <View
+              style={[
+                styles.tooltip,
+                {
+                  left: tooltipPos.x,
+                  top: tooltipPos.y,
+                },
+              ]}
+            >
+              <Text style={styles.tooltipText}>
+                ${tooltipPos.value.toFixed(2)}
+              </Text>
+              <View style={styles.tooltipArrow} />
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+  },
+  chart: {
     borderRadius: 16,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: 'transparent',
+  },
+  emptyContainer: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tooltip: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    position: 'absolute',
+    zIndex: 1000,
+  },
+  tooltipText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  tooltipArrow: {
+    position: 'absolute',
+    bottom: -4,
+    left: '50%',
+    width: 8,
+    height: 8,
+    backgroundColor: '#10B981',
+    transform: [{ rotate: '45deg' }],
+    marginLeft: -4,
   },
 });

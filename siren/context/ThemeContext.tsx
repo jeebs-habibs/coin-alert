@@ -2,21 +2,21 @@
 import { darkTheme, theme as lightTheme } from '@/constants/theme'; // you'll need to create this
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 
 type ThemeType = typeof lightTheme;
 
 const ThemeContext = createContext<{
   theme: ThemeType;
-  toggleTheme: () => void;
   isDark: boolean;
 }>({
   theme: lightTheme,
-  toggleTheme: () => {},
   isDark: false,
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDark, setIsDark] = useState(false);
+  const colorScheme = useColorScheme()
 
   useEffect(() => {
     AsyncStorage.getItem('theme').then((value) => {
@@ -24,16 +24,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     });
   }, []);
 
-  const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    AsyncStorage.setItem('theme', newIsDark ? 'dark' : 'light');
-  };
 
   const theme = isDark ? darkTheme : lightTheme;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark }}>
+    <ThemeContext.Provider value={{ theme, isDark }}>
       {children}
     </ThemeContext.Provider>
   );

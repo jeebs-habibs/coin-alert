@@ -1,20 +1,62 @@
-// app/(tabs)/settings.tsx
 import { useCustomTheme } from '@/context/ThemeContext';
+import { getAuth, signOut } from 'firebase/auth';
 import React from 'react';
-import { View } from 'react-native';
-import { Switch, Text } from 'react-native-elements';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from 'react-native-elements';
 
 export default function SettingsScreen() {
-  const { isDark, toggleTheme } = useCustomTheme();
+  const { theme } = useCustomTheme();
+  const auth = getAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      Alert.alert('Success', 'You have been signed out.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to sign out.');
+    }
+  };
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
+    <View style={styles.container}>
       <Text h4>Settings</Text>
 
-      <View style={{ marginTop: 24, flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={{ marginRight: 10 }}>Dark Mode</Text>
-        <Switch value={isDark} onValueChange={toggleTheme} />
+      <View style={styles.settingRow}>
+        <Text style={styles.settingText}>Dark Mode</Text>
       </View>
+
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  settingRow: {
+    marginTop: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingText: {
+    fontSize: 16,
+  },
+  signOutButton: {
+    marginTop: 32,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  signOutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
