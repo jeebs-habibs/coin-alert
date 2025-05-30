@@ -1,31 +1,15 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
-
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { useColorScheme } from '@/components/useColorScheme';
-import { theme } from '../constants/theme';
-import { ThemeProvider } from 'react-native-elements';
-
-// Firebase
-import { auth } from '@/lib/firebase'; // adjust this import to your setup
+import { ThemeProvider, useCustomTheme } from '@/context/ThemeContext';
+import { UserProvider } from '@/context/UserContext';
+import { auth } from '@/lib/firebase';
+import { Stack } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import OnboardingScreen from '../components/OnboardingScreen';
 
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+export default function RootLayoutWrapper() {
+  const [user, setUser] = useState<User | null | undefined>(undefined);
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const [user, setUser] = useState<User | null | undefined>(undefined); // undefined = loading
-
-  // Listen for auth changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
@@ -34,7 +18,6 @@ export default function TabLayout() {
   }, []);
 
   if (user === undefined) {
-    // Still checking auth state
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -42,53 +25,29 @@ export default function TabLayout() {
     );
   }
 
+  return (
+    <ThemeProvider>
+      <InnerApp user={user} setUser={setUser} />
+    </ThemeProvider>
+  );
+}
+
+function InnerApp({ user, setUser }: { user: User | null; setUser: (u: User | null) => void }) {
+  const { theme } = useCustomTheme();
+
   if (!user) {
-    // Not signed in
     return (
-      <ThemeProvider theme={theme}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <OnboardingScreen onComplete={() => setUser(auth.currentUser)} />
-      </ThemeProvider>
+      </View>
     );
   }
 
-  // Signed in
   return (
-    <ThemeProvider theme={theme}>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: theme.colors.primary,
-          headerShown: useClientOnlyValue(false, true),
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="home" color={color} />,
-            headerRight: () => (
-              <Link href="/modal" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="bell"
-                      size={25}
-                      color={theme.colors.text}
-                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="two"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="user" color={color} />,
-          }}
-        />
-      </Tabs>
-    </ThemeProvider>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <UserProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </UserProvider>
+    </View>
   );
 }

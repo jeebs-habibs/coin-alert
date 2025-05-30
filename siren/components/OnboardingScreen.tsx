@@ -1,13 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, Animated, Image, TextInput } from 'react-native';
-import { Button, Text, Icon } from 'react-native-elements';
-import * as WebBrowser from 'expo-web-browser';
-import { colors } from '../constants/theme';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential } from 'firebase/auth';
-import { auth } from '../lib/firebase';
 import { useAuthRequest } from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential } from 'firebase/auth';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Image, StyleSheet, TextInput, View } from 'react-native';
+import { Button, Icon, Text } from 'react-native-elements';
+import { auth } from '../lib/firebase';
 
 
 
@@ -107,7 +104,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
           </Animated.View>
           {/* Welcome Title & Description */}
           <Animated.View style={{ opacity: introAnim, marginBottom: 24, alignItems: 'center' }}>
-            <Text style={{ fontSize: 28, fontWeight: 'bold', color: colors.primary, marginBottom: 10, fontFamily: 'LexendMega' }}>Welcome to Siren</Text>
+            <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 10, fontFamily: 'LexendMega' }}>Welcome to Siren</Text>
             <Text style={{ fontSize: 16, color: '#333', textAlign: 'center', opacity: 0.85, marginBottom: 6, fontFamily: 'LexendMega', lineHeight: 26 }}>
               The first Solana memecoin notification platform. Add your trading wallets and get realtime alerts when your coins move in price.
             </Text>
@@ -124,7 +121,6 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
             {/* Log In Text */}
             <Text
               style={{
-                color: colors.primary,
                 textAlign: 'center',
                 textDecorationLine: 'underline',
                 fontWeight: 'bold',
@@ -201,7 +197,6 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
     // Optional: background gradient or pattern can go here
   },
   logoContainer: {
@@ -227,7 +222,6 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: colors.primary,
     textAlign: 'center',
     letterSpacing: 2,
     marginBottom: 6,
@@ -244,7 +238,6 @@ const styles = StyleSheet.create({
   },
   formCard: {
     width: '100%',
-    backgroundColor: colors.background,
     borderRadius: 18,
     padding: 22,
     elevation: 5,
@@ -262,8 +255,6 @@ const styles = StyleSheet.create({
     fontFamily: 'LexendMega',
   },
   primaryButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
     borderRadius: 24,
     paddingVertical: 12,
     elevation: 2,
@@ -273,7 +264,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   arrowButton: {
-    backgroundColor: colors.primary,
     borderRadius: 50,
     paddingVertical: 10,
     paddingHorizontal: 22,
@@ -285,13 +275,11 @@ const styles = StyleSheet.create({
   },
   tierButton: {
     backgroundColor: '#fff',
-    color: colors.muted,
     borderRadius: 18,
     paddingVertical: 12,
     marginBottom: 8,
   },
   selectedTierButton: {
-    backgroundColor: colors.primary,
     borderRadius: 18,
     paddingVertical: 12,
     marginBottom: 8,
