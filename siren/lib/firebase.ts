@@ -1,13 +1,15 @@
-// firebaseConfig.ts
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import Constants from 'expo-constants';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Your Firebase configuration
+// Pull the Firebase API key from Expo constants
+const { firebaseApiKey } = Constants.expoConfig?.extra || {};
+
+// Your Firebase configuration, with dynamic apiKey
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
+  apiKey: firebaseApiKey || '', // fallback to empty string if undefined
   authDomain: 'auth.sirennotify.com',
   projectId: 'coinalert-1872e',
   storageBucket: 'coinalert-1872e.appspot.com',
@@ -21,7 +23,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Auth with React Native persistence
 const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
+  persistence: getReactNativePersistence(AsyncStorage),
 });
 
 // Initialize Firestore

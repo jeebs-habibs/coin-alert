@@ -34,11 +34,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
   
   const [request, response, promptAsync] = useAuthRequest({
     clientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
-    scopes: ['profile', 'email'],
-    responseType: 'id_token',
-    redirectUri: AuthSession.makeRedirectUri({
-      preferLocalhost: false,
-    }),
+    iosClientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
   });
 
   useEffect(() => {
