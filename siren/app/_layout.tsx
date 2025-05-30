@@ -5,13 +5,14 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { theme } from '../constants/theme';
+import { ThemeProvider } from 'react-native-elements';
 
 // Firebase
 import { auth } from '@/lib/firebase'; // adjust this import to your setup
 import { onAuthStateChanged, User } from 'firebase/auth';
 
-import SignInScreen from '@/app/signin'; // you'll need to create this
+import OnboardingScreen from '../components/OnboardingScreen';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -43,45 +44,51 @@ export default function TabLayout() {
 
   if (!user) {
     // Not signed in
-    return <SignInScreen />;
+    return (
+      <ThemeProvider theme={theme}>
+        <OnboardingScreen onComplete={() => setUser(auth.currentUser)} />
+      </ThemeProvider>
+    );
   }
 
   // Signed in
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: useClientOnlyValue(false, true),
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="bell"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+    <ThemeProvider theme={theme}>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: theme.colors.primary,
+          headerShown: useClientOnlyValue(false, true),
         }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="home" color={color} />,
+            headerRight: () => (
+              <Link href="/modal" asChild>
+                <Pressable>
+                  {({ pressed }) => (
+                    <FontAwesome
+                      name="bell"
+                      size={25}
+                      color={theme.colors.text}
+                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                    />
+                  )}
+                </Pressable>
+              </Link>
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="two"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color }: { color: string }) => <TabBarIcon name="user" color={color} />,
+          }}
+        />
+      </Tabs>
+    </ThemeProvider>
   );
 }
