@@ -1,8 +1,8 @@
-import Constants from 'expo-constants';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // Pull the Firebase API key from Expo constants
 const { firebaseApiKey } = Constants.expoConfig?.extra || {};
