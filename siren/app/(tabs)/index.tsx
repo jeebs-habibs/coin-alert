@@ -1,15 +1,23 @@
 import LineChart, { DataPoint } from '@/components/Chart';
 import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text } from '@/components/Themed';
+import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from 'react-native';
 import OnboardingScreen from '../../components/OnboardingScreen';
 import { auth } from '../../lib/firebase';
 
-
 export default function HomeScreen() {
+  const scheme = useColorScheme();
+  const theme = getTheme(scheme ?? 'light');
+
   const [checking, setChecking] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const { firebaseUser } = useUser();
@@ -22,10 +30,12 @@ export default function HomeScreen() {
     return () => unsub();
   }, []);
 
+  const styles = getStyles(theme);
+
   if (checking) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -54,22 +64,24 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 20,
-    height: 1,
-    width: '80%',
-    backgroundColor: '#ddd',
-  },
-});
+const getStyles = (theme: ReturnType<typeof getTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.background,
+      paddingTop: theme.spacing.lg,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+    },
+    separator: {
+      marginVertical: theme.spacing.md,
+      height: 1,
+      width: '80%',
+      backgroundColor: theme.colors.muted,
+    },
+  });

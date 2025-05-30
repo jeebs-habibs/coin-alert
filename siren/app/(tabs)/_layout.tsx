@@ -1,11 +1,10 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useColorScheme } from 'react-native';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+import { getTheme } from '@/constants/theme';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
@@ -14,36 +13,41 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const scheme = useColorScheme();
+  const theme = getTheme(scheme ?? 'light');
 
   return (
     <Tabs
-  screenOptions={{
-    tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-    headerShown: false,
-    tabBarShowLabel: false, // <-- Hides the text labels under icons
-  }}
->
-  <Tabs.Screen
-    name="index"
-    options={{
-      tabBarIcon: ({ color }) => <TabBarIcon name="line-chart" color={color} />,
-    }}
-  />
-  <Tabs.Screen
-    name="trending"
-    options={{
-      tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
-    }}
-  />
-  <Tabs.Screen
-    name="settings"
-    options={{
-      tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-    }}
-  />
-</Tabs>
-
-  
+      screenOptions={{
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.background,
+          borderTopWidth: 0, // remove the line
+          elevation: 0,       // remove Android shadow
+          shadowOpacity: 0,   // remove iOS shadow
+        },
+        headerShown: false,
+        tabBarShowLabel: false,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          tabBarIcon: ({ color }) => <TabBarIcon name="line-chart" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="trending"
+        options={{
+          tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }
