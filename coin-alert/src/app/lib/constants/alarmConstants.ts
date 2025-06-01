@@ -14,8 +14,6 @@ export function convertAlarmConfigToString(alarmConfigMap: Map<number, AlarmConf
     
     return descriptions
   }
-
-export type AlarmType = "normal" | "critical" | null 
   
 export const STANDARD_ALARM_CONFIGS = new Map<number, AlarmConfig>([
     [1, { standardAlarmPercentage: 50, criticalAlarmPercentage: 80}],

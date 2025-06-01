@@ -38,16 +38,16 @@ export interface Theme {
 }
 
 export const lightColors: ThemeColors = {
-  primary: '#1b7982',
+  primary: '#5ecabc',
   accent: '#ff3b30',
-  background: '#deddce',
+  background: '#FAF8F6',
   text: '#222',
   muted: '#aaa',
   card: '#f2f6ff',
 };
 
 export const darkColors: ThemeColors = {
-  primary: '#1b7982',
+  primary: '#5ecabc',
   accent: '#ff3b30',
   background: '#121212',
   text: '#f5f5f5',

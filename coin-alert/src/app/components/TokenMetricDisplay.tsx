@@ -1,8 +1,8 @@
 import React from "react";
-import styles from "./TokenMetricDisplay.module.css";
-import { formatPriceWithSubscript } from "../lib/utils/stringUtils";
-import { TrackedToken } from "../lib/firebase/userUtils";
+import { TrackedToken } from "../../../../shared/types/user";
 import { TokenPriceData } from "../dashboard/page";
+import { formatPriceWithSubscript } from "../lib/utils/stringUtils";
+import styles from "./TokenMetricDisplay.module.css";
 
 // Props interface
 interface TokenMetricDisplayProps {

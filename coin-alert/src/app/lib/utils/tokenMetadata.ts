@@ -1,8 +1,8 @@
 import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
 import { publicKey } from "@metaplex-foundation/umi";
+import { TokenMetadata } from '../../../../../shared/types/token';
 import { umi } from '../connection';
 import { blockchainTaskQueue } from '../taskQueue';
-import { TokenMetadata } from '../firebase/tokenUtils';
 
 
 interface URIMetadata {

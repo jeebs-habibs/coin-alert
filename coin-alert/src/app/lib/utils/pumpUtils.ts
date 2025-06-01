@@ -1,8 +1,8 @@
 import * as borsh from "@coral-xyz/borsh";
 import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
+import { GetPriceResponse } from "../../../../../shared/types/token";
 import { connection, heliusConnection } from "../connection";
-import { GetPriceResponse } from "../firebase/tokenUtils";
 import { blockchainTaskQueue, heliusPoolQueue } from "../taskQueue";
 import { BILLION, PoolData } from "./solanaUtils";
 

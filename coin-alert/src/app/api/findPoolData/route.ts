@@ -1,17 +1,17 @@
 
 import { connection } from "@/app/lib/connection";
-import { Token, TokenData } from "@/app/lib/firebase/tokenUtils";
 import { getRedisClient } from "@/app/lib/redis";
 import { getTokenFromRedis, updateTokenInRedis } from "@/app/lib/redis/tokens";
 import { retryOnServerError } from "@/app/lib/retry";
 import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
-import { fetchPumpSwapAMM, getPriceFromBondingCurve} from "@/app/lib/utils/pumpUtils";
+import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
 import { PoolData } from "@/app/lib/utils/solanaUtils";
 import { getTokenMetadataFromBlockchain } from "@/app/lib/utils/tokenMetadata";
 import { PublicKey } from "@solana/web3.js";
 import { NextRequest, NextResponse } from "next/server";
+import { Token, TokenData } from "../../../../../shared/types/token";
 
 
 let tokensWithPoolData = 0

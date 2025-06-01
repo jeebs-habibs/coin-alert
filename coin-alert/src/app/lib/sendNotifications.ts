@@ -1,7 +1,7 @@
+import { Token } from "../../../../shared/types/token";
+import { AlarmType, RecentNotification, SirenUser } from "../../../../shared/types/user";
 import { adminDB, messaging } from "../lib/firebase/firebaseAdmin";
-import { AlarmType } from "./constants/alarmConstants";
-import { Token } from "./firebase/tokenUtils";
-import { RecentNotification, SirenUser, updateRecentNotification } from "./firebase/userUtils";
+import { updateRecentNotification } from "./firebase/userUtils";
 import { getRedisClient } from "./redis";
 
 // Function to fetch all FCM tokens from Firestore using adminDB

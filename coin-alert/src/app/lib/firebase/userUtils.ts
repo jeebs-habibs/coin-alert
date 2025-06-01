@@ -1,39 +1,5 @@
-import { AlarmType } from "../constants/alarmConstants";
+import { RecentNotification, SirenUser } from "../../../../../shared/types/user";
 import { adminDB } from "./firebaseAdmin";
-import { TokenMetadata } from "./tokenUtils";
-
-export interface RecentNotification {
-  uid?: string;
-  mint?: string;
-  timestamp: number;
-  percentageBreached: number;
-  minutes: number;
-  percentChange: number;
-  alertType: AlarmType;
-  notificationTitle?: string;
-  notificationBody?: string;
-  image?: string;
-}
-
-export interface TrackedToken {
-  mint: string;
-  isNotificationsOn: boolean;
-  tokensOwned: number;
-  metadata?: TokenMetadata
-}
-
-export type AlarmPreset = "left" | "right" | "center";
-
-export interface SirenUser {
-  uid: string;
-  email?: string;
-  wallets: string[];
-  tokens?: string[];
-  trackedTokens?: TrackedToken[];
-  alarmPreset: AlarmPreset;
-  isNotificationsOn: boolean;
-  recentNotifications?: Record<string, RecentNotification>;
-}
 
 // 🔹 Fetch a User From Firestore (Using Admin SDK)
 export async function getUser(uid: string): Promise<SirenUser | null> {

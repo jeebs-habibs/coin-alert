@@ -1,6 +1,7 @@
 import LineChart, { DataPoint } from '@/components/Chart';
 import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text } from '@/components/Themed';
+import TrackedTokenSection from '@/components/TrackedTokens';
 import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -20,7 +21,7 @@ export default function HomeScreen() {
 
   const [checking, setChecking] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
-  const { firebaseUser } = useUser();
+  const { firebaseUser,  } = useUser();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -58,6 +59,7 @@ export default function HomeScreen() {
       <View style={styles.separator} />
 
       <LineChart data={sampleData} />
+      <TrackedTokenSection/>
 
       <EditScreenInfo path="app/(tabs)/index.tsx" />
     </View>

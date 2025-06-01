@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
+import { RecentNotification } from '../../../../shared/types/user';
 import { getLastSevenDaysNotifications } from '../actions/getNotifications';
-import { RecentNotification } from '../lib/firebase/userUtils';
 
 
 // Format a timestamp into "YYYY-MM-DD HH:00"

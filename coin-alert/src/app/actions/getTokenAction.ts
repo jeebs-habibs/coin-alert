@@ -1,6 +1,6 @@
 'use server';
 
-import { Token } from "../lib/firebase/tokenUtils";
+import { Token } from "../../../../shared/types/token";
 import { getRedisClient } from "../lib/redis";
 import { getTokenPrices } from "../lib/redis/prices";
 import { getTokenFromRedis } from "../lib/redis/tokens";

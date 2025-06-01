@@ -1,6 +1,6 @@
 import { web3 } from "@coral-xyz/anchor";
 import { TokenAmount } from "@solana/web3.js";
-import { PoolType } from "../firebase/tokenUtils";
+import { PoolType } from "../../../../../shared/types/token";
 
 export const BILLION = 1000000000
 

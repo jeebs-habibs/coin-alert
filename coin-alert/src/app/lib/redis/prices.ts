@@ -1,4 +1,4 @@
-import { PriceData } from "../firebase/tokenUtils";
+import { PriceData } from "../../../../../shared/types/token";
 import { RedisClient } from "../redis";
 
 // 🔹 Get Token Prices from Redis (last hour)

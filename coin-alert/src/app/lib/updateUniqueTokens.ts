@@ -2,19 +2,19 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { DocumentData, QuerySnapshot } from "firebase-admin/firestore";
-import { GetPriceResponse, PriceData, Token, TokenData } from "../lib/firebase/tokenUtils";
 import { connection } from "./connection";
 import { adminDB } from "./firebase/firebaseAdmin";
-import { TrackedToken } from "./firebase/userUtils";
 import { blockchainTaskQueue } from "./taskQueue";
 // import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 // import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
+import { GetPriceResponse, PriceData, Token, TokenData } from "../../../../shared/types/token";
+import { TrackedToken } from "../../../../shared/types/user";
 import { getRedisClient, RedisClient } from "./redis";
+import { getTokenPrices } from "./redis/prices";
 import { getTokenCached, updateTokenInRedis } from './redis/tokens';
 import { calculateTokenPrice } from './utils/solanaServer';
 import { PoolData, TokenAccountData } from "./utils/solanaUtils";
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
-import { getTokenPrices } from "./redis/prices";
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
 const tokensCache: Map<string, Token> = new Map<string, Token>()

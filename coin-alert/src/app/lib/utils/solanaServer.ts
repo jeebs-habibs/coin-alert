@@ -1,9 +1,9 @@
 import { PublicKey } from "@solana/web3.js"
-import { blockchainTaskQueue } from "../taskQueue"
+import { GetPriceResponse, PoolType } from "../../../../../shared/types/token"
 import { connection } from "../connection"
-import { BILLION, PoolData } from "./solanaUtils"
-import { GetPriceResponse, PoolType } from "../firebase/tokenUtils"
+import { blockchainTaskQueue } from "../taskQueue"
 import { getPriceFromBondingCurve } from "./pumpUtils"
+import { BILLION, PoolData } from "./solanaUtils"
 
 export async function getTokenAccountBalance(accountPubkey: PublicKey): Promise<number | null> {
   const account = await blockchainTaskQueue.addTask(() => connection.getTokenAccountBalance(accountPubkey))

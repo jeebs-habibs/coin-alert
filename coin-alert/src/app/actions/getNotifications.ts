@@ -1,6 +1,6 @@
 'use server'
 
-import { RecentNotification } from "../lib/firebase/userUtils";
+import { RecentNotification } from "../../../../shared/types/user";
 import { getRedisClient } from "../lib/redis";
 
 export async function getLastSevenDaysNotifications(): Promise<RecentNotification[]> {

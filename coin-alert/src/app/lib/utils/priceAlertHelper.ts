@@ -1,6 +1,7 @@
-import { AlarmConfig, AlarmType, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
-import { PriceData, Token } from "../firebase/tokenUtils";
-import { AlarmPreset } from "../firebase/userUtils";
+import { PriceData, Token } from "../../../../../shared/types/token";
+import { AlarmPreset, AlarmType } from "../../../../../shared/types/user";
+import { AlarmConfig, NOISIER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../constants/alarmConstants";
+
 
 export interface NotificationReturn {
     userId: string,

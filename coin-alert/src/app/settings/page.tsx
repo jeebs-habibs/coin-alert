@@ -3,19 +3,19 @@
 import { PublicKey } from "@solana/web3.js";
 import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaMinus, FaPlus } from "react-icons/fa";
+import { SirenUser } from "../../../../shared/types/user";
 import { Button } from "../components/Button";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
-import styles from "../settings/page.module.css";
 import { convertAlarmConfigToString, NOISIER_ALARM_CONFIGS, QUIETER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../lib/constants/alarmConstants";
-import { db, messaging } from "../lib/firebase/firebase";
-import { SirenUser } from "../lib/firebase/userUtils";
-import { useAuth } from "../providers/auth-provider";
 import { signOut } from "../lib/firebase/auth";
-import { useRouter } from "next/navigation";
+import { db, messaging } from "../lib/firebase/firebase";
 import { areStringListsEqual, shortenString } from "../lib/utils/stringUtils";
+import { useAuth } from "../providers/auth-provider";
+import styles from "../settings/page.module.css";
 
 async function unRegisterMultipleWorkers(){
   if ('serviceWorker' in navigator && !(await navigator.serviceWorker.getRegistration())?.active) {

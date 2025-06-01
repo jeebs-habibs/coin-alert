@@ -3,8 +3,8 @@
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { createContext, useContext, useEffect, useState } from "react";
+import { SirenUser } from "../../../../shared/types/user";
 import { auth, db } from "../lib/firebase/firebase";
-import { SirenUser } from "../lib/firebase/userUtils";
 
 interface AuthContextType {
   user: User | null;

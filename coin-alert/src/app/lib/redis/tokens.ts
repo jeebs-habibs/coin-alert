@@ -1,4 +1,4 @@
-import { Token, TokenData } from "../firebase/tokenUtils";
+import { Token, TokenData } from "../../../../../shared/types/token";
 import { RedisClient } from "../redis";
 
 // 🔹 Get Token from Redis

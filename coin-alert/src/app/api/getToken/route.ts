@@ -1,9 +1,9 @@
-import { Token } from "@/app/lib/firebase/tokenUtils";
 import { getRedisClient } from "@/app/lib/redis";
 import { getTokenPrices } from "@/app/lib/redis/prices";
 import { getTokenFromRedis } from "@/app/lib/redis/tokens";
 import { getAuth } from "firebase-admin/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { Token } from "../../../../../shared/types/token";
 
 
 export async function GET(request: NextRequest) {
