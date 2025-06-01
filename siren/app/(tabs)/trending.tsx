@@ -1,4 +1,4 @@
-import EditScreenInfo from '@/components/EditScreenInfo';
+import Page from '@/components/Page';
 import { Text, View } from '@/components/Themed';
 import { getTheme } from '@/constants/theme';
 import { StyleSheet, useColorScheme } from 'react-native';
@@ -9,11 +9,12 @@ export default function TrendingScreen() {
   const styles = getStyles(theme);
 
   return (
+    <Page>
     <View style={styles.container}>
       <Text style={styles.title}>Trending</Text>
       <View style={styles.separator} />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
     </View>
+    </Page>
   );
 }
 

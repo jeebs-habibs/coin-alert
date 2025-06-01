@@ -1,16 +1,20 @@
 import LineChart, { DataPoint } from '@/components/Chart';
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text } from '@/components/Themed';
+import Page from '@/components/Page';
+import SingleSelectModal from '@/components/SingleSelectModal';
 import TrackedTokenSection from '@/components/TrackedTokens';
 import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from 'react-native';
 import OnboardingScreen from '../../components/OnboardingScreen';
 import { auth } from '../../lib/firebase';
@@ -20,8 +24,9 @@ export default function HomeScreen() {
   const theme = getTheme(scheme ?? 'light');
 
   const [checking, setChecking] = useState(true);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("USD"); // false = USD, true = SOL
   const [authenticated, setAuthenticated] = useState(false);
-  const { firebaseUser,  } = useUser();
+  const { authedUser, sirenUser } = useUser();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -31,11 +36,12 @@ export default function HomeScreen() {
     return () => unsub();
   }, []);
 
+
   const styles = getStyles(theme);
 
   if (checking) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -54,15 +60,29 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Good morning {firebaseUser?.displayName}</Text>
-      <View style={styles.separator} />
+      <Page>
+      <View style={styles.header}>
+        <Text style={styles.title}>{authedUser?.displayName}'s Port</Text>
+        <TouchableOpacity onPress={() => router.push('/notifications')}>
+          <Ionicons name="notifications" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+      </View>
+
+
+        <SingleSelectModal
+        options={['USD', 'SOL']}
+        selected={selectedCurrency}
+        onSelect={setSelectedCurrency}
+        title="Select Currency"
+        getOptionLabel={(option) => option}
+      />
 
       <LineChart data={sampleData} />
-      <TrackedTokenSection/>
+      <View style={styles.separator} />
 
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
+      <TrackedTokenSection trackedTokens={sirenUser?.trackedTokens || []} currency={selectedCurrency} />
+
+      </Page>
   );
 }
 
@@ -70,10 +90,39 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
       backgroundColor: theme.colors.background,
-      paddingTop: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: theme.spacing.md,
+    },
+    currencyToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#ddd',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    toggleCircle: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: 'white',
+      marginHorizontal: 6,
+    },
+    toggleCircleActive: {
+      backgroundColor: 'black',
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.sm,
     },
     title: {
       fontSize: 20,
@@ -83,7 +132,7 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
     separator: {
       marginVertical: theme.spacing.md,
       height: 1,
-      width: '80%',
+      width: '100%',
       backgroundColor: theme.colors.muted,
     },
   });

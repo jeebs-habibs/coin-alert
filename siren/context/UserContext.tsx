@@ -1,43 +1,46 @@
-// context/UserContext.tsx
-
 import { auth, db } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import { User, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { SirenUser } from '../../shared/types/user';
 
 type UserContextType = {
-  firebaseUser: FirebaseUser | null;
-  userDoc: any | null;
+  authedUser: User | null;
+  sirenUser: SirenUser | null;
   loading: boolean;
 };
 
 const UserContext = createContext<UserContextType>({
-  firebaseUser: null,
-  userDoc: null,
+  authedUser: null,
+  sirenUser: null,
   loading: true,
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [userDoc, setUserDoc] = useState<any | null>(null);
+  const [authedUser, setAuthedUser] = useState<User | null>(null);
+  const [sirenUser, setSirenUser] = useState<SirenUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
+      setAuthedUser(user);
 
       if (user) {
         const userRef = doc(db, 'users', user.uid);
 
-        // Listen to Firestore user doc in real-time
         const unsubscribeUser = onSnapshot(userRef, (docSnap) => {
-          setUserDoc(docSnap.exists() ? docSnap.data() : null);
+          if (docSnap.exists()) {
+            const data = docSnap.data() as SirenUser;
+            setSirenUser(data);
+          } else {
+            setSirenUser(null);
+          }
           setLoading(false);
         });
 
         return () => unsubscribeUser();
       } else {
-        setUserDoc(null);
+        setSirenUser(null);
         setLoading(false);
       }
     });
@@ -46,7 +49,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ firebaseUser, userDoc, loading }}>
+    <UserContext.Provider value={{ authedUser, sirenUser, loading }}>
       {children}
     </UserContext.Provider>
   );

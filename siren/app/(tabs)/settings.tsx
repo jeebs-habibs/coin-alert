@@ -1,3 +1,4 @@
+import Page from '@/components/Page';
 import { getTheme } from '@/constants/theme';
 import { getAuth, signOut } from 'firebase/auth';
 import React from 'react';
@@ -27,17 +28,17 @@ export default function SettingsScreen() {
   const styles = getStyles(theme);
 
   return (
+    <Page>
+
+    
     <View style={styles.container}>
       <Text h4 style={styles.headingText}>Settings</Text>
-
-      <View style={styles.settingRow}>
-        <Text style={styles.settingText}>Dark Mode</Text>
-      </View>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
+    </Page>
   );
 }
 
