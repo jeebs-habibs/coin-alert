@@ -9,8 +9,8 @@ import { Token } from "../../../../../shared/types/token";
 export async function GET(request: NextRequest) {
   try {
     // 👇 You could use the UID to scope the token fetching if needed
-    const tokenId = request.nextUrl.searchParams.get("id");
-    if (!tokenId) {
+    const mint = request.nextUrl.searchParams.get("mint");
+    if (!mint) {
         return NextResponse.json({ error: "Token ID is required" }, { status: 400 });
     }
 
@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
     }
 
     const redisClient = await getRedisClient();
-    const tokenFromRedis = await getTokenFromRedis(tokenId, redisClient);
-    const prices = await getTokenPrices(tokenId, redisClient);
+    const tokenFromRedis = await getTokenFromRedis(mint, redisClient);
+    const prices = await getTokenPrices(mint, redisClient);
     const token: Token = {...tokenFromRedis, prices}
 
     return NextResponse.json(token, { status: 200 });
