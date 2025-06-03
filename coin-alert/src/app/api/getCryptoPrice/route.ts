@@ -1,5 +1,5 @@
+import { auth } from "@/app/lib/firebase/firebaseAdmin";
 import { getCryptoPriceBySymbolDB } from "@/app/lib/utils/cryptoPrice";
-import { getAuth } from "firebase-admin/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const idToken = authHeader.split("Bearer ")[1];
 
     try {
-      const decodedToken = await getAuth().verifyIdToken(idToken);
+      const decodedToken = await auth.verifyIdToken(idToken);
       console.log("✅ User verified:", decodedToken.uid);
     } catch (error) {
       console.error("❌ Invalid token:", error);
