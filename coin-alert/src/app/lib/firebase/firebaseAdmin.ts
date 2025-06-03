@@ -12,4 +12,5 @@ if (!admin.apps.length) {
 
 export const messaging = admin.messaging();
 export const adminDB = admin.firestore();
+export const auth = admin.auth();
 adminDB.settings({ ignoreUndefinedProperties: true });
