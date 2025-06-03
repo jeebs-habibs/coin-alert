@@ -1,7 +1,7 @@
 import React from "react";
 import { TrackedToken } from "../../../../shared/types/user";
+import { formatPriceWithSubscript } from "../../../../shared/types/utils/displayStringUtils";
 import { TokenPriceData } from "../dashboard/page";
-import { formatPriceWithSubscript } from "../lib/utils/stringUtils";
 import styles from "./TokenMetricDisplay.module.css";
 
 // Props interface

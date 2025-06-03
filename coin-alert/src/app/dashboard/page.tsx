@@ -7,6 +7,7 @@ import { CiBellOff, CiBellOn } from "react-icons/ci";
 import { FaChevronDown } from "react-icons/fa";
 import { PriceData, Token } from "../../../../shared/types/token";
 import { RecentNotification, TrackedToken } from "../../../../shared/types/user";
+import { formatNumber, shortenString } from "../../../../shared/types/utils/displayStringUtils";
 import { getCryptoPriceAction } from "../actions/getCryptoPrice";
 import { getTokenAction } from "../actions/getTokenAction";
 import NotificationChart from "../components/NotificationChart";
@@ -14,7 +15,6 @@ import TokenMetricDisplay from "../components/TokenMetricDisplay";
 import { db } from "../lib/firebase/firebase";
 import { CryptoDataDb } from "../lib/utils/cryptoPrice";
 import { BILLION } from "../lib/utils/solanaUtils";
-import { formatNumber, shortenString } from "../lib/utils/stringUtils";
 import { useAuth } from "../providers/auth-provider";
 import styles from "./page.module.css";
 

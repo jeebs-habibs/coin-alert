@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Token } from '../../shared/types/token';
 import { TrackedToken } from '../../shared/types/user';
+import { formatNumber } from '../../shared/types/utils/displayStringUtils';
 import Page from './Page';
 import SingleSelectModal from './SingleSelectModal';
 
@@ -128,7 +129,7 @@ export default function TrackedTokenSection({ trackedTokens, currency }: Props) 
           </View>
           <View style={styles.info}>
             <Text style={styles.symbol}>{item.symbol}</Text>
-            <Text style={styles.tokensOwned}>{item.tokensOwned.toFixed(2)} owned</Text>
+            <Text style={styles.tokensOwned}>{formatNumber(item.tokensOwned)} owned</Text>
           </View>
           <View style={styles.metricContainer}>
             <Text style={styles.metric}>{displayValue}</Text>

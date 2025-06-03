@@ -7,13 +7,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaMinus, FaPlus } from "react-icons/fa";
 import { SirenUser } from "../../../../shared/types/user";
+import { areStringListsEqual, shortenString } from "../../../../shared/types/utils/displayStringUtils";
 import { Button } from "../components/Button";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
 import { convertAlarmConfigToString, NOISIER_ALARM_CONFIGS, QUIETER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from "../lib/constants/alarmConstants";
 import { signOut } from "../lib/firebase/auth";
 import { db, messaging } from "../lib/firebase/firebase";
-import { areStringListsEqual, shortenString } from "../lib/utils/stringUtils";
 import { useAuth } from "../providers/auth-provider";
 import styles from "../settings/page.module.css";
 
