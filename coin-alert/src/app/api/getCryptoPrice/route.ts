@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("No header found in request")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
