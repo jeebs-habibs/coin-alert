@@ -7,7 +7,7 @@ import { CiBellOff, CiBellOn } from "react-icons/ci";
 import { FaChevronDown } from "react-icons/fa";
 import { PriceData, Token } from "../../../../shared/types/token";
 import { RecentNotification, TrackedToken } from "../../../../shared/types/user";
-import { formatNumber, shortenString } from "../../../../shared/types/utils/displayStringUtils";
+import { formatNumber, shortenString } from "../../../../shared/utils/displayStringUtils";
 import { getCryptoPriceAction } from "../actions/getCryptoPrice";
 import { getTokenAction } from "../actions/getTokenAction";
 import NotificationChart from "../components/NotificationChart";

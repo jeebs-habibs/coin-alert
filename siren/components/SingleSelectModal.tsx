@@ -2,14 +2,14 @@ import { useCustomTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface SingleSelectModalProps<T> {
@@ -37,18 +37,19 @@ export default function SingleSelectModal<T>({
 
   return (
     <>
-      <TouchableOpacity
-        style={
-          styles.button
-        }
-        onPress={() => setVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.buttonText, { color: theme.colors.text }]}>
-          {getOptionLabel(selected)}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color={theme.colors.text} />
-      </TouchableOpacity>
+<View style={{ alignItems: 'flex-end', marginRight: 12 }}>
+  <TouchableOpacity
+    style={styles.button}
+    onPress={() => setVisible(true)}
+    activeOpacity={0.7}
+  >
+    <Text style={[styles.buttonText, { color: theme.colors.text }]}>
+      {getOptionLabel(selected)}
+    </Text>
+    <Ionicons name="chevron-down" size={18} color={theme.colors.text} />
+  </TouchableOpacity>
+</View>
+
 
       <Modal transparent visible={visible} animationType="none">
         <View style={styles.fullscreenContainer}>

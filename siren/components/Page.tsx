@@ -13,7 +13,7 @@ export default function Page({ children, style }: PageProps) {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <SafeAreaView style={[styles.container, { padding: theme.spacing.md }, style]}>
+      <SafeAreaView style={[styles.container, { margin: theme.spacing.md }, style]}>
         {children}
       </SafeAreaView>
     </SafeAreaView>

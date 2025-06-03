@@ -1,7 +1,9 @@
+import { EnrichedToken } from '@/app/(tabs)';
+import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { doc, getFirestore, updateDoc } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,30 +13,105 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { Token } from '../../shared/types/token';
 import { TrackedToken } from '../../shared/types/user';
-import { formatNumber } from '../../shared/types/utils/displayStringUtils';
 import Page from './Page';
 import SingleSelectModal from './SingleSelectModal';
 
 type Props = {
   trackedTokens: TrackedToken[];
-  currency: string
+  currency: string;
+  solPrice: number;
+  loading: boolean;
 };
 
-interface EnrichedToken {
-  mint: string;
-  tokensOwned: number;
-  isNotificationsOn: boolean;
-  symbol?: string;
-  image?: string;
-  price?: number;
-  marketCap?: number;
+export function formatNumber(num: number): string {
+  const absNum = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+  
+  if (absNum >= 1_000_000_000) {
+      return `${sign}${(num / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (absNum >= 1_000_000) {
+      return `${sign}${(num / 1_000_000).toFixed(1)}M`;
+  }
+  if (absNum >= 1_000) {
+      return `${sign}${(num / 1_000).toFixed(1)}K`;
+  }
+  return `${sign}${num.toFixed(1)}`;
 }
 
-export default function TrackedTokenSection({ trackedTokens, currency }: Props) {
-  const [enrichedTokens, setEnrichedTokens] = useState<EnrichedToken[]>([]);
-  const [loading, setLoading] = useState(true);
+// Format a price with concise notation for large numbers and subscript for small numbers
+export const formatPriceWithSubscript = (value: number, currency: "SOL" | "USD" = "USD"): string => {
+  if (isNaN(value)) return "N/A";
+
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  const symbol = currency === "USD" ? "$" : "SOL ";
+
+  // Handle large numbers (>= 1000)
+  if (absValue >= 1000) {
+    let formattedValue: string;
+    let suffix: string;
+
+    if (absValue >= 1_000_000_000) {
+      // Billions (B)
+      formattedValue = (absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, ""); // e.g., 1.2, not 1.0
+      suffix = "B";
+    } else if (absValue >= 1_000_000) {
+      // Millions (M)
+      formattedValue = (absValue / 1_000_000).toFixed(1).replace(/\.0$/, "");
+      suffix = "M";
+    } else {
+      // Thousands (k)
+      formattedValue = (absValue / 1_000).toFixed(1).replace(/\.0$/, "");
+      suffix = "k";
+    }
+
+    return `${sign}${symbol}${formattedValue}${suffix}`;
+  }
+
+  // Handle numbers between 1 and 1000
+  if (absValue >= 1) {
+    // Round to 2 decimals
+    return value.toLocaleString("en-US", {
+      style: "currency",
+      currency: currency === "USD" ? "USD" : "SOL",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  // Handle small numbers (< 1)
+  // Convert to string to count leading zeros
+  const strValue = absValue.toFixed(10).replace(/\.?0+$/, ""); // Remove trailing zeros
+  const decimalIndex = strValue.indexOf(".");
+  const digits = strValue.replace(".", "").replace(/^0+/, "");
+  const leadingZeros = strValue.slice(decimalIndex + 1).match(/^0+/)?.[0]?.length || 0;
+
+  if (leadingZeros < 2) {
+    // Small numbers with few zeros: round to 4 decimals
+    return value.toLocaleString("en-US", {
+      style: "currency",
+      currency: currency === "USD" ? "USD" : "SOL",
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    });
+  }
+
+  // Subscript notation for many leading zeros (e.g., 0.00000363 -> 0.0₃363)
+  const subscriptDigits = "₀₁₂₃₄₅₆₇₈₉";
+  const subscriptZeroCount = leadingZeros
+    .toString()
+    .split("")
+    .map((d) => subscriptDigits[Number(d)])
+    .join("");
+  const significantDigits = digits.slice(0, 3); // Show 3 significant digits
+
+  return `${sign}${symbol}0.0${subscriptZeroCount}${significantDigits}`;
+};
+
+export default function TrackedTokenSection({ trackedTokens, currency, solPrice, loading }: Props) {
+  const { authedUser } = useUser();
 
   const [selectedMetric, setSelectedMetric] = useState<string>('Total Value');
 
@@ -42,49 +119,7 @@ export default function TrackedTokenSection({ trackedTokens, currency }: Props) 
   const db = getFirestore();
   const user = auth.currentUser;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const userJwt = await user?.getIdToken();
-        const results = await Promise.all(
-          trackedTokens.map((token) =>
-            fetch(`https://www.sirennotify.com/api/getToken?mint=${token.mint}`, {
-              headers: {
-                Authorization: `Bearer ${userJwt}`,
-              },
-            }).then((res) => res.json())
-          )
-        );
 
-        const enriched: EnrichedToken[] = trackedTokens.map((tracked, i) => {
-          const token: Token = results[i];
-          const priceData = token.prices?.[0];
-          const metadata = token.tokenData?.tokenMetadata;
-
-          return {
-            mint: tracked.mint,
-            tokensOwned: tracked.tokensOwned,
-            isNotificationsOn: tracked.isNotificationsOn,
-            symbol: metadata?.symbol ?? 'Unknown',
-            image: metadata?.image ?? '',
-            price: priceData?.price,
-            marketCap: priceData?.marketCapSol,
-          };
-        });
-
-        setEnrichedTokens(enriched);
-      } catch (err) {
-        console.error('Error fetching token data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (trackedTokens.length > 0) {
-      fetchData();
-    }
-  }, [trackedTokens, user]);
 
   const toggleNotifications = async (mint: string, currentStatus: boolean) => {
     if (!user) return;
@@ -98,18 +133,26 @@ export default function TrackedTokenSection({ trackedTokens, currency }: Props) 
   const renderItem = ({ item }: { item: EnrichedToken }) => {
     if (item.price == null) return null;
 
-    const totalValue = item.tokensOwned * item.price;
-    const displayValue = currency == "SOL"
-      ? selectedMetric === 'Market Cap'
-        ? `${(item.marketCap ?? 0).toLocaleString()} SOL`
+    const getDisplayValue = () => {
+      const { price, marketCapSol, tokensOwned } = item;
+      const value = selectedMetric === 'Market Cap'
+        ? marketCapSol || 0
         : selectedMetric === 'Total Value'
-        ? `${totalValue.toFixed(2)} SOL`
-        : `${item.price.toFixed(4)} SOL`
-      : selectedMetric === 'Market Cap'
-      ? `$${((item.marketCap ?? 0) * 20).toLocaleString()}` // example conversion rate SOL->USD; replace 20 with actual rate
-      : selectedMetric === 'Total Value'
-      ? `$${(totalValue * 20).toFixed(2)}`
-      : `$${(item.price * 20).toFixed(4)}`;
+        ? tokensOwned * (price || 0)
+        : (price || 0);
+    
+      const isPrice = selectedMetric === 'Price';
+    
+      if (currency === 'SOL') {
+        return `${isPrice ? formatPriceWithSubscript(value) : formatNumber(value)} SOL`;
+      }
+    
+      const converted = value * solPrice;
+      return `${isPrice ? formatPriceWithSubscript(converted) : "$" + formatNumber(converted)}`;
+    };
+    
+    const displayValue = getDisplayValue();
+    
 
     return (
       <View style={styles.card}>
@@ -143,7 +186,7 @@ export default function TrackedTokenSection({ trackedTokens, currency }: Props) 
     return <ActivityIndicator size="large" color="#888" style={{ marginTop: 20 }} />;
   }
 
-  if (!loading && enrichedTokens.length === 0) {
+  if (!loading && trackedTokens.length === 0) {
     return (
       <View style={{ padding: 20 }}>
         <Text style={{ color: 'red' }}>No tokens to display</Text>
@@ -155,17 +198,21 @@ export default function TrackedTokenSection({ trackedTokens, currency }: Props) 
     <Page>
     <View style={{ flex: 1, paddingHorizontal: 12 }}>
       {/* Header */}
-      <Text style={styles.header}>Tracked Tokens</Text>
-      <SingleSelectModal
-        options={['Total Value', 'Price', "Market Cap"]}
-        selected={selectedMetric}
-        onSelect={setSelectedMetric}
-        title="Select Currency"
-        getOptionLabel={(option) => option}
-      />
+      <View style={styles.headerRow}>
+  <Text style={styles.header}>Tracked Tokens</Text>
+  <View style={styles.selectWrapper}>
+    <SingleSelectModal
+      options={['Total Value', 'Price', 'Market Cap']}
+      selected={selectedMetric}
+      onSelect={setSelectedMetric}
+      title="Select Metric"
+      getOptionLabel={(option) => option}
+    />
+  </View>
+</View>
 
       <FlatList
-        data={enrichedTokens}
+        data={trackedTokens}
         keyExtractor={(item) => item.mint}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -192,6 +239,16 @@ const styles = StyleSheet.create({
     width: 180,
     height: 40,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  
+  selectWrapper: {
+    marginLeft: 12,
+  },  
   card: {
     paddingVertical: 8,
     paddingHorizontal: 12,

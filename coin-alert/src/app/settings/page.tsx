@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaMinus, FaPlus } from "react-icons/fa";
 import { SirenUser } from "../../../../shared/types/user";
-import { areStringListsEqual, shortenString } from "../../../../shared/types/utils/displayStringUtils";
+import { areStringListsEqual, shortenString } from "../../../../shared/utils/displayStringUtils";
 import { Button } from "../components/Button";
 import ToggleSwitch from "../components/ToggleSwitch";
 import TripleToggleSwitch, { TogglePosition } from "../components/TripleToggle";
