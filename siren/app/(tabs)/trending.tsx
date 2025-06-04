@@ -12,7 +12,7 @@ export default function TrendingScreen() {
     <Page>
     <View style={styles.container}>
       <Text style={styles.title}>Trending</Text>
-      <View style={styles.separator} />
+      <Text style={styles.description}>Soon new pairs will be disiplayed here. Siren Pro users will get notifications on migrated tokens</Text>
     </View>
     </Page>
   );
@@ -25,6 +25,13 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.background,
+    },
+    description: {
+      color: theme.colors.text,
+      justifyContent: "center",
+      alignSelf: "center",
+      textAlign: "center",
+      margin: 5
     },
     title: {
       fontSize: 20,

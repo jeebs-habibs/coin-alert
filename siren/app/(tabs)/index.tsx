@@ -1,4 +1,3 @@
-import { DataPoint } from '@/components/Chart';
 import Page from '@/components/Page';
 import PieChart from '@/components/PieChart';
 import SingleSelectModal from '@/components/SingleSelectModal';
@@ -166,14 +165,6 @@ export default function HomeScreen() {
     return <OnboardingScreen onComplete={() => setAuthenticated(true)} />;
   }
 
-  const sampleData: DataPoint[] = [
-    { timestamp: 1684000000, value: 300 },
-    { timestamp: 1684003600, value: 280 },
-    { timestamp: 1684007200, value: 320 },
-    { timestamp: 1684010800, value: 310 },
-    { timestamp: 1684014400, value: 350 },
-  ];
-
   const portTotal = selectedCurrency == "USD" ? `$${formatNumber(getTotalValue(enrichedTokens, selectedCurrency, solPrice))}`
   : `${formatNumber(getTotalValue(enrichedTokens, selectedCurrency, solPrice))} SOL`
 
@@ -188,15 +179,15 @@ export default function HomeScreen() {
 
 
       <View style={styles.portRow}>
-  <Text style={styles.port}>{portTotal}</Text>
-  <SingleSelectModal
-    options={['USD', 'SOL']}
-    selected={selectedCurrency}
-    onSelect={setSelectedCurrency}
-    title="Select Currency"
-    getOptionLabel={(option) => option}
-  />
-</View>
+        <Text style={styles.port}>{portTotal}</Text>
+        <SingleSelectModal
+          options={['USD', 'SOL']}
+          selected={selectedCurrency}
+          onSelect={setSelectedCurrency}
+          title="Select Currency"
+          getOptionLabel={(option) => option}
+        />
+      </View>
 
       <PieChart tokens={enrichedTokens}/>
       <View style={styles.separator} />
@@ -264,7 +255,7 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       color: theme.colors.text,
     },
     separator: {
-      marginVertical: theme.spacing.md,
+      marginVertical: theme.spacing.sm,
       height: 1,
       width: '100%',
       backgroundColor: theme.colors.muted,

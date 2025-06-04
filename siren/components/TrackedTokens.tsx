@@ -1,9 +1,9 @@
 import { EnrichedToken } from '@/app/(tabs)';
+import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
-import { Ionicons } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
-import { doc, getFirestore, updateDoc } from 'firebase/firestore';
-import React, { useState } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,8 +11,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useColorScheme,
   View
 } from 'react-native';
+import { Button } from 'react-native-elements';
 import { TrackedToken } from '../../shared/types/user';
 import Page from './Page';
 import SingleSelectModal from './SingleSelectModal';
@@ -110,66 +112,90 @@ export const formatPriceWithSubscript = (value: number, currency: "SOL" | "USD" 
   return `${sign}${symbol}0.0${subscriptZeroCount}${significantDigits}`;
 };
 
-export default function TrackedTokenSection({ trackedTokens, currency, solPrice, loading }: Props) {
-  const { authedUser } = useUser();
-
+export default function TrackedTokenSection({
+  trackedTokens,
+  currency,
+  solPrice,
+  loading,
+}: Props) {
+  const { authedUser, sirenUser } = useUser();
   const [selectedMetric, setSelectedMetric] = useState<string>('Total Value');
+  const [hideDisabled, setHideDisabled] = useState(false);
+  const scheme = useColorScheme();
+  const theme = getTheme(scheme);
+  const styles = getStyles(theme)
 
-  const auth = getAuth();
-  const db = getFirestore();
-  const user = auth.currentUser;
 
-
-
-  const toggleNotifications = async (mint: string, currentStatus: boolean) => {
-    if (!user) return;
-    const tokenRef = doc(db, 'users', user.uid, 'trackedTokens', mint);
-    await updateDoc(tokenRef, {
-      isNotificationsOn: !currentStatus,
-    });
+  const toggleNotifications = async (
+    mint: string,
+    currentStatus: boolean
+  ): Promise<void> => {
+    if (!authedUser) return;
+  
+    try {
+      const userRef = doc(db, 'users', authedUser.uid);
+  
+      // Create a new trackedTokens array with the updated token
+      const updatedTokens = (sirenUser?.trackedTokens || []).map((token) =>
+        token.mint === mint
+          ? { ...token, isNotificationsOn: !currentStatus }
+          : token
+      );
+  
+      await updateDoc(userRef, {
+        trackedTokens: updatedTokens,
+      });
+    } catch (error) {
+      console.error("Failed to toggle notifications:", error);
+    }
   };
+  
 
+  const sortedTokens = useMemo(() => {
+    return [...trackedTokens]
+      .filter((token) => (hideDisabled ? token.isNotificationsOn : true))
+      .sort((a, b) => {
+        const aOn = a.isNotificationsOn ? 0 : 1;
+        const bOn = b.isNotificationsOn ? 0 : 1;
+        return aOn - bOn;
+      });
+  }, [trackedTokens, hideDisabled]);
 
   const renderItem = ({ item }: { item: EnrichedToken }) => {
     if (item.price == null) return null;
 
     const getDisplayValue = () => {
       const { price, marketCapSol, tokensOwned } = item;
-      const value = selectedMetric === 'Market Cap'
-        ? marketCapSol || 0
-        : selectedMetric === 'Total Value'
-        ? tokensOwned * (price || 0)
-        : (price || 0);
-    
+      const value =
+        selectedMetric === 'Market Cap'
+          ? marketCapSol || 0
+          : selectedMetric === 'Total Value'
+          ? tokensOwned * (price || 0)
+          : price || 0;
+
       const isPrice = selectedMetric === 'Price';
-    
+
       if (currency === 'SOL') {
         return `${isPrice ? formatPriceWithSubscript(value) : formatNumber(value)} SOL`;
       }
-    
+
       const converted = value * solPrice;
-      return `${isPrice ? formatPriceWithSubscript(converted) : "$" + formatNumber(converted)}`;
+      return `${isPrice ? formatPriceWithSubscript(converted) : '$' + formatNumber(converted)}`;
     };
-    
+
     const displayValue = getDisplayValue();
-    
+  
 
     return (
-      <View style={styles.card}>
+      <TouchableOpacity
+        style={[
+          styles.card,
+          !item.isNotificationsOn && { opacity: 0.4, backgroundColor: '#f0f0f0' },
+        ]}
+        onPress={() => toggleNotifications(item.mint, item.isNotificationsOn)}
+      >
         <View style={styles.cardContent}>
-          <View style={styles.imageWrapper}>
-            <Image source={{ uri: item.image }} style={styles.logo} />
-            <TouchableOpacity
-              style={styles.notificationButton}
-              onPress={() => toggleNotifications(item.mint, item.isNotificationsOn)}
-            >
-              <Ionicons
-                name={item.isNotificationsOn ? 'notifications' : 'notifications-off'}
-                size={18}
-                color={item.isNotificationsOn ? 'green' : 'gray'}
-              />
-            </TouchableOpacity>
-          </View>
+          <Image source={{ uri: item.image }} style={styles.logo} />
           <View style={styles.info}>
             <Text style={styles.symbol}>{item.symbol}</Text>
             <Text style={styles.tokensOwned}>{formatNumber(item.tokensOwned)} owned</Text>
@@ -178,7 +204,7 @@ export default function TrackedTokenSection({ trackedTokens, currency, solPrice,
             <Text style={styles.metric}>{displayValue}</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -196,44 +222,61 @@ export default function TrackedTokenSection({ trackedTokens, currency, solPrice,
 
   return (
     <Page>
-    <View style={{ flex: 1, paddingHorizontal: 12 }}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-  <Text style={styles.header}>Tracked Tokens</Text>
-  <View style={styles.selectWrapper}>
-    <SingleSelectModal
-      options={['Total Value', 'Price', 'Market Cap']}
-      selected={selectedMetric}
-      onSelect={setSelectedMetric}
-      title="Select Metric"
-      getOptionLabel={(option) => option}
-    />
-  </View>
-</View>
+      <View style={{ flex: 1 }}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>Tracked Tokens</Text>
+          <View style={styles.selectWrapper}>
+            <SingleSelectModal
+              options={['Total Value', 'Price', 'Market Cap']}
+              selected={selectedMetric}
+              onSelect={setSelectedMetric}
+              title="Select Metric"
+              getOptionLabel={(option) => option}
+            />
+          </View>
+        </View>
 
-      <FlatList
-        data={trackedTokens}
-        keyExtractor={(item) => item.mint}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      />
-    </View>
+        {/* Toggle Hide Disabled */}
+          <Button 
+          type="clear" 
+          title={hideDisabled ? "Show disabled" : "Hide Disabled"} 
+          onPress={() => setHideDisabled(!hideDisabled)}
+          titleStyle={styles.hideDisabledTitle}
+          buttonStyle={styles.hideDisabledButton}
+          />
+
+        <FlatList
+          data={sortedTokens}
+          keyExtractor={(item) => item.mint}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        />
+      </View>
     </Page>
   );
 }
 
-const styles = StyleSheet.create({
+// ...Keep your formatNumber and formatPriceWithSubscript helpers unchanged...
+const getStyles = (theme: ReturnType<typeof getTheme>) => StyleSheet.create({
   header: {
     fontSize: 22,
     fontWeight: '700',
-    marginVertical: 12,
     color: 'black',
   },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  hideDisabledTitle: {
+    color: theme.colors.muted,
+    textDecorationLine: 'underline',
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  hideDisabledButton: {
+    alignSelf: "flex-start"
+  },
+  hideDisabled: {
+    color: theme.colors.text,
+    fontSize: 10,
+    fontWeight: '500',
   },
   picker: {
     width: 180,
@@ -243,12 +286,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 12,
   },
-  
   selectWrapper: {
     marginLeft: 12,
-  },  
+  },
   card: {
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -265,34 +306,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  imageWrapper: {
-    position: 'relative',
-    marginRight: 12,
-  },
   logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 55,
+    height: 55,
+    borderRadius: 30,
     backgroundColor: '#eee',
-  },
-  notificationButton: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    marginRight: 12,
   },
   info: {
     justifyContent: 'center',
+    flex: 1,
   },
   symbol: {
     fontSize: 18,

@@ -9,6 +9,8 @@ export interface ThemeColors {
   text: string;
   muted: string;
   card: string;
+  border: string;
+  danger: string;
 }
 
 export interface Spacing {
@@ -38,21 +40,25 @@ export interface Theme {
 }
 
 export const lightColors: ThemeColors = {
-  primary: '#5ecabc',
+  primary: '#28b696',
   accent: '#ff3b30',
   background: '#FAF8F6',
   text: '#222',
-  muted: '#aaa',
+  muted: '#828282',
   card: '#f2f6ff',
+  border: "#e4e4e4",
+  danger: "#ff3b30"
 };
 
 export const darkColors: ThemeColors = {
-  primary: '#5ecabc',
+  primary: '#28b696',
   accent: '#ff3b30',
   background: '#121212',
   text: '#f5f5f5',
-  muted: '#777',
+  muted: '#828282',
   card: '#1e1e1e',
+  border: "#e4e4e4",
+  danger: "#ff3b30"
 };
 
 export const spacing: Spacing = {
