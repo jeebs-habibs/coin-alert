@@ -115,7 +115,7 @@ function calculateSubscriptionEndDate(
 
         while (accumulatedSol >= monthlyCostSol) {
         // Determine when the new subscription month should start
-        const baseTime = Math.max(subscriptionEnd, payment.unixTimestampMs * 1000);
+        const baseTime = Math.max(subscriptionEnd, payment.unixTimestampMs);
         subscriptionEnd = baseTime + MONTH_IN_MS;
         accumulatedSol -= monthlyCostSol;
         }
