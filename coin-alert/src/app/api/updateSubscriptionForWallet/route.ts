@@ -97,7 +97,7 @@ function calculateSubscriptionEndDate(
     payments: Payment[],
     monthlyCostSol: number,
     sourceWallet: string
-    ): Date | null {
+    ): number | undefined {
     const MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000;
 
     // Filter payments from the target wallet and sort ascending by time
@@ -105,7 +105,7 @@ function calculateSubscriptionEndDate(
         .filter(p => p.sourceWallet === sourceWallet)
         .sort((a, b) => a.unixTimestampMs - b.unixTimestampMs);
 
-    if (userPayments.length === 0) return null;
+    if (userPayments.length === 0) return undefined;
 
     let subscriptionEnd = 0; // in ms
     let accumulatedSol = 0;
@@ -121,7 +121,7 @@ function calculateSubscriptionEndDate(
         }
     }
 
-    return subscriptionEnd ? new Date(subscriptionEnd) : null;
+    return subscriptionEnd ? subscriptionEnd : undefined;
 }
 
 export async function GET(request: NextRequest) {
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
     const subscriptionEndDate = calculateSubscriptionEndDate(allPayments, SUBSCRIPTION_MONTHLY_COST, sourceWallet)
 
     if(subscriptionEndDate != null){
-        const newWallet: Wallet = {pubkey: sourceWallet, subscriptionEndDate: subscriptionEndDate, payments: allPayments}
+        const newWallet: Wallet = {pubkey: sourceWallet, subscriptionEndTimesampMs: subscriptionEndDate, payments: allPayments}
         if(!user.userWallets){
             user.userWallets = [newWallet]
         } else if (user.userWallets && userSourceWalletIdx) {
