@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
             user.userWallets.push(newWallet)
         }
         await updateUser(userId, user)
-        return NextResponse.json(subscriptionEndDate, { status: 200 });
+        return NextResponse.json(newWallet, { status: 200 });
     }
 
     return NextResponse.json({}, { status: 200 });

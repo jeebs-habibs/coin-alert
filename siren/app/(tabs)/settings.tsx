@@ -6,6 +6,7 @@ import { signOut } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   StyleSheet,
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newWallet, setNewWallet] = useState('');
+  const [isAddingWallet, setIsAddingWallet] = useState(false);
 
   useEffect(() => {
     if (sirenUser) {
@@ -59,52 +61,52 @@ export default function SettingsScreen() {
 
   async function handleAddWallet() {
     const trimmed = newWallet.trim();
-  
     const walletAlreadyAdded = wallets.some(
       (wallet) => wallet.pubkey === newWallet || wallet.pubkey === trimmed
     );
-  
     if (!authedUser?.uid || walletAlreadyAdded || !trimmed) return;
-  
+
+    setIsAddingWallet(true);
     try {
       const userJwt = await authedUser.getIdToken();
-    
-      const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?sourceWallet=${encodeURIComponent(trimmed)}&userId=${encodeURIComponent(authedUser.uid)}`;
-    
+      const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?sourceWallet=${encodeURIComponent(
+        trimmed
+      )}&userId=${encodeURIComponent(authedUser.uid)}`;
+
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${userJwt}`,
         },
       });
-    
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ API Error Response:", errorText);
+        console.error('❌ API Error Response:', errorText);
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-    
-      const resJson = await response.json();
-      console.log("API response:", resJson);
-    
-      const subscriptionEndDateForWallet = resJson?.subscriptionEndDate
-        ? new Date(resJson.subscriptionEndDate)
+
+      const res: Wallet = await response.json();
+      console.log('API response:', res);
+
+      const subscriptionEndDateForWallet = res?.subscriptionEndDate
+        ? new Date(res.subscriptionEndDate)
         : undefined;
-    
+
       if (subscriptionEndDateForWallet) {
         const updated = [...wallets, { pubkey: trimmed }];
         setWallets(updated);
-        updateUserSetting("userWallets", updated);
-        setNewWallet("");
+        updateUserSetting('userWallets', updated);
+        setNewWallet('');
         setModalVisible(false);
       } else {
-        console.error("❌ Unable to find payment from wallet: " + trimmed);
+        console.error('❌ Unable to find payment from wallet: ' + trimmed);
       }
     } catch (error) {
-      console.error("❌ Error during handleAddWallet:", error);
+      console.error('❌ Error during handleAddWallet:', error);
+    } finally {
+      setIsAddingWallet(false);
     }
-    
   }
-  
 
   const handleConfirmRemoveWallet = (wallet: string) => {
     Alert.alert(
@@ -209,7 +211,11 @@ export default function SettingsScreen() {
               />
             </View>
           ))}
-          <Button buttonStyle={styles.addWalletButton} title="Add Wallet" onPress={() => setModalVisible(true)} />
+          <Button
+            buttonStyle={styles.addWalletButton}
+            title="Add Wallet"
+            onPress={() => setModalVisible(true)}
+          />
         </View>
 
         <View style={styles.separator} />
@@ -237,9 +243,19 @@ export default function SettingsScreen() {
               value={newWallet}
               onChangeText={setNewWallet}
               style={styles.input}
+              editable={!isAddingWallet}
             />
-            <Button title="Add" onPress={handleAddWallet} buttonStyle={styles.addWalletButton} />
-            <Button title="Cancel" type="clear" onPress={() => setModalVisible(false)} />
+            {isAddingWallet ? (
+              <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginVertical: 10 }} />
+            ) : (
+              <Button title="Add" onPress={handleAddWallet} buttonStyle={styles.addWalletButton} />
+            )}
+            <Button
+              title="Cancel"
+              type="clear"
+              onPress={() => setModalVisible(false)}
+              disabled={isAddingWallet}
+            />
           </View>
         </View>
       </Modal>
@@ -266,14 +282,10 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       borderColor: theme.colors.border ?? '#ccc',
       borderRadius: theme.borderRadius.lg,
       backgroundColor: theme.colors.background,
-
-      // Drop shadow for iOS
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
-
-      // Drop shadow for Android
       elevation: 3,
     },
     sectionTitle: {
@@ -307,7 +319,7 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
     },
     presetButton: {
       backgroundColor: 'transparent',
-      borderColor: theme.colors.primary
+      borderColor: theme.colors.primary,
     },
     presetText: {
       color: theme.colors.primary,
