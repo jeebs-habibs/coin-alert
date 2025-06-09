@@ -88,8 +88,8 @@ export default function SettingsScreen() {
       const res: Wallet = await response.json();
       console.log('API response:', res);
 
-      const subscriptionEndDateForWallet = res?.subscriptionEndDate
-        ? new Date(res.subscriptionEndDate)
+      const subscriptionEndDateForWallet = res?.subscriptionEndTimesampMs
+        ? new Date(res.subscriptionEndTimesampMs)
         : undefined;
 
       if (subscriptionEndDateForWallet) {
@@ -199,16 +199,18 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Solana Wallets</Text>
           {wallets.map((wallet, index) => (
-            <View key={index} style={styles.walletRow}>
-              <Text style={styles.walletText}>{formatWalletAddress(wallet.pubkey)}</Text>
-              <Button
-                title="Remove"
-                type="clear"
-                onPress={() => handleConfirmRemoveWallet(wallet.pubkey)}
-                buttonStyle={{ borderColor: theme.colors.danger }}
-                titleStyle={{ color: theme.colors.danger }}
-              />
-              <Text>{wallet.subscriptionEndDate ? `Subscribed until: ${wallet.subscriptionEndDate}` : ""}</Text>
+            <View key={index}>
+              <View key={index} style={styles.walletRow}>
+                <Text style={styles.walletText}>{formatWalletAddress(wallet.pubkey)}</Text>
+                <Button
+                  title="Remove"
+                  type="clear"
+                  onPress={() => handleConfirmRemoveWallet(wallet.pubkey)}
+                  buttonStyle={{ borderColor: theme.colors.danger }}
+                  titleStyle={{ color: theme.colors.danger }}
+                />
+              </View>
+              <Text>{wallet.subscriptionEndTimesampMs ? `Subscribed until: ${new Date(wallet.subscriptionEndTimesampMs).toLocaleDateString()}` : ""}</Text>
             </View>
           ))}
           <Button
