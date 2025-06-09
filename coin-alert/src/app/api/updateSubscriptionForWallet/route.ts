@@ -44,7 +44,7 @@ function getPaymentFromTransaction(
           amountPayedSol: destinationDelta,
           sourceWallet: walletSource,
           destinationWallet: walletDestination,
-          timestamp: timestamp ?? 0,
+          unixTimestampMs: timestamp ? timestamp * 1000 : Date.now(),
         };
       }
     }
@@ -80,7 +80,7 @@ function calculateSubscriptionEndDate(
     // Filter payments from the target wallet and sort ascending by time
     const userPayments = payments
         .filter(p => p.sourceWallet === sourceWallet)
-        .sort((a, b) => a.timestamp - b.timestamp);
+        .sort((a, b) => a.unixTimestampMs - b.unixTimestampMs);
 
     if (userPayments.length === 0) return null;
 
@@ -92,7 +92,7 @@ function calculateSubscriptionEndDate(
 
         while (accumulatedSol >= monthlyCostSol) {
         // Determine when the new subscription month should start
-        const baseTime = Math.max(subscriptionEnd, payment.timestamp * 1000);
+        const baseTime = Math.max(subscriptionEnd, payment.unixTimestampMs * 1000);
         subscriptionEnd = baseTime + MONTH_IN_MS;
         accumulatedSol -= monthlyCostSol;
         }

@@ -29,7 +29,8 @@ export interface RecentNotification {
     amountPayedSol: number;
     sourceWallet: string;
     destinationWallet: string;
-    timestamp: number
+    // SOL stores timestamp as seconds and we convert it to Ms
+    unixTimestampMs: number
   }
 
   export interface Wallet {

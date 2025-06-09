@@ -209,6 +209,7 @@ export default function SettingsScreen() {
                 buttonStyle={{ borderColor: theme.colors.danger }}
                 titleStyle={{ color: theme.colors.danger }}
               />
+              <Text>{wallet.subscriptionEndDate ? `Subscribed until: ${wallet.subscriptionEndDate}` : ""}</Text>
             </View>
           ))}
           <Button
