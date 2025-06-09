@@ -16,16 +16,16 @@ import {
   View,
 } from 'react-native';
 import { Button, Text } from 'react-native-elements';
-import { AlarmPreset, SirenUser } from '../../../shared/types/user';
+import { AlarmPreset, SirenUser, Wallet } from '../../../shared/types/user';
 
 export default function SettingsScreen() {
   const scheme = useColorScheme();
   const theme = getTheme(scheme);
-  const { sirenUser } = useUser();
+  const { sirenUser, authedUser } = useUser();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationPreset, setNotificationPreset] = useState<AlarmPreset>('center');
-  const [wallets, setWallets] = useState<string[]>([]);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newWallet, setNewWallet] = useState('');
 
@@ -33,7 +33,7 @@ export default function SettingsScreen() {
     if (sirenUser) {
       setNotificationsEnabled(sirenUser.isNotificationsOn ?? true);
       setNotificationPreset(sirenUser.alarmPreset ?? 'center');
-      setWallets(sirenUser.wallets ?? []);
+      setWallets(sirenUser.userWallets ?? []);
     }
   }, [sirenUser]);
 
@@ -57,15 +57,54 @@ export default function SettingsScreen() {
     updateUserSetting('alarmPreset', preset);
   };
 
-  const handleAddWallet = () => {
+  async function handleAddWallet() {
     const trimmed = newWallet.trim();
-    if (!trimmed) return;
-    const updated = [...wallets, trimmed];
-    setWallets(updated);
-    updateUserSetting('wallets', updated);
-    setNewWallet('');
-    setModalVisible(false);
-  };
+  
+    const walletAlreadyAdded = wallets.some(
+      (wallet) => wallet.pubkey === newWallet || wallet.pubkey === trimmed
+    );
+  
+    if (!authedUser?.uid || walletAlreadyAdded || !trimmed) return;
+  
+    try {
+      const userJwt = await authedUser.getIdToken();
+    
+      const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?sourceWallet=${encodeURIComponent(trimmed)}&userId=${encodeURIComponent(authedUser.uid)}`;
+    
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${userJwt}`,
+        },
+      });
+    
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ API Error Response:", errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+    
+      const resJson = await response.json();
+      console.log("API response:", resJson);
+    
+      const subscriptionEndDateForWallet = resJson?.subscriptionEndDate
+        ? new Date(resJson.subscriptionEndDate)
+        : undefined;
+    
+      if (subscriptionEndDateForWallet) {
+        const updated = [...wallets, { pubkey: trimmed }];
+        setWallets(updated);
+        updateUserSetting("userWallets", updated);
+        setNewWallet("");
+        setModalVisible(false);
+      } else {
+        console.error("❌ Unable to find payment from wallet: " + trimmed);
+      }
+    } catch (error) {
+      console.error("❌ Error during handleAddWallet:", error);
+    }
+    
+  }
+  
 
   const handleConfirmRemoveWallet = (wallet: string) => {
     Alert.alert(
@@ -83,9 +122,9 @@ export default function SettingsScreen() {
   };
 
   const handleRemoveWallet = (wallet: string) => {
-    const updated = wallets.filter((w) => w !== wallet);
+    const updated = wallets.filter((w) => w.pubkey !== wallet);
     setWallets(updated);
-    updateUserSetting('wallets', updated);
+    updateUserSetting('userWallets', updated);
   };
 
   const handleSignOut = async () => {
@@ -160,11 +199,11 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>Solana Wallets</Text>
           {wallets.map((wallet, index) => (
             <View key={index} style={styles.walletRow}>
-              <Text style={styles.walletText}>{formatWalletAddress(wallet)}</Text>
+              <Text style={styles.walletText}>{formatWalletAddress(wallet.pubkey)}</Text>
               <Button
                 title="Remove"
                 type="clear"
-                onPress={() => handleConfirmRemoveWallet(wallet)}
+                onPress={() => handleConfirmRemoveWallet(wallet.pubkey)}
                 buttonStyle={{ borderColor: theme.colors.danger }}
                 titleStyle={{ color: theme.colors.danger }}
               />
