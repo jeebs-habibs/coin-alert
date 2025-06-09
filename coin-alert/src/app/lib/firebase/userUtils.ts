@@ -19,6 +19,32 @@ export async function getUser(uid: string): Promise<SirenUser | null> {
   }
 }
 
+/**
+ * Updates a user document with the specified fields while preserving all other data.
+ * @param uid - The user's ID
+ * @param updates - A partial SirenUser object with fields to update
+ */
+export async function updateUser(uid: string, updates: Partial<SirenUser>): Promise<void> {
+  try {
+    const userDocRef = adminDB.collection("users").doc(uid);
+
+    // Check if the user exists before updating
+    const userSnapshot = await userDocRef.get();
+    if (!userSnapshot.exists) {
+      console.warn(`⚠️ User ${uid} not found.`);
+      return;
+    }
+
+    // Use Firestore's update method to only update the given fields
+    await userDocRef.update(updates);
+
+    console.log(`✅ Successfully updated user ${uid} with fields: ${Object.keys(updates).join(", ")}`);
+  } catch (error) {
+    throw Error(`❌ Error updating user ${uid}: ` + error);
+  }
+}
+
+
 // 🔹 Fetch All Users from Firestore
 export async function getAllUsers(): Promise<SirenUser[]> {
   try {

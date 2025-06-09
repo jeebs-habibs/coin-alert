@@ -23,14 +23,32 @@ export interface RecentNotification {
   }
   
   export type AlarmPreset = "left" | "right" | "center";
-  
+
+  export interface Payment {
+    signature: string;
+    amountPayedSol: number;
+    sourceWallet: string;
+    destinationWallet: string;
+    timestamp: number
+  }
+
+  export interface Wallet {
+    pubkey: string;
+    payments?: Payment[];
+    subscriptionEndDate?: Date;
+  }
+
+  type ReferralCode = "nach" | "orangie" | "cupsey"
+
   export interface SirenUser {
     uid: string;
     email?: string;
-    wallets: string[];
+    wallets?: string[];
+    userWallets?: Wallet[];
     tokens?: string[];
     trackedTokens?: TrackedToken[];
     alarmPreset: AlarmPreset;
     isNotificationsOn: boolean;
     recentNotifications?: Record<string, RecentNotification>;
+    referralCode?: ReferralCode;
   }

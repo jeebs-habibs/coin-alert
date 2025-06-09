@@ -220,7 +220,7 @@ export default function Settings() {
     // console.log("newAlarmPreset: " + newAlarmPreset)
     // console.log("userData.alarmPreset: " + userData.alarmPreset)
     // console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
-    return (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
+    return (!areStringListsEqual(userData.wallets || [], wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
   }
 
   if (loading) return <p>Loading...</p>;
@@ -299,7 +299,7 @@ export default function Settings() {
         <Button variant="grey" disabled={!didUserDataChange()} onClick={() => 
           {
             if(userData){
-              setWallets(userData.wallets)
+              setWallets(userData.wallets || [])
               setNewAlarmPreset(userData.alarmPreset)
               setIsNotificationsOn(userData.isNotificationsOn === undefined ? true : userData.isNotificationsOn)
             }
