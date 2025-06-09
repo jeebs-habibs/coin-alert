@@ -93,9 +93,8 @@ export default function SettingsScreen() {
         : undefined;
 
       if (subscriptionEndDateForWallet) {
-        const updated = [...wallets, { pubkey: trimmed }];
+        const updated = [...wallets, res];
         setWallets(updated);
-        updateUserSetting('userWallets', updated);
         setNewWallet('');
         setModalVisible(false);
       } else {

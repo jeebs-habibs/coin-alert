@@ -1,6 +1,7 @@
 import { connection } from "@/app/lib/connection";
 import { auth } from "@/app/lib/firebase/firebaseAdmin";
 import { getUser, updateUser } from "@/app/lib/firebase/userUtils";
+import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
 import chalk from "chalk";
 import { NextRequest, NextResponse } from "next/server";
@@ -52,24 +53,46 @@ function getPaymentFromTransaction(
     return undefined;
 }
 
-async function getNewPaymentsFromWallet(existingPayments: Payment[], sourceWallet: string, destinationWallet: string, solAmount: number): Promise<Payment[]>{
-    const payments = []
-    const sigsForVault = await connection.getSignaturesForAddress(new PublicKey(destinationWallet), undefined, "confirmed")
-    const sigsNoErr = sigsForVault.filter((sig) => !sig.err).map((sig) => sig.signature)
-    for(const sig of sigsNoErr){
-        const transaction = await connection.getParsedTransaction(sig, {commitment: "confirmed", maxSupportedTransactionVersion: 1})
-        console.log("Got transaction: " + JSON.stringify(transaction))
-        if(transaction != null){
-            const payment = getPaymentFromTransaction(transaction, sourceWallet, destinationWallet, solAmount)
-            if(payment && !existingPayments.includes(payment)){
-                console.log(chalk.green("Valid payment detected: " + JSON.stringify(payment)))
-                payments.push(payment)
-            }
+async function getNewPaymentsFromWallet(
+    existingPayments: Payment[],
+    sourceWallet: string,
+    destinationWallet: string,
+    solAmount: number
+  ): Promise<Payment[]> {
+    const payments: Payment[] = [];
+  
+    const sigsForVault = await connection.getSignaturesForAddress(
+      new PublicKey(destinationWallet),
+      {limit: 300},
+      'confirmed'
+    );
+  
+    const sigsNoErr = sigsForVault
+      .filter((sig) => !sig.err)
+      .map((sig) => sig.signature);
+  
+    const transactions = await Promise.all(
+      sigsNoErr.map((sig) =>
+        blockchainTaskQueue.addTask(() => connection.getParsedTransaction(sig, {
+            commitment: 'confirmed',
+            maxSupportedTransactionVersion: 1,
+        }))
+      )
+    );
+  
+    for (const transaction of transactions) {
+      if (transaction != null) {
+        const payment = getPaymentFromTransaction(transaction, sourceWallet, destinationWallet, solAmount);
+        if (payment && !existingPayments.some((p) => p.signature === payment.signature)) {
+          console.log(chalk.green('Valid payment detected: ' + JSON.stringify(payment)));
+          payments.push(payment);
         }
+      }
     }
-    return payments
-}
-
+  
+    return payments;
+  }
+  
 function calculateSubscriptionEndDate(
     payments: Payment[],
     monthlyCostSol: number,
