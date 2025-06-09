@@ -36,7 +36,7 @@ export interface RecentNotification {
   export interface Wallet {
     pubkey: string;
     payments?: Payment[];
-    subscriptionEndDate?: Date;
+    subscriptionEndTimesampMs?: number;
   }
 
   type ReferralCode = "nach" | "orangie" | "cupsey"
