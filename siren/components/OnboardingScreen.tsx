@@ -1,34 +1,61 @@
+import { getTheme } from '@/constants/theme';
 import { useAuthRequest } from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential } from 'firebase/auth';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  StyleSheet,
+  TextInput,
+  useColorScheme,
+  View,
+  ViewToken,
+} from 'react-native';
 import { Button, Icon, Text } from 'react-native-elements';
 import { auth } from '../lib/firebase';
 
-
-
 WebBrowser.maybeCompleteAuthSession();
 
-// Replace this with your real Firebase Web Client ID from Google Sign-In provider
-const CLIENT_ID = '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com';
+const carouselData = [
+  {
+    key: '1',
+    image: require('../assets/images/trader.jpg'),
+    title: 'Track Your Tokens',
+    description: 'Stay on top of your Solana memecoins with real-time alerts.',
+  },
+  {
+    key: '2',
+    image: require('../assets/images/alert.jpg'),
+    title: 'Connect Wallets',
+    description: 'Add any wallet you want to monitor — just 0.25 SOL/month per wallet.',
+  },
+  {
+    key: '3',
+    image: require('../assets/images/walking-dog-2.jpg'),
+    title: 'Never Miss a Move',
+    description: 'Get notified instantly when your coins pump or dump.',
+  },
+];
 
 const TIERS = [
   { label: 'Basic', value: 'basic', price: '$9.99/mo' },
-  { label: 'Pro', value: 'pro', price: '$49.99/mo' }
+  { label: 'Pro', value: 'pro', price: '$49.99/mo' },
 ];
 
-export default function OnboardingScreen({ onComplete }: { onComplete?: () => void }) {
+export default function OnboardingScreen() {
+  const scheme = useColorScheme()
+  const theme = getTheme(scheme)
+  const styles = getStyles(theme)
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-    // Tier selection state
   const [selectedTier, setTier] = useState(0);
-  // Referral state
   const [referral, setReferral] = useState('');
+  const [step, setStep] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList<any>>(null);
 
-  const [step, setStep] = useState(0); // 0 = auth, 1 = tier, 2 = referral
-
-  
   const [request, response, promptAsync] = useAuthRequest({
     clientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
     iosClientId: '738018911031-vp60on8brljuoubnfe6dhti3jerghu7e.apps.googleusercontent.com',
@@ -48,6 +75,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         console.log(`Logged in as ${user.email}`);
+        setStep(1);
       } else {
         console.log('User logged out');
       }
@@ -55,62 +83,60 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
     return unsubscribe;
   }, []);
 
-
-
-  React.useEffect(() => {
-    if (onComplete && step > 2) onComplete();
-  }, [step, onComplete]);
-  const handleReferralSubmit = () => {
-    // TODO: Call backend to validate referral, then proceed to checkout if Pro
-    if (onComplete) onComplete();
-  };
-
-  const handleNext = () => setStep((prev) => Math.min(prev + 1, 2));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 0));
 
-  // Animation refs
-  const logoAnim = useRef(new Animated.Value(0)).current;
-  const introAnim = useRef(new Animated.Value(0)).current;
-  const formAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // Staggered fade/slide in for logo, intro, then form
-    Animated.sequence([
-      Animated.timing(logoAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(introAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(formAnim, { toValue: 1, duration: 500, useNativeDriver: true })
-    ]).start();
-  }, [logoAnim, introAnim, formAnim]);
-
+  const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
+  const handleViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+        setActiveIndex(Number(viewableItems[0].index));
+      }
+    }
+  ).current;
   return (
     <View style={styles.container}>
       {step === 0 && (
         <>
-          {/* Siren Title at Top - absolutely at the top */}
-          <Animated.View style={{
-            opacity: logoAnim,
-            position: 'absolute',
-            top: 44,
-            left: 0,
-            right: 0,
-            alignItems: 'center',
-            zIndex: 10,
-          }}>
-            <Text style={[styles.appName, { fontSize: 40 }]}>Siren</Text>
-          </Animated.View>
-          {/* Trader Image */}
-          <Animated.View style={{ opacity: introAnim, alignItems: 'center', marginBottom: 28, marginTop: 60 }}>
-            <Image source={require('../assets/images/trader.jpg')} style={{ width: 180, height: 180, borderRadius: 18, marginBottom: 8 }} resizeMode="cover" />
-          </Animated.View>
-          {/* Welcome Title & Description */}
-          <Animated.View style={{ opacity: introAnim, marginBottom: 24, alignItems: 'center' }}>
-            <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 10, fontFamily: 'LexendMega' }}>Welcome to Siren</Text>
-            <Text style={{ fontSize: 16, color: '#333', textAlign: 'center', opacity: 0.85, marginBottom: 6, fontFamily: 'LexendMega', lineHeight: 26 }}>
-              The first Solana memecoin notification platform. Add your trading wallets and get realtime alerts when your coins move in price.
-            </Text>
-          </Animated.View>
-          {/* Sign Up Button */}
-          <Animated.View style={{ opacity: formAnim, width: '100%' }}>
+          <Text style={styles.appName}>Siren</Text>
+
+          <View style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}>
+            <FlatList
+              ref={flatListRef}
+              data={carouselData}
+              keyExtractor={(item) => item.key}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onViewableItemsChanged={handleViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
+              renderItem={({ item }) => (
+                <View style={{ width: Dimensions.get('window').width - 32, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
+                  <Image source={item.image} style={{ width: 260, height: 260, borderRadius: 16, marginBottom: 24 }} resizeMode="cover" />
+                  <Text style={{ fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 12, fontFamily: 'LexendMega' }}>{item.title}</Text>
+                  <Text style={{ fontSize: 16, color: '#444', textAlign: 'center', lineHeight: 24, fontFamily: 'LexendMega' }}>{item.description}</Text>
+                </View>
+              )}
+            />
+          </View>
+
+          {/* Dots */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 50 }}>
+            {carouselData.map((_, index) => (
+              <View
+                key={index}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: activeIndex === index ? theme.colors.primary : '#ccc',
+                  marginHorizontal: 6,
+                }}
+              />
+            ))}
+          </View>
+
+          {/* Buttons below carousel */}
+          <View style={{ width: '100%', marginBottom: 80 }}>
             <Button
               title="Sign Up"
               buttonStyle={styles.primaryButton}
@@ -118,23 +144,22 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
               containerStyle={{ marginBottom: 18, borderRadius: 24 }}
               onPress={() => promptAsync()}
             />
-            {/* Log In Text */}
             <Text
               style={{
                 textAlign: 'center',
                 textDecorationLine: 'underline',
                 fontWeight: 'bold',
                 fontSize: 16,
-                marginBottom: 12,
                 fontFamily: 'LexendMega',
               }}
-              onPress={() => {/* TODO: handle login nav */}}
+              onPress={() => promptAsync()}
             >
               Log In
             </Text>
-          </Animated.View>
+          </View>
         </>
       )}
+
       {step === 1 && (
         <>
           <Text h4 style={{ textAlign: 'center', marginBottom: 18 }}>Select Your Plan</Text>
@@ -154,6 +179,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
             icon={<Icon name="chevron-right" type="feather" color="#fff" />}
             title="Continue"
             buttonStyle={styles.primaryButton}
+            onPress={() => setStep(2)}
           />
           <Button
             icon={<Icon name="chevron-left" type="feather" color="#007aff" />}
@@ -164,6 +190,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
           />
         </>
       )}
+
       {step === 2 && (
         <>
           <Text h4 style={{ textAlign: 'center', marginBottom: 18 }}>Referral Code</Text>
@@ -176,7 +203,7 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
               placeholderTextColor="#aaa"
             />
           </View>
-          <Button title="Continue" onPress={handleReferralSubmit} buttonStyle={styles.primaryButton} />
+          <Button title="Continue" buttonStyle={styles.primaryButton} />
           <Button
             icon={<Icon name="chevron-left" type="feather" color="#007aff" />}
             title="Back"
@@ -190,109 +217,59 @@ export default function OnboardingScreen({ onComplete }: { onComplete?: () => vo
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    width: Dimensions.get('window').width,
-    padding: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Optional: background gradient or pattern can go here
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 28,
-  },
-  logoCircle: {
-    backgroundColor: '#f2f6ff',
-    borderRadius: 60,
-    padding: 16,
-    elevation: 4,
-    shadowColor: '#007aff',
-    shadowOpacity: 0.13,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    marginBottom: 8,
-  },
-  logo: {
-    width: 90,
-    height: 90,
-  },
-  appName: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    letterSpacing: 2,
-    marginBottom: 6,
-    fontFamily: 'LexendMega',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 2,
-    opacity: 0.85,
-    fontWeight: '500',
-    fontFamily: 'LexendMega',
-  },
-  formCard: {
-    width: '100%',
-    borderRadius: 18,
-    padding: 22,
-    elevation: 5,
-    shadowColor: '#007aff',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    marginBottom: 12,
-  },
-  errorText: {
-    color: '#ff3b30',
-    textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: '600',
-    fontFamily: 'LexendMega',
-  },
-  primaryButton: {
-    borderRadius: 24,
-    paddingVertical: 12,
-    elevation: 2,
-    shadowColor: '#007aff',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  arrowButton: {
-    borderRadius: 50,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    elevation: 2,
-    shadowColor: '#007aff',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  tierButton: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingVertical: 12,
-    marginBottom: 8,
-  },
-  selectedTierButton: {
-    borderRadius: 18,
-    paddingVertical: 12,
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#d0d0d0',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: '#222',
-    backgroundColor: '#fafcff',
-    marginBottom: 8,
-    width: '100%',
-  },
-});
+function getStyles(theme: ReturnType<typeof getTheme>){
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      width: Dimensions.get('window').width,
+      padding: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    appName: {
+      fontSize: 36,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      letterSpacing: 2,
+      marginTop: 70,
+      marginBottom: 12,
+      fontFamily: 'LexendMega',
+      color: theme.colors.primary,
+    },
+    primaryButton: {
+      borderRadius: 24,
+      paddingVertical: 12,
+      elevation: 2,
+      shadowColor: '#007aff',
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      backgroundColor: theme.colors.primary,
+    },
+    tierButton: {
+      backgroundColor: '#fff',
+      borderRadius: 18,
+      paddingVertical: 12,
+      marginBottom: 8,
+    },
+    selectedTierButton: {
+      backgroundColor: '#007aff',
+      borderRadius: 18,
+      paddingVertical: 12,
+      marginBottom: 8,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: '#d0d0d0',
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 16,
+      color: '#222',
+      backgroundColor: '#fafcff',
+      marginBottom: 8,
+      width: '100%',
+    },
+  });
+  
+}
+

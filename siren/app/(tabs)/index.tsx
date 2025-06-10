@@ -1,6 +1,7 @@
 import Page from '@/components/Page';
 import PieChart from '@/components/PieChart';
 import SingleSelectModal from '@/components/SingleSelectModal';
+import SubscriptionModal from '@/components/SubscriptionModal';
 import TrackedTokenSection, { formatNumber } from '@/components/TrackedTokens';
 import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
@@ -66,7 +67,7 @@ export default function HomeScreen() {
   const [enrichedTokens, setEnrichedTokens] = useState<EnrichedToken[]>([]);
   const theme = getTheme(scheme ?? 'light');
   const [solPrice, setSolPrice] = useState<number | undefined>(undefined)
-
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [checking, setChecking] = useState(true);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USD"); // false = USD, true = SOL
   const [authenticated, setAuthenticated] = useState(false);
@@ -79,6 +80,13 @@ export default function HomeScreen() {
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    if (sirenUser && Array.isArray(sirenUser.userWallets) && sirenUser.userWallets.length === 0) {
+      setShowSubscriptionModal(true);
+    }
+  }, [sirenUser]);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -162,7 +170,7 @@ export default function HomeScreen() {
   }
 
   if (!authenticated) {
-    return <OnboardingScreen onComplete={() => setAuthenticated(true)} />;
+    return <OnboardingScreen />;
   }
 
   const portTotal = selectedCurrency == "USD" ? `$${formatNumber(getTotalValue(enrichedTokens, selectedCurrency, solPrice))}`
@@ -170,6 +178,8 @@ export default function HomeScreen() {
 
   return (
       <Page>
+      <SubscriptionModal visible={showSubscriptionModal} setSubscriptionModal={setShowSubscriptionModal} />
+
       <View style={styles.header}>
         <Text style={styles.title}>{authedUser?.displayName}'s Port</Text>
         <TouchableOpacity onPress={() => router.push('/notifications')}>

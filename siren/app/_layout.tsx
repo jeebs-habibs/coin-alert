@@ -27,7 +27,7 @@ export default function RootLayoutWrapper() {
 
   return (
     <ThemeProvider>
-      <InnerApp user={user} setUser={setUser} />
+      <InnerApp user={user} setUser={setUser}/>
     </ThemeProvider>
   );
 }
@@ -38,7 +38,7 @@ function InnerApp({ user, setUser }: { user: User | null; setUser: (u: User | nu
   if (!user) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-        <OnboardingScreen onComplete={() => setUser(auth.currentUser)} />
+        <OnboardingScreen />
       </View>
     );
   }
