@@ -17,7 +17,7 @@ import {
   TextInput,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from 'react-native';
 import { Button, Text } from 'react-native-elements';
 import { AlarmPreset, SirenUser, Wallet } from '../../../shared/types/user';
@@ -238,9 +238,10 @@ export default function SettingsScreen() {
         <View style={styles.separator} />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Solana Wallets</Text>
+          <Text style={styles.sectionTitle}>Tracked Wallets</Text>
+          <Text>You will receieve notifications for price changes on active tokens in the following wallets.</Text>
           {wallets.map((wallet, index) => (
-            <View key={index}>
+            <View style={styles.walletsContainer} key={index}>
               <View style={styles.walletRow}>
                 <Text style={styles.walletText}>{formatWalletAddress(wallet.pubkey)}</Text>
                 <Button
@@ -248,7 +249,7 @@ export default function SettingsScreen() {
                   type="clear"
                   onPress={() => handleConfirmRemoveWallet(wallet.pubkey)}
                   buttonStyle={{ borderColor: theme.colors.danger }}
-                  titleStyle={{ color: theme.colors.danger }}
+                  titleStyle={{ color: theme.colors.danger, fontSize: 14 }}
                 />
               </View>
               <Text style={styles.subscribedUntil}>
@@ -315,7 +316,6 @@ export default function SettingsScreen() {
 const getStyles = (theme: ReturnType<typeof getTheme>) =>
   StyleSheet.create({
     container: {
-      flex: 1,
       backgroundColor: theme.colors.background,
       padding: theme.spacing.md,
     },
@@ -385,18 +385,27 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       marginRight: 8,
       marginBottom: 8,
     },
+    walletsContainer: {
+      borderWidth: 1,
+      padding: theme.spacing.sm,
+      borderColor: theme.colors.border,
+      borderRadius: theme.borderRadius.md,
+      marginVertical: theme.spacing.sm
+    },
     subscribedUntil: {
       marginVertical: theme.spacing.md
     },
     presetButton: {
       backgroundColor: 'transparent',
       borderColor: theme.colors.primary,
+      borderRadius: theme.borderRadius.sm
     },
     presetText: {
       color: theme.colors.primary,
     },
     selectedPresetButton: {
       backgroundColor: theme.colors.primary,
+      borderRadius: theme.borderRadius.sm
     },
     selectedPresetText: {
       color: '#fff',
