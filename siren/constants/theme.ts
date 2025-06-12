@@ -25,6 +25,7 @@ export interface BorderRadius {
   sm: number;
   md: number;
   lg: number;
+  xl: number;
 }
 
 export interface Fonts {
@@ -44,7 +45,7 @@ export const lightColors: ThemeColors = {
   accent: '#ff3b30',
   background: '#FAF8F6',
   text: '#222',
-  muted: '#828282',
+  muted: '#e4e4e4',
   card: '#f2f6ff',
   border: "#e4e4e4",
   danger: "#ff3b30"
@@ -73,6 +74,7 @@ export const borderRadius: BorderRadius = {
   sm: 8,
   md: 16,
   lg: 24,
+  xl: 32
 };
 
 export const fonts: Fonts = {

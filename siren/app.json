@@ -32,7 +32,8 @@
     "plugins": [
       "expo-router",
       "@react-native-google-signin/google-signin",
-      "react-native-svg"
+      "react-native-svg",
+      "expo-clipboard"
     ],
     "experiments": {
       "typedRoutes": true

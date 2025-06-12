@@ -43,7 +43,8 @@
     "react-native-screens": "~4.10.0",
     "react-native-svg": "15.11.2",
     "react-native-swiper": "^1.6.0",
-    "react-native-web": "~0.20.0"
+    "react-native-web": "~0.20.0",
+    "expo-clipboard": "~7.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

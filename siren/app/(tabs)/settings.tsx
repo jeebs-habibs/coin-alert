@@ -1,6 +1,9 @@
+// SettingsScreen.tsx
+
 import Page from '@/components/Page';
 import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
+import { convertAlarmConfigToString, NOISIER_ALARM_CONFIGS, QUIETER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from '@/lib/constants/alarmPresets';
 import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -19,6 +22,27 @@ import {
 import { Button, Text } from 'react-native-elements';
 import { AlarmPreset, SirenUser, Wallet } from '../../../shared/types/user';
 
+const labels = {
+  left: {
+    title: "Quieter",
+    value: "left",
+    desc: "You will be notified on larger price swings",
+    alarmInfo: convertAlarmConfigToString(QUIETER_ALARM_CONFIGS)
+  },
+  right: {
+    title: "Noisier",
+    value: "right",
+    desc: "You will be notified on smaller price swings",
+    alarmInfo: convertAlarmConfigToString(NOISIER_ALARM_CONFIGS),
+  },
+  center: {
+    title: "Standard",
+    value: "center",
+    desc: "Standard alarm sensitivity",
+    alarmInfo: convertAlarmConfigToString(STANDARD_ALARM_CONFIGS),
+  },
+};
+
 export default function SettingsScreen() {
   const scheme = useColorScheme();
   const theme = getTheme(scheme);
@@ -26,6 +50,7 @@ export default function SettingsScreen() {
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationPreset, setNotificationPreset] = useState<AlarmPreset>('center');
+  const [isAlarmDescriptionVisible, setIsAlarmDescriptionVisible] = useState<boolean>(false);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newWallet, setNewWallet] = useState('');
@@ -159,6 +184,30 @@ export default function SettingsScreen() {
             />
           </View>
 
+          <Text>{labels[notificationPreset].desc}</Text>
+
+          <Button
+            title={isAlarmDescriptionVisible ? "Hide rules" : "Show rules"}
+            type="clear"
+            onPress={() => setIsAlarmDescriptionVisible(!isAlarmDescriptionVisible)}
+            titleStyle={{
+              color: '#888',
+              textDecorationLine: 'underline',
+              fontSize: 15,
+            }}
+            buttonStyle={{ paddingHorizontal: 0 }}
+          />
+
+          {isAlarmDescriptionVisible && (
+            <View style={styles.alarmRuleContainer}>
+              {labels[notificationPreset].alarmInfo.map((alarmRule) => (
+                <Text key={alarmRule} style={styles.alarmRule}>
+                  {alarmRule}
+                </Text>
+              ))}
+            </View>
+          )}
+
           {notificationsEnabled && (
             <View style={styles.presetContainer}>
               <View style={styles.presetButtons}>
@@ -181,14 +230,6 @@ export default function SettingsScreen() {
                     }
                   />
                 ))}
-                <Button
-                  title="Customize"
-                  type="clear"
-                  onPress={() => Alert.alert('Custom Settings', 'Coming soon...')}
-                  containerStyle={styles.button}
-                  buttonStyle={styles.presetButton}
-                  titleStyle={styles.customizeText}
-                />
               </View>
             </View>
           )}
@@ -200,7 +241,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>Solana Wallets</Text>
           {wallets.map((wallet, index) => (
             <View key={index}>
-              <View key={index} style={styles.walletRow}>
+              <View style={styles.walletRow}>
                 <Text style={styles.walletText}>{formatWalletAddress(wallet.pubkey)}</Text>
                 <Button
                   title="Remove"
@@ -210,11 +251,16 @@ export default function SettingsScreen() {
                   titleStyle={{ color: theme.colors.danger }}
                 />
               </View>
-              <Text>{wallet.subscriptionEndTimesampMs ? `Subscribed until: ${new Date(wallet.subscriptionEndTimesampMs).toLocaleDateString()}` : ""}</Text>
+              <Text style={styles.subscribedUntil}>
+                {wallet.subscriptionEndTimesampMs
+                  ? `Subscribed until: ${new Date(wallet.subscriptionEndTimesampMs).toLocaleDateString()}`
+                  : ""}
+              </Text>
             </View>
           ))}
           <Button
             buttonStyle={styles.addWalletButton}
+            titleStyle={styles.addWalletTitle}
             title="Add Wallet"
             onPress={() => setModalVisible(true)}
           />
@@ -250,13 +296,14 @@ export default function SettingsScreen() {
             {isAddingWallet ? (
               <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginVertical: 10 }} />
             ) : (
-              <Button title="Add" onPress={handleAddWallet} buttonStyle={styles.addWalletButton} />
+              <Button title="Add" onPress={handleAddWallet} buttonStyle={styles.addWalletButton} titleStyle={styles.addWalletTitle} />
             )}
             <Button
               title="Cancel"
               type="clear"
               onPress={() => setModalVisible(false)}
               disabled={isAddingWallet}
+              titleStyle={styles.cancelTitle}
             />
           </View>
         </View>
@@ -309,6 +356,25 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
     presetContainer: {
       marginTop: theme.spacing.sm,
     },
+    alarmRuleContainer: {
+      borderRadius: theme.borderRadius.lg,
+      borderWidth: 1,
+      borderColor: '#ccc',
+      padding: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+      backgroundColor: theme.colors.card,
+    },
+    alarmRule: {
+      marginVertical: theme.spacing.xs,
+      color: theme.colors.text,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    cancelTitle: {
+      color: "#878787",
+      textDecorationLine: "underline",
+      fontSize: 16
+    },
     presetButtons: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -319,15 +385,15 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       marginRight: 8,
       marginBottom: 8,
     },
+    subscribedUntil: {
+      marginVertical: theme.spacing.md
+    },
     presetButton: {
       backgroundColor: 'transparent',
       borderColor: theme.colors.primary,
     },
     presetText: {
       color: theme.colors.primary,
-    },
-    customizeText: {
-      color: theme.colors.muted,
     },
     selectedPresetButton: {
       backgroundColor: theme.colors.primary,
@@ -337,12 +403,17 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
     },
     addWalletButton: {
       backgroundColor: theme.colors.primary,
+      borderRadius: theme.borderRadius.sm
+    },
+    addWalletTitle: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '600',
     },
     walletRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: theme.spacing.sm,
     },
     walletText: {
       color: theme.colors.text,
