@@ -1,6 +1,5 @@
 // app/tabs/notifications.tsx
 
-import Page from '@/components/Page';
 import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RecentNotification } from '../../shared/types/user';
 
 export default function NotificationsScreen() {
@@ -38,7 +38,7 @@ export default function NotificationsScreen() {
   );
 
   return (
-      <Page>
+    <SafeAreaView style={[styles.safeArea]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color="black" />
@@ -56,11 +56,14 @@ export default function NotificationsScreen() {
           contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
-      </Page>
+      </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1
+  },
   container: {
     padding: 16,
     flex: 1,
