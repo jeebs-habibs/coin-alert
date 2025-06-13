@@ -6,7 +6,6 @@ import { doc, updateDoc } from 'firebase/firestore';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   StyleSheet,
   Text,
@@ -245,13 +244,13 @@ export default function TrackedTokenSection({
           titleStyle={styles.hideDisabledTitle}
           buttonStyle={styles.hideDisabledButton}
           />
-
+{/* 
         <FlatList
           data={sortedTokens}
           keyExtractor={(item) => item.mint}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 100 }}
-        />
+        /> */}
       </View>
     </Page>
   );
@@ -265,7 +264,7 @@ const getStyles = (theme: ReturnType<typeof getTheme>) => StyleSheet.create({
     color: 'black',
   },
   hideDisabledTitle: {
-    color: theme.colors.muted,
+    color: "#888",
     textDecorationLine: 'underline',
     fontSize: 15,
     fontWeight: '400',

@@ -44,10 +44,11 @@ function InnerApp({ user, setUser }: { user: User | null; setUser: (u: User | nu
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+
       <UserProvider>
         <Stack screenOptions={{ headerShown: false }} />
       </UserProvider>
-    </View>
+
+
   );
 }

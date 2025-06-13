@@ -173,17 +173,15 @@ export default function SettingsScreen() {
         <Text style={styles.headingText}>Settings</Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingText}>Enable Notifications</Text>
+          <Text style={styles.sectionTitle}>Notifications             
             <Switch
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#767577', true: theme.colors.primary }}
-              thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
-            />
-          </View>
-
+                style={styles.switch}
+                value={notificationsEnabled}
+                onValueChange={handleToggleNotifications}
+                trackColor={{ false: '#767577', true: theme.colors.primary }}
+                thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
+              />
+            </Text>
           <Text>{labels[notificationPreset].desc}</Text>
 
           <Button
@@ -271,6 +269,10 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.email}>
+            <Text style={{ fontWeight: 'bold' }}>Email:</Text> {authedUser?.email}
+          </Text>
+          
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
@@ -319,6 +321,12 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       backgroundColor: theme.colors.background,
       padding: theme.spacing.md,
     },
+    switch: {
+      padding: theme.spacing.sm
+    },
+    email: {
+      marginBottom: theme.spacing.md
+    },
     headingText: {
       fontSize: 30,
       fontWeight: 'bold',
@@ -362,7 +370,6 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       borderColor: '#ccc',
       padding: theme.spacing.sm,
       marginTop: theme.spacing.sm,
-      backgroundColor: theme.colors.card,
     },
     alarmRule: {
       marginVertical: theme.spacing.xs,
