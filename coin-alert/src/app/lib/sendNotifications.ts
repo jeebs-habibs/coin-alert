@@ -12,8 +12,8 @@ async function getAllFCMTokens(): Promise<string[]> {
     usersSnapshot.forEach((doc) => {
       const userData = doc.data();
       console.log(userData);
-      if (userData.tokens && Array.isArray(userData.tokens)) {
-        tokens.push(...userData.tokens);
+      if (userData.fcmTokens && Array.isArray(userData.fcmTokens)) {
+        tokens.push(...userData.fcmTokens);
       }
     });
   } catch (error) {
@@ -83,15 +83,15 @@ export async function removeFcmTokenFromUser(uid: string, fcmToken: string) {
 
     const userData = userSnapshot.data() as SirenUser;
 
-    if (!userData.tokens || !Array.isArray(userData.tokens)) {
+    if (!userData.fcmTokens || !Array.isArray(userData.fcmTokens)) {
       console.warn(`⚠️ No tokens found for user ${uid}.`);
       return;
     }
 
-    const updatedTokens = userData.tokens.filter((token) => token !== fcmToken);
+    const updatedTokens = userData.fcmTokens.filter((token) => token !== fcmToken);
 
     // Only update if the token was actually removed
-    if (updatedTokens.length !== userData.tokens.length) {
+    if (updatedTokens.length !== userData.fcmTokens.length) {
       await userDocRef.update({ tokens: updatedTokens });
       console.log(`✅ Removed invalid FCM token from user ${uid}.`);
     } else {
@@ -157,7 +157,7 @@ export async function sendNotification(
     }
 
     const userData = userDocSnap.data();
-    if (!userData?.tokens || userData.tokens.length === 0) {
+    if (!userData?.fcmTokens || userData.fcmTokens.length === 0) {
       console.error("ERROR: User " + userData?.uid + " has no devices detected to notify.");
       return;
     }
@@ -174,7 +174,7 @@ export async function sendNotification(
     const notificationTitle = `${alertEmoji} ${symbolOrToken} ${increaseOrDecrease} ${priceChange.toFixed(2)}% in ${minutes} minutes`;
     const notificationBody = `${stonkEmoji}${marketCap} breached threshold of ${percentageBreached}%`;
 
-    for (const fcmToken of userData.tokens) {
+    for (const fcmToken of userData.fcmTokens) {
       try {
         console.log(`Sending ${userId} a notification: ${notificationTitle} to token ${fcmToken}`);
         const image = tokenObj?.tokenData?.tokenMetadata?.image;

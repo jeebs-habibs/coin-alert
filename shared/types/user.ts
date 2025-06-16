@@ -47,6 +47,7 @@ export interface RecentNotification {
     wallets?: string[];
     userWallets?: Wallet[];
     tokens?: string[];
+    fcmTokens?: string[];
     trackedTokens?: TrackedToken[];
     alarmPreset: AlarmPreset;
     isNotificationsOn: boolean;
