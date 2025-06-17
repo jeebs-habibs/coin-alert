@@ -1,4 +1,4 @@
-import { adminDB, auth } from "@/app/lib/firebase/firebaseAdmin";
+import { adminDB, auth, messaging } from "@/app/lib/firebase/firebaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -39,6 +39,18 @@ export async function POST(request: NextRequest) {
     if (existingTokens.includes(fcmToken)) {
       console.log("⚠️ FCM token already stored");
       return NextResponse.json({ success: true, message: "Token already exists" }, { status: 200 });
+    }
+
+    if(existingTokens.length == 0){
+      const notification = {
+        title: "Welcome to Siren!",
+        body: "This is a test notification, you will now start to receive notifications and see tokens in your dashboard"
+      };
+
+      await messaging.send({
+        token: fcmToken,
+        notification
+      });
     }
 
     const updatedTokens = [...existingTokens, fcmToken];
