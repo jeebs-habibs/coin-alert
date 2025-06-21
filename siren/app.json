@@ -14,7 +14,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "entitlements": {
+        "aps-environment": "production"
+      },
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "supportsTablet": true,
@@ -31,9 +37,12 @@
     },
     "plugins": [
       "expo-router",
+      "expo-build-properties",
       "@react-native-google-signin/google-signin",
       "react-native-svg",
-      "expo-clipboard"
+      "expo-clipboard",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ],
     "experiments": {
       "typedRoutes": true

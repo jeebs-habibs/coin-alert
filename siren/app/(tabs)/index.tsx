@@ -6,6 +6,7 @@ import TrackedTokenSection, { formatNumber } from '@/components/TrackedTokens';
 import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { auth } from '@/lib/firebase';
+import { requestAndStoreFcmToken } from '@/lib/firebaseNotifications';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -72,6 +73,18 @@ export default function HomeScreen() {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USD"); // false = USD, true = SOL
   const [authenticated, setAuthenticated] = useState(false);
   const { authedUser, sirenUser } = useUser();
+
+  useEffect(() => {
+    const setupFcm = async () => {
+      if (authedUser && sirenUser) {
+        const jwt = await authedUser.getIdToken();
+        await requestAndStoreFcmToken(jwt, sirenUser.uid);
+      }
+    };
+  
+    setupFcm();
+  }, [authedUser, sirenUser]);
+  
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
