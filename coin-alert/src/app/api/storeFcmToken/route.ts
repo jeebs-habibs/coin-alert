@@ -36,21 +36,20 @@ export async function POST(request: NextRequest) {
     const userData = userSnap.data();
     const existingTokens: string[] = userData?.fcmTokens ?? [];
 
+
+    const notification = {
+        title: "Welcome to Siren!",
+        body: "This is a test notification, you will now start to receive notifications and see tokens in your dashboard"
+    };
+
+    await messaging.send({
+        token: fcmToken,
+        notification
+    });
+
     if (existingTokens.includes(fcmToken)) {
       console.log("⚠️ FCM token already stored");
       return NextResponse.json({ success: true, message: "Token already exists" }, { status: 200 });
-    }
-
-    if(existingTokens.length == 0){
-      const notification = {
-        title: "Welcome to Siren!",
-        body: "This is a test notification, you will now start to receive notifications and see tokens in your dashboard"
-      };
-
-      await messaging.send({
-        token: fcmToken,
-        notification
-      });
     }
 
     const updatedTokens = [...existingTokens, fcmToken];
