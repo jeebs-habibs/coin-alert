@@ -1,11 +1,12 @@
 import { adminDB, auth, messaging } from "@/app/lib/firebase/firebaseAdmin";
+import { FirebaseMessagingError } from "firebase-admin/messaging";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.error("No Authorization header");
+      console.error("❌ No Authorization header");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,9 +21,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { userId, fcmToken } = await request.json();
+    const { userId, fcmToken }: { userId: string; fcmToken: string } = await request.json();
 
     if (!userId || !fcmToken) {
+      console.error("❌ Missing userId or fcmToken");
       return NextResponse.json({ error: "Missing userId or fcmToken" }, { status: 400 });
     }
 
@@ -30,24 +32,59 @@ export async function POST(request: NextRequest) {
     const userSnap = await userRef.get();
 
     if (!userSnap.exists) {
+      console.error("❌ User not found:", userId);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const userData = userSnap.data();
     const existingTokens: string[] = userData?.fcmTokens ?? [];
 
-
     const notification = {
-        title: "Welcome to Siren!",
-        body: "This is a test notification, you will now start to receive notifications and see tokens in your dashboard"
+      title: "Welcome to Siren!",
+      body: "This is a test notification. You’ll now receive alerts and see tokens in your dashboard.",
     };
 
-    console.log("Sending notifications to token: " + fcmToken)
+    console.log("📤 Attempting to send notification to token:", fcmToken);
 
-    await messaging.send({
+    try {
+      const result = await messaging.send({
         token: fcmToken,
-        notification
-    });
+        notification,
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+            },
+          },
+        },
+      });
+
+      console.log("✅ Notification sent successfully. Message ID:", result);
+    } catch (sendError: unknown) {
+      if (sendError instanceof Error) {
+        const typedError = sendError as FirebaseMessagingError;
+        console.error(
+          "❌ Failed to send FCM notification:",
+          typedError.code,
+          typedError.message,
+          typedError.stack
+        );
+        return NextResponse.json(
+          {
+            error: "Failed to send FCM notification",
+            fcmError: typedError.code,
+            message: typedError.message,
+          },
+          { status: 500 }
+        );
+      } else {
+        console.error("❌ Unknown error during FCM send:", sendError);
+        return NextResponse.json(
+          { error: "Unknown error during FCM send" },
+          { status: 500 }
+        );
+      }
+    }
 
     if (existingTokens.includes(fcmToken)) {
       console.log("⚠️ FCM token already stored");
@@ -56,10 +93,11 @@ export async function POST(request: NextRequest) {
 
     const updatedTokens = [...existingTokens, fcmToken];
     await userRef.update({ fcmTokens: updatedTokens });
+    console.log("✅ FCM token stored");
 
-    return NextResponse.json({ success: true, message: "FCM token added" }, { status: 200 });
+    return NextResponse.json({ success: true, message: "FCM token added and notification sent" }, { status: 200 });
   } catch (error) {
-    console.error("❌ Error storing FCM token:", error);
+    console.error("❌ Unexpected error while storing FCM token or sending notification:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
