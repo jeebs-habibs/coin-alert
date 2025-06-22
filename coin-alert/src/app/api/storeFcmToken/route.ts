@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
         body: "This is a test notification, you will now start to receive notifications and see tokens in your dashboard"
     };
 
+    console.log("Sending notifications to token: " + fcmToken)
+
     await messaging.send({
         token: fcmToken,
         notification
