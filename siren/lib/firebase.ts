@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getMessaging } from '@react-native-firebase/messaging';
 import Constants from 'expo-constants';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
@@ -30,6 +31,6 @@ const auth = initializeAuth(app, {
 const db = getFirestore(app);
 
 // Firebase messaging is not supported in Expo
-const messaging = null;
+const messaging = getMessaging();
 
 export { app, auth, db, messaging };
