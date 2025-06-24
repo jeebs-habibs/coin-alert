@@ -1,6 +1,6 @@
 export default {
   expo: {
-    name: "siren",
+    name: "SirenNotifyTest",
     slug: "siren",
     version: "1.0.0",
     orientation: "portrait",
@@ -15,14 +15,14 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.sirennotify.myapp",
+      bundleIdentifier: "com.sirennotify.myapptest",
       googleServicesFile: "./GoogleService-Info.plist",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
-      package: "com.sirennotify.myapp",
+      package: "com.sirennotify.myapptest",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -43,7 +43,7 @@ export default {
       typedRoutes: true,
     },
     extra: {
-      firebaseApiKey: process.env.FIREBASE_API_KEY || "your-default-firebase-api-key",
+      firebaseApiKey: "AIzaSyDARmfCcYMnr662saaNnUIc8fG0hv84QHg",
       router: {},
       eas: {
         projectId: "d99fdd21-0e1e-426c-a598-ee08cc93f8d3",

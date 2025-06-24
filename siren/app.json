@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "siren",
+    "name": "SirenNotifyTest",
     "slug": "siren",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -24,7 +24,7 @@
     },
     "android": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sirennotify.myapp",
+      "bundleIdentifier": "com.sirennotify.myapptest",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

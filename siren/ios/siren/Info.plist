@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>siren</string>
+	<string>SirenNotifyTest</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,8 +27,8 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>siren</string>
-				<string>com.sirennotify.myapp</string>
+				<string>SirenNotifyTest</string>
+				<string>com.sirennotify.myapptest</string>
 			</array>
 		</dict>
 		<dict>
@@ -40,7 +40,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>exp+siren</string>
+				<string>exp+SirenNotifyTest</string>
 			</array>
 		</dict>
 	</array>
