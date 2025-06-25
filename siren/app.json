@@ -24,7 +24,7 @@
     },
     "android": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sirennotify.myapptest",
+      "bundleIdentifier": "com.sirennotify.myapp",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

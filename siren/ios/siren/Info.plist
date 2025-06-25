@@ -28,7 +28,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>SirenNotifyTest</string>
-				<string>com.sirennotify.myapptest</string>
+				<string>com.sirennotify.myapp</string>
 			</array>
 		</dict>
 		<dict>

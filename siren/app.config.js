@@ -15,14 +15,14 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.sirennotify.myapptest",
+      bundleIdentifier: "com.sirennotify.myapp",
       googleServicesFile: "./GoogleService-Info.plist",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
-      package: "com.sirennotify.myapptest",
+      package: "com.sirennotify.myapp",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff",
