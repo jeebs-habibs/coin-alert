@@ -112,8 +112,8 @@ export default function OnboardingScreen() {
               renderItem={({ item }) => (
                 <View style={{ width: Dimensions.get('window').width - 32, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
                   <Image source={item.image} style={{ width: 260, height: 260, borderRadius: 16, marginBottom: 24 }} resizeMode="cover" />
-                  <Text style={{ fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 12, fontFamily: 'LexendMega' }}>{item.title}</Text>
-                  <Text style={{ fontSize: 16, color: '#444', textAlign: 'center', lineHeight: 24, fontFamily: 'LexendMega' }}>{item.description}</Text>
+                  <Text style={{ fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 12, fontFamily: 'LexendMega' , color: theme.colors.text}}>{item.title}</Text>
+                  <Text style={{ fontSize: 16, color: theme.colors.text, textAlign: 'center', lineHeight: 24, fontFamily: 'LexendMega' }}>{item.description}</Text>
                 </View>
               )}
             />
@@ -128,7 +128,7 @@ export default function OnboardingScreen() {
                   width: 10,
                   height: 10,
                   borderRadius: 5,
-                  backgroundColor: activeIndex === index ? theme.colors.primary : '#ccc',
+                  backgroundColor: activeIndex === index ? theme.colors.primary : theme.colors.text,
                   marginHorizontal: 6,
                 }}
               />
@@ -151,6 +151,7 @@ export default function OnboardingScreen() {
                 fontWeight: 'bold',
                 fontSize: 16,
                 fontFamily: 'LexendMega',
+                color: theme.colors.text
               }}
               onPress={() => promptAsync()}
             >
@@ -176,13 +177,13 @@ export default function OnboardingScreen() {
             ))}
           </View>
           <Button
-            icon={<Icon name="chevron-right" type="feather" color="#fff" />}
+            icon={<Icon name="chevron-right" type="feather" color={theme.colors.text} />}
             title="Continue"
             buttonStyle={styles.primaryButton}
             onPress={() => setStep(2)}
           />
           <Button
-            icon={<Icon name="chevron-left" type="feather" color="#007aff" />}
+            icon={<Icon name="chevron-left" type="feather" color={theme.colors.text} />}
             title="Back"
             type="clear"
             onPress={handleBack}

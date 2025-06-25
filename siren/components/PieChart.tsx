@@ -1,5 +1,6 @@
+import { getTheme } from '@/constants/theme';
 import React from 'react';
-import { Dimensions, Text, View } from 'react-native';
+import { Dimensions, Text, useColorScheme, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 
 interface EnrichedToken {
@@ -19,6 +20,8 @@ interface Props {
 const screenWidth = Dimensions.get('window').width;
 
 const PieChartComponent: React.FC<Props> = ({ tokens }) => {
+  const scheme = useColorScheme();
+  const theme = getTheme(scheme);
   // Step 1: Compute total value for each token
   const enrichedTokensWithValue = tokens
     .map((token) => ({
@@ -44,7 +47,7 @@ const PieChartComponent: React.FC<Props> = ({ tokens }) => {
   if (pieData.length === 0) {
     return (
       <View style={{ alignItems: 'center', marginTop: 20 }}>
-        <Text>No holdings to display</Text>
+        <Text style={{color: theme.colors.text}}>No holdings to display</Text>
       </View>
     );
   }

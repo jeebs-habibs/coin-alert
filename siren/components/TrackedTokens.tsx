@@ -261,7 +261,7 @@ const getStyles = (theme: ReturnType<typeof getTheme>) => StyleSheet.create({
   header: {
     fontSize: 22,
     fontWeight: '700',
-    color: 'black',
+    color: theme.colors.text,
   },
   hideDisabledTitle: {
     color: "#888",

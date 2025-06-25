@@ -1,4 +1,4 @@
-import { useCustomTheme } from '@/context/ThemeContext';
+import { getTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from 'react-native';
 
@@ -27,7 +28,9 @@ export default function SingleSelectModal<T>({
   title,
   getOptionLabel,
 }: SingleSelectModalProps<T>) {
-  const { theme } = useCustomTheme();
+  const scheme = useColorScheme();
+  const theme = getTheme(scheme);
+  const styles = getStyles(theme) 
   const [visible, setVisible] = useState(false);
 
   const handleSelect = (option: T) => {
@@ -43,10 +46,10 @@ export default function SingleSelectModal<T>({
     onPress={() => setVisible(true)}
     activeOpacity={0.7}
   >
-    <Text style={[styles.buttonText, { color: theme.colors.text }]}>
+    <Text style={[styles.buttonText, { color: "#888" }]}>
       {getOptionLabel(selected)}
     </Text>
-    <Ionicons name="chevron-down" size={18} color={theme.colors.text} />
+    <Ionicons name="chevron-down" size={18} color="#888" />
   </TouchableOpacity>
 </View>
 
@@ -124,7 +127,7 @@ export default function SingleSelectModal<T>({
 
 const { height: windowHeight } = Dimensions.get('window');
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof getTheme>) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -177,5 +180,6 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
+    color: theme.colors.text
   },
 });

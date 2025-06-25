@@ -182,7 +182,7 @@ export default function SettingsScreen() {
                 thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
               />
             </Text>
-          <Text>{labels[notificationPreset].desc}</Text>
+          <Text style={styles.notificationLabel}>{labels[notificationPreset].desc}</Text>
 
           <Button
             title={isAlarmDescriptionVisible ? "Hide rules" : "Show rules"}
@@ -237,7 +237,7 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tracked Wallets</Text>
-          <Text>You will receieve notifications for price changes on active tokens in the following wallets.</Text>
+          <Text style={styles.trackedWalletsDescription}>You will receieve notifications for price changes on active tokens in the following wallets.</Text>
           {wallets.map((wallet, index) => (
             <View style={styles.walletsContainer} key={index}>
               <View style={styles.walletRow}>
@@ -270,7 +270,7 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <Text style={styles.email}>
-            <Text style={{ fontWeight: 'bold' }}>Email:</Text> {authedUser?.email}
+            <Text style={{ fontWeight: 'bold', color: theme.colors.text }}>Email:</Text> <Text style={{color: theme.colors.text}}>{authedUser?.email}</Text>
           </Text>
           
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -321,6 +321,9 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       backgroundColor: theme.colors.background,
       padding: theme.spacing.md,
     },
+    notificationLabel: {
+      color: theme.colors.text
+    },
     switch: {
       padding: theme.spacing.sm
     },
@@ -350,6 +353,9 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       fontWeight: '600',
       color: theme.colors.text,
       marginBottom: theme.spacing.sm,
+    },
+    trackedWalletsDescription: {
+      color: theme.colors.text
     },
     settingRow: {
       flexDirection: 'row',
@@ -400,7 +406,8 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       marginVertical: theme.spacing.sm
     },
     subscribedUntil: {
-      marginVertical: theme.spacing.md
+      marginVertical: theme.spacing.md,
+      color: theme.colors.text
     },
     presetButton: {
       backgroundColor: 'transparent',

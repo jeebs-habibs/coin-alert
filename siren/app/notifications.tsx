@@ -1,5 +1,6 @@
 // app/tabs/notifications.tsx
 
+import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useColorScheme,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +20,9 @@ import { RecentNotification } from '../../shared/types/user';
 
 export default function NotificationsScreen() {
   const { sirenUser } = useUser();
+  const scheme = useColorScheme();
+  const theme = getTheme(scheme);
+  const styles = getStyles(theme)
   const router = useRouter();
 
   const notifications = sirenUser?.recentNotifications
@@ -41,7 +46,7 @@ export default function NotificationsScreen() {
     <SafeAreaView style={[styles.safeArea]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={28} color="black" />
+          <Ionicons name="chevron-back" size={28} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.header}>Notifications</Text>
       </View>
@@ -60,14 +65,16 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof getTheme>) => StyleSheet.create({
   safeArea: {
-    flex: 1
+    flex: 1,
+    backgroundColor: theme.colors.background
+
   },
   container: {
     padding: 16,
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.background
   },
   headerRow: {
     flexDirection: 'row',
@@ -77,6 +84,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: theme.colors.text,
     marginLeft: 8,
   },
   empty: {
@@ -91,7 +99,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.colors.background,
   },
   image: {
     width: 40,
@@ -106,10 +114,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     marginBottom: 4,
+    color: theme.colors.text
   },
   body: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
   },
   timestamp: {
     marginTop: 4,
