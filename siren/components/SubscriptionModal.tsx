@@ -16,7 +16,7 @@ import {
 import { Wallet } from '../../shared/types/user';
 
 const MONTHLY_SUBSCRIPTION_COST_SOL = 0.25;
-const RECIPIENT_WALLET = '6rNouRR76vA78M2HYopboEqkxd5mvdTGj9fN6d4Brujs';
+const SIREN_VAULT_WALLET = '5t8EQimJUKZ9qY9nw5qUg3nkQcPKqK3vmqxZm1vQY6u1';
 
 interface Props {
   visible: boolean;
@@ -47,7 +47,7 @@ export default function SubscriptionModal({ visible, setSubscriptionModal }: Pro
   const totalSOL = (parseInt(months) || 0) * MONTHLY_SUBSCRIPTION_COST_SOL;
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(RECIPIENT_WALLET);
+    await Clipboard.setStringAsync(SIREN_VAULT_WALLET);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -126,7 +126,7 @@ export default function SubscriptionModal({ visible, setSubscriptionModal }: Pro
 
           <Text style={styles.label}>To this wallet address:</Text>
           <View style={styles.copyRow}>
-            <Text style={styles.wallet}>{RECIPIENT_WALLET}</Text>
+            <Text style={styles.wallet}>{SIREN_VAULT_WALLET}</Text>
             <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
               <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
             </TouchableOpacity>
