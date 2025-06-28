@@ -39,7 +39,18 @@ export interface RecentNotification {
     subscriptionEndTimesampMs?: number;
   }
 
-  type ReferralCode = "nach" | "orangie" | "cupsey"
+  export interface ReferralCodeUses {
+    timestampUsedMs: number;
+    signupUid: string;
+    signupWallet: string;
+  }
+
+  export interface ReferralCode {
+    timestampCreatedMs: number;
+    referralCode: string;
+    wallet: string;
+    uses: ReferralCodeUses[];
+  }
 
   export interface SirenUser {
     uid: string;
