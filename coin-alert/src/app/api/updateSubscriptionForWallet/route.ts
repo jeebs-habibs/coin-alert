@@ -9,7 +9,7 @@ import { Payment, Wallet } from "../../../../../shared/types/user";
 
 const LAMPORTS_PER_SOL = 1000000000
 const SUBSCRIPTION_MONTHLY_COST = .25
-const SIREN_VAULT_WALLET =  "Cnn1AyuYH1cKNtKFM5yXYy6GAMgtgh7rLinzeSkbzwnm"
+const SIREN_VAULT_WALLET =  "5t8EQimJUKZ9qY9nw5qUg3nkQcPKqK3vmqxZm1vQY6u1"
 
 function getPaymentFromTransaction(
     transaction: ParsedTransactionWithMeta,
