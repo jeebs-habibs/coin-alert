@@ -95,7 +95,7 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (sirenUser && Array.isArray(sirenUser.userWallets) && sirenUser.userWallets.length === 0) {
+    if (sirenUser && (!sirenUser?.userWallets || sirenUser.userWallets.length === 0)) {
       setShowSubscriptionModal(true);
     }
   }, [sirenUser]);
