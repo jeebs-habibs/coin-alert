@@ -70,6 +70,7 @@ export default function HomeScreen() {
   const [solPrice, setSolPrice] = useState<number | undefined>(undefined)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [isSirenUserWalletLoading, setIsSirenUserWalletLoading] = useState<boolean>(true)
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USD"); // false = USD, true = SOL
   const [authenticated, setAuthenticated] = useState(false);
   const { authedUser, sirenUser } = useUser();
@@ -97,6 +98,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const showModal = async () => {
       if (sirenUser && (!sirenUser?.userWallets || sirenUser.userWallets.length === 0)) {
+        setShowSubscriptionModal(true);
         if(!sirenUser?.userSirenWallet){
           try {
             const userJwt = await authedUser?.getIdToken()
@@ -107,6 +109,7 @@ export default function HomeScreen() {
             });
             const data = await response.json();
             if (response.ok && data?.publicKey) {
+              setIsSirenUserWalletLoading(false)
               console.log("Successfully create pubkey for user");
             } else {
               console.warn("Failed to load SOL price", data);
@@ -115,7 +118,7 @@ export default function HomeScreen() {
             console.error("Error fetching SOL price:", error);
           }
         }
-        setShowSubscriptionModal(true);
+        setIsSirenUserWalletLoading(false)
       }
     }
     showModal()
@@ -212,7 +215,7 @@ export default function HomeScreen() {
 
   return (
       <Page>
-      <SubscriptionModal visible={showSubscriptionModal} setSubscriptionModal={setShowSubscriptionModal} />
+      <SubscriptionModal visible={showSubscriptionModal} setSubscriptionModal={setShowSubscriptionModal} isSirenUserWalletAddressLoading={isSirenUserWalletLoading}/>
 
       <View style={styles.header}>
         <Text style={styles.title}>{authedUser?.displayName}'s Port</Text>

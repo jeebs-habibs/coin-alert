@@ -21,6 +21,7 @@ const SIREN_VAULT_WALLET = '5t8EQimJUKZ9qY9nw5qUg3nkQcPKqK3vmqxZm1vQY6u1';
 interface Props {
   visible: boolean;
   setSubscriptionModal: (visible: boolean) => void;
+  isSirenUserWalletAddressLoading: boolean;
 }
 
 const isValidSolanaAddress = (address: string): boolean => {
@@ -32,7 +33,7 @@ const isValidSolanaAddress = (address: string): boolean => {
   }
 };
 
-export default function SubscriptionModal({ visible, setSubscriptionModal }: Props) {
+export default function SubscriptionModal({ visible, setSubscriptionModal, isSirenUserWalletAddressLoading }: Props) {
   const { authedUser, sirenUser } = useUser();
   const scheme = useColorScheme();
   const theme = getTheme(scheme);
@@ -47,9 +48,12 @@ export default function SubscriptionModal({ visible, setSubscriptionModal }: Pro
   const totalSOL = (parseInt(months) || 0) * MONTHLY_SUBSCRIPTION_COST_SOL;
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(SIREN_VAULT_WALLET);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if(sirenUser?.userSirenWallet){
+      await Clipboard.setStringAsync(sirenUser.userSirenWallet);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+
   };
 
   const handleVerify = async () => {
@@ -106,65 +110,58 @@ export default function SubscriptionModal({ visible, setSubscriptionModal }: Pro
       hardwareAccelerated
       presentationStyle="overFullScreen"
     >
+      {
+        isSirenUserWalletAddressLoading ?       <View style={styles.centered}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View> : 
       <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>Activate Your Subscription</Text>
+      <View style={styles.modal}>
+        <Text style={styles.title}>Activate Your Subscription</Text>
 
-          <Text style={styles.header}>PAY</Text>
-          <Text style={styles.label}>Send the following amount:</Text>
-          <View style={styles.monthRow}>
-            <Text style={[styles.step, styles.bold]}>{totalSOL} SOL</Text>
-            <Text style={styles.step}> for </Text>
-            <TextInput
-              style={styles.monthInput}
-              keyboardType="numeric"
-              value={months}
-              onChangeText={setMonths}
-            />
-            <Text style={styles.step}> month(s)</Text>
-          </View>
-
-          <Text style={styles.label}>To this wallet address:</Text>
-          <View style={styles.copyRow}>
-            <Text style={styles.wallet}>{sirenUser?.userSirenWallet}</Text>
-            <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
-              <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.header}>VERIFY</Text>
-          <Text style={styles.label}>Enter the wallet address you used to send payment:</Text>
+        <Text style={styles.header}>PAY</Text>
+        <Text style={styles.label}>Send the following amount:</Text>
+        <View style={styles.monthRow}>
+          <Text style={[styles.step, styles.bold]}>{totalSOL} SOL</Text>
+          <Text style={styles.step}> for </Text>
           <TextInput
-            style={styles.input}
-            value={walletAddress}
-            onChangeText={setWalletAddress}
-            autoCapitalize="none"
-            autoCorrect={false}
+            style={styles.monthInput}
+            keyboardType="numeric"
+            value={months}
+            onChangeText={setMonths}
           />
+          <Text style={styles.step}> month(s)</Text>
+        </View>
 
-          {!!error && <Text style={styles.error}>{error}</Text>}
-
-          <TouchableOpacity
-            style={[
-              styles.verifyButton,
-              isVerifyButtonDisabled && styles.verifyButtonDisabled,
-            ]}
-            onPress={handleVerify}
-            disabled={isVerifyButtonDisabled}
-          >
-            {verifying ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text
-                style={
-                  isVerifyButtonDisabled ? styles.verifyTextDisabled : styles.verifyText
-                }
-              >
-                Verify
-              </Text>
-            )}
+        <Text style={styles.label}>To this wallet address:</Text>
+        <View style={styles.copyRow}>
+          <Text style={styles.wallet}>{sirenUser?.userSirenWallet}</Text>
+          <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
+            <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={[
+            styles.verifyButton
+          ]}
+          onPress={handleVerify}
+        >
+          {verifying ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text
+              style={
+                styles.verifyText
+              }
+            >
+              Verify
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
+    </View>
+      }
+      
     </Modal>
   );
 }
@@ -281,5 +278,11 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
     error: {
       color: theme.colors.danger,
       marginTop: 8,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
     },
   });
