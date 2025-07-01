@@ -133,9 +133,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "sourceWallet is required" }, { status: 400 });
     }
 
-    const desinationWallet = request.nextUrl.searchParams.get("desinationWallet");
-    if (!desinationWallet) {
-        return NextResponse.json({ error: "desinationWallet is required" }, { status: 400 });
+    const destinationWallet = request.nextUrl.searchParams.get("destinationWallet");
+    if (!destinationWallet) {
+        return NextResponse.json({ error: "destinationWallet is required" }, { status: 400 });
     }
 
 
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
     const userSourceWalletIdx: number | undefined = user?.userWallets?.length ? user.userWallets.findIndex((wallet) => wallet.pubkey == sourceWallet) : undefined
 
     // Setting sol payemnt to 0 so we get all payments
-    const newPayments = await getNewPaymentsFromWallet(userPaymentsFromWallet, sourceWallet, desinationWallet, 0)
+    const newPayments = await getNewPaymentsFromWallet(userPaymentsFromWallet, sourceWallet, destinationWallet, 0)
     const allPayments = [...newPayments, ...userPaymentsFromWallet]
     const subscriptionEndDate = calculateSubscriptionEndDate(allPayments, SUBSCRIPTION_MONTHLY_COST, sourceWallet)
 
