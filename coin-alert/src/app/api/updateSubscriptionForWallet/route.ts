@@ -130,17 +130,21 @@ export async function GET(request: NextRequest) {
     // 👇 You could use the UID to scope the token fetching if needed
     const sourceWallet = request.nextUrl.searchParams.get("sourceWallet");
     if (!sourceWallet) {
+        console.error("Source wallet required")
         return NextResponse.json({ error: "sourceWallet is required" }, { status: 400 });
     }
 
     const destinationWallet = request.nextUrl.searchParams.get("destinationWallet");
     if (!destinationWallet) {
+      console.error("Destination wallet required")
         return NextResponse.json({ error: "destinationWallet is required" }, { status: 400 });
     }
 
 
     const userId = request.nextUrl.searchParams.get("userId");
     if (!userId) {
+      console.error("User id required")
+
         return NextResponse.json({ error: "userId is required" }, { status: 400 });
     }
 
