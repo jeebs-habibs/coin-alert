@@ -57,7 +57,7 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
   };
 
   const handleVerify = async () => {
-    if (!authedUser) return;
+    if (!authedUser || !sirenUser?.userSirenWallet) return;
     try {
       setVerifying(true);
       setError('');
@@ -65,7 +65,7 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
       const userJwt = await authedUser.getIdToken();
       const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?sourceWallet=${encodeURIComponent(
         trimmed
-      )}&userId=${encodeURIComponent(authedUser.uid)}`;
+      )}&destinationWallet=${encodeURIComponent(sirenUser.userSirenWallet)}&userId=${encodeURIComponent(authedUser.uid)}`;
 
       const response = await fetch(url, {
         headers: {

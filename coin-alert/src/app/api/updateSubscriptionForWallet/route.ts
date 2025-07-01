@@ -9,7 +9,7 @@ import { Payment, Wallet } from "../../../../../shared/types/user";
 
 const LAMPORTS_PER_SOL = 1000000000
 const SUBSCRIPTION_MONTHLY_COST = .25
-const SIREN_VAULT_WALLET =  "5t8EQimJUKZ9qY9nw5qUg3nkQcPKqK3vmqxZm1vQY6u1"
+//const SIREN_VAULT_WALLET =  "5t8EQimJUKZ9qY9nw5qUg3nkQcPKqK3vmqxZm1vQY6u1"
 //const SIREN_TOKEN_MINT = "52LHD4PhfZWuctEszNcqsQFUazJVr2Ng5NJpLK4gNGti"
 
 function getPaymentFromTransaction(
@@ -133,6 +133,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "sourceWallet is required" }, { status: 400 });
     }
 
+    const desinationWallet = request.nextUrl.searchParams.get("desinationWallet");
+    if (!desinationWallet) {
+        return NextResponse.json({ error: "desinationWallet is required" }, { status: 400 });
+    }
+
+
     const userId = request.nextUrl.searchParams.get("userId");
     if (!userId) {
         return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -165,7 +171,7 @@ export async function GET(request: NextRequest) {
     const userSourceWalletIdx: number | undefined = user?.userWallets?.length ? user.userWallets.findIndex((wallet) => wallet.pubkey == sourceWallet) : undefined
 
     // Setting sol payemnt to 0 so we get all payments
-    const newPayments = await getNewPaymentsFromWallet(userPaymentsFromWallet, sourceWallet, SIREN_VAULT_WALLET, 0)
+    const newPayments = await getNewPaymentsFromWallet(userPaymentsFromWallet, sourceWallet, desinationWallet, 0)
     const allPayments = [...newPayments, ...userPaymentsFromWallet]
     const subscriptionEndDate = calculateSubscriptionEndDate(allPayments, SUBSCRIPTION_MONTHLY_COST, sourceWallet)
 
