@@ -52,6 +52,12 @@ export interface RecentNotification {
     uses: ReferralCodeUses[];
   }
 
+  export interface SirenUserWallet {
+    uid: string;
+    publicKey: string;
+    secretKey: number[];
+  }
+
   export interface SirenUser {
     uid: string;
     email?: string;

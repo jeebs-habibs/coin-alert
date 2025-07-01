@@ -5,6 +5,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - Maybe when checking prices we just look at db rather than querying blockchain again (or make it all 1 job?)
 - How come I still can only query at 10 TPS? Figure this out if I'm paying 50$ a month
 
+## COLLECTION of PAYMENTS
+Run `npx tsx scripts/retrieveSolFromUserWallets.ts`
 
 - Re-investigate logic checking when to send noti. I got a noti for an increase over 7 minute threshold but it was like 14 minutes after it went up. This should be been an earlier alarm. Do we need a threshold between 1 and 7?
 - Better deduping, getting notis for the same token 3 minutes apart, not very useful. Maybe minimum cooldown of 5 minutes?
