@@ -64,4 +64,5 @@ export interface RecentNotification {
     isNotificationsOn: boolean;
     recentNotifications?: Record<string, RecentNotification>;
     referralCode?: ReferralCode;
+    userSirenWallet?: string;
   }

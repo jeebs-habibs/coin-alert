@@ -132,6 +132,9 @@ export default function SubscriptionModal({ visible, setSubscriptionModal }: Pro
             </TouchableOpacity>
           </View>
 
+          <Text style={[styles.step, styles.bold]}>OR</Text>
+
+          <Text>Purchase 1 SOL of Siren token: 52LHD4PhfZWuctEszNcqsQFUazJVr2Ng5NJpLK4gNGti</Text>
           <Text style={styles.header}>VERIFY</Text>
           <Text style={styles.label}>Enter the wallet address you used to send payment:</Text>
           <TextInput

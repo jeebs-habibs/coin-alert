@@ -10,6 +10,7 @@ import { Payment, Wallet } from "../../../../../shared/types/user";
 const LAMPORTS_PER_SOL = 1000000000
 const SUBSCRIPTION_MONTHLY_COST = .25
 const SIREN_VAULT_WALLET =  "5t8EQimJUKZ9qY9nw5qUg3nkQcPKqK3vmqxZm1vQY6u1"
+const SIREN_TOKEN_MINT = "52LHD4PhfZWuctEszNcqsQFUazJVr2Ng5NJpLK4gNGti"
 
 function getPaymentFromTransaction(
     transaction: ParsedTransactionWithMeta,
@@ -180,6 +181,16 @@ export async function GET(request: NextRequest) {
         await updateUser(userId, user)
         return NextResponse.json(newWallet, { status: 200 });
     }
+
+    // If user did not pay, lets see if they 
+    // const tokenAccountsForAddress = await blockchainTaskQueue.addTask(() =>
+    //   connection.getParsedTokenAccountsByOwner(new PublicKey(sourceWallet), { programId: TOKEN_PROGRAM_ID })
+    // );
+
+    // const walletSirenTokenAccount = tokenAccountsForAddress.value.find((acct) => {
+    //   const tokenAccountData: TokenAccountData = acct.account.data.parsed;
+    //   return (tokenAccountData.info.mint == SIREN_TOKEN_MINT)
+    // })
 
     return NextResponse.json({}, { status: 200 });
   } catch (error) {

@@ -95,9 +95,30 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    if (sirenUser && (!sirenUser?.userWallets || sirenUser.userWallets.length === 0)) {
-      setShowSubscriptionModal(true);
+    const showModal = async () => {
+      if (sirenUser && (!sirenUser?.userWallets || sirenUser.userWallets.length === 0)) {
+        if(!sirenUser?.userSirenWallet){
+          try {
+            const userJwt = await authedUser?.getIdToken()
+            const response = await fetch("https://www.sirennotify.com/api/getCryptoPrice?symbol=SOL", {
+              headers: {
+                Authorization: `Bearer ${userJwt}`,
+              },
+            });
+            const data = await response.json();
+            if (response.ok && data?.priceUsd) {
+              setSolPrice(data.priceUsd);
+            } else {
+              console.warn("Failed to load SOL price", data);
+            }
+          } catch (error) {
+            console.error("Error fetching SOL price:", error);
+          }
+        }
+        setShowSubscriptionModal(true);
+      }
     }
+    showModal()
   }, [sirenUser]);
   
 
