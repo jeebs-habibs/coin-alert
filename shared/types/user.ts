@@ -65,4 +65,6 @@ export interface RecentNotification {
     recentNotifications?: Record<string, RecentNotification>;
     referralCode?: ReferralCode;
     userSirenWallet?: string;
+    payments?: Payment[];
+    subscriptionEndTimesampMs?: number;
   }

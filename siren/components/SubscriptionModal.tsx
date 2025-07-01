@@ -63,9 +63,7 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
       setError('');
       const trimmed = walletAddress.trim();
       const userJwt = await authedUser.getIdToken();
-      const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?sourceWallet=${encodeURIComponent(
-        trimmed
-      )}&destinationWallet=${encodeURIComponent(sirenUser.userSirenWallet)}&userId=${encodeURIComponent(authedUser.uid)}`;
+      const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?destinationWallet=${encodeURIComponent(sirenUser.userSirenWallet)}&userId=${encodeURIComponent(authedUser.uid)}`;
 
       const response = await fetch(url, {
         headers: {
