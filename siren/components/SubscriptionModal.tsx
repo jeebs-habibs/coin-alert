@@ -126,15 +126,11 @@ export default function SubscriptionModal({ visible, setSubscriptionModal }: Pro
 
           <Text style={styles.label}>To this wallet address:</Text>
           <View style={styles.copyRow}>
-            <Text style={styles.wallet}>{SIREN_VAULT_WALLET}</Text>
+            <Text style={styles.wallet}>{sirenUser?.userSirenWallet}</Text>
             <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
               <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
             </TouchableOpacity>
           </View>
-
-          <Text style={[styles.step, styles.bold]}>OR</Text>
-
-          <Text>Purchase 1 SOL of Siren token: 52LHD4PhfZWuctEszNcqsQFUazJVr2Ng5NJpLK4gNGti</Text>
           <Text style={styles.header}>VERIFY</Text>
           <Text style={styles.label}>Enter the wallet address you used to send payment:</Text>
           <TextInput

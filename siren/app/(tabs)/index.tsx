@@ -100,14 +100,14 @@ export default function HomeScreen() {
         if(!sirenUser?.userSirenWallet){
           try {
             const userJwt = await authedUser?.getIdToken()
-            const response = await fetch("https://www.sirennotify.com/api/getCryptoPrice?symbol=SOL", {
+            const response = await fetch(`https://www.sirennotify.com/api/createUserSirenWallet?userId=${sirenUser.uid}`, {
               headers: {
                 Authorization: `Bearer ${userJwt}`,
               },
             });
             const data = await response.json();
-            if (response.ok && data?.priceUsd) {
-              setSolPrice(data.priceUsd);
+            if (response.ok && data?.publicKey) {
+              console.log("Successfully create pubkey for user");
             } else {
               console.warn("Failed to load SOL price", data);
             }
