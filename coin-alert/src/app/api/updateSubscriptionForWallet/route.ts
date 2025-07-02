@@ -160,6 +160,9 @@ export async function GET(request: NextRequest) {
 
     user.payments = allPayments;
     user.subscriptionEndTimesampMs = subscriptionEndDate;
+    if(subscriptionEndDate && subscriptionEndDate > Date.now()){
+      user.tier = "pro"
+    }
 
     await updateUser(userId, user);
 

@@ -58,6 +58,8 @@ export interface RecentNotification {
     secretKey: number[];
   }
 
+  type Tier = "free-trial" | "pro"
+
   export interface SirenUser {
     uid: string;
     email?: string;
@@ -72,7 +74,9 @@ export interface RecentNotification {
     referralCode?: ReferralCode;
     userSirenWallet?: string;
     payments?: Payment[];
+    // If subscriptionEndTimesampMs is undefined we assume user has not payed yet.
     subscriptionEndTimesampMs?: number;
     createdAtTimestampMs?: number;
     didSendWelcomeNoti?: boolean;
+    tier?: Tier;
   }

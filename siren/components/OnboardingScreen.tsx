@@ -76,7 +76,8 @@ export default function OnboardingScreen() {
           await setDoc(userRef, {
             email: user.email,
             createdAt: Date.now(),
-            uid: user.uid
+            uid: user.uid,
+            tier: "free-trial"
           });
           console.log('New user created with timestamp');
         } else {
