@@ -271,7 +271,7 @@ export default function SettingsScreen() {
           <Text style={styles.subscribedUntil}>
                 {sirenUser?.subscriptionEndTimesampMs
                   ? `Subscribed until: ${new Date(sirenUser.subscriptionEndTimesampMs).toLocaleDateString()}`
-                  : ""}
+                  : `Free trial ends: ${new Date((sirenUser?.createdAtTimestampMs || 0) + (1000 * 60 * 60 * 24 * 7))}`}
               </Text>          
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>

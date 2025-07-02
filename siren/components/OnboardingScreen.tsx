@@ -75,7 +75,7 @@ export default function OnboardingScreen() {
         if (!userSnap.exists()) {
           await setDoc(userRef, {
             email: user.email,
-            createdAt: Date.now(),
+            createdAtTimestampMs: Date.now(),
             uid: user.uid,
             tier: "free-trial"
           });

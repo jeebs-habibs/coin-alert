@@ -97,7 +97,11 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const showModal = async () => {
-      if (sirenUser && (!sirenUser?.userWallets || sirenUser.userWallets.length === 0)) {
+      // Show modal if either:
+      //    - User is pro tier but subscription ended
+      //    - User is free-trail but trial ended
+      if (sirenUser && ((sirenUser.tier == "pro" && (sirenUser.subscriptionEndTimesampMs || 0) < Date.now()) 
+        || (sirenUser.tier == "free-trial" && (((Date.now() - (sirenUser.createdAtTimestampMs || 0)) / 1000 / 60 / 60 / 24 / 7) > 7)))) {
         setShowSubscriptionModal(true);
         if(!sirenUser?.userSirenWallet){
           try {
