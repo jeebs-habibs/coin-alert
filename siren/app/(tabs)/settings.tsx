@@ -20,7 +20,7 @@ import {
   View
 } from 'react-native';
 import { Button, Text } from 'react-native-elements';
-import { AlarmPreset, SirenUser, Wallet } from '../../../shared/types/user';
+import { AlarmPreset, SirenUser } from '../../../shared/types/user';
 
 const labels = {
   left: {
@@ -51,7 +51,7 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationPreset, setNotificationPreset] = useState<AlarmPreset>('center');
   const [isAlarmDescriptionVisible, setIsAlarmDescriptionVisible] = useState<boolean>(false);
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [wallets, setWallets] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newWallet, setNewWallet] = useState('');
   const [isAddingWallet, setIsAddingWallet] = useState(false);
@@ -86,51 +86,13 @@ export default function SettingsScreen() {
 
   async function handleAddWallet() {
     const trimmed = newWallet.trim();
-    const walletAlreadyAdded = wallets.some(
-      (wallet) => wallet.pubkey === newWallet || wallet.pubkey === trimmed
-    );
-    if (!authedUser?.uid || walletAlreadyAdded || !trimmed) return;
-
-    setIsAddingWallet(true);
-    try {
-      const userJwt = await authedUser.getIdToken();
-      const url = `https://www.sirennotify.com/api/updateSubscriptionForWallet?sourceWallet=${encodeURIComponent(
-        trimmed
-      )}&userId=${encodeURIComponent(authedUser.uid)}`;
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${userJwt}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Error Response:', errorText);
-        throw new Error(`API Error ${response.status}: ${errorText}`);
-      }
-
-      const res: Wallet = await response.json();
-      console.log('API response:', res);
-
-      const subscriptionEndDateForWallet = res?.subscriptionEndTimesampMs
-        ? new Date(res.subscriptionEndTimesampMs)
-        : undefined;
-
-      if (subscriptionEndDateForWallet) {
-        const updated = [...wallets, res];
-        setWallets(updated);
-        setNewWallet('');
-        setModalVisible(false);
-      } else {
-        console.error('❌ Unable to find payment from wallet: ' + trimmed);
-      }
-    } catch (error) {
-      console.error('❌ Error during handleAddWallet:', error);
-    } finally {
-      setIsAddingWallet(false);
-    }
-  }
+    if (!trimmed) return;
+    const updated = [...wallets, trimmed];
+    setWallets(updated);
+    updateUserSetting('wallets', updated);
+    setNewWallet('');
+    setModalVisible(false);
+  };
 
   const handleConfirmRemoveWallet = (wallet: string) => {
     Alert.alert(
@@ -148,7 +110,7 @@ export default function SettingsScreen() {
   };
 
   const handleRemoveWallet = (wallet: string) => {
-    const updated = wallets.filter((w) => w.pubkey !== wallet);
+    const updated = wallets.filter((w) => w !== wallet);
     setWallets(updated);
     updateUserSetting('userWallets', updated);
   };
@@ -241,11 +203,11 @@ export default function SettingsScreen() {
           {wallets.map((wallet, index) => (
             <View style={styles.walletsContainer} key={index}>
               <View style={styles.walletRow}>
-                <Text style={styles.walletText}>{formatWalletAddress(wallet.pubkey)}</Text>
+                <Text style={styles.walletText}>{formatWalletAddress(wallet)}</Text>
                 <Button
                   title="Remove"
                   type="clear"
-                  onPress={() => handleConfirmRemoveWallet(wallet.pubkey)}
+                  onPress={() => handleConfirmRemoveWallet(wallet)}
                   buttonStyle={{ borderColor: theme.colors.danger }}
                   titleStyle={{ color: theme.colors.danger, fontSize: 14 }}
                 />

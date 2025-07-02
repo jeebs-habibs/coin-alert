@@ -64,7 +64,7 @@ export interface RecentNotification {
     uid: string;
     email?: string;
     wallets?: string[];
-    userWallets?: Wallet[];
+    userWallets?: string[];
     tokens?: string[];
     fcmTokens?: string[];
     trackedTokens?: TrackedToken[];

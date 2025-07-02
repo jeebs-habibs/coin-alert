@@ -97,7 +97,7 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
   const isVerifyButtonDisabled =
     !isValidSolanaAddress(walletAddress) ||
     verifying ||
-    sirenUser?.userWallets?.map((wallet) => wallet.pubkey).includes(walletAddress);
+    sirenUser?.userWallets?.includes(walletAddress);
 
   return (
     <Modal
