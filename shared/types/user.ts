@@ -74,4 +74,5 @@ export interface RecentNotification {
     payments?: Payment[];
     subscriptionEndTimesampMs?: number;
     createdAtTimestampMs?: number;
+    didSendWelcomeNoti?: boolean;
   }
