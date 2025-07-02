@@ -5,6 +5,7 @@ import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { convertAlarmConfigToString, NOISIER_ALARM_CONFIGS, QUIETER_ALARM_CONFIGS, STANDARD_ALARM_CONFIGS } from '@/lib/constants/alarmPresets';
 import { auth, db } from '@/lib/firebase';
+import * as Clipboard from 'expo-clipboard';
 import { signOut } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
@@ -54,6 +55,7 @@ export default function SettingsScreen() {
   const [wallets, setWallets] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newWallet, setNewWallet] = useState('');
+  const [copied, setCopied] = useState<boolean>(false)
   const [isAddingWallet, setIsAddingWallet] = useState(false);
 
   useEffect(() => {
@@ -73,6 +75,15 @@ export default function SettingsScreen() {
       console.error('Error', `Failed to update key in firebase: ${err.message}`);
     }
   };
+
+  const handleCopy = async () => {
+    if(sirenUser?.userSirenWallet){
+      await Clipboard.setStringAsync(sirenUser.userSirenWallet);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
 
   const handleToggleNotifications = (value: boolean) => {
     setNotificationsEnabled(value);
@@ -229,11 +240,22 @@ export default function SettingsScreen() {
           <Text style={styles.email}>
             <Text style={{ fontWeight: 'bold', color: theme.colors.text }}>Email:</Text> <Text style={{color: theme.colors.text}}>{authedUser?.email}</Text>
           </Text>
+          {
+            sirenUser?.userSirenWallet ? 
+            <View>
+              <Text>To extend subscription, send .25 SOL for each month of access to address: {sirenUser.userSirenWallet}</Text>
+              <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
+                <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
+              </TouchableOpacity>
+            </View> 
+            : 
+            <></>
+          }
 
           <Text style={styles.subscribedUntil}>
                 {sirenUser?.subscriptionEndTimesampMs
                   ? `Subscribed until: ${new Date(sirenUser.subscriptionEndTimesampMs).toLocaleDateString()}`
-                  : `Free trial ends: ${new Date((sirenUser?.createdAtTimestampMs || 0) + (1000 * 60 * 60 * 24 * 7))}`}
+                  : `Free trial ends: ${new Date((sirenUser?.createdAtTimestampMs || 0) + (1000 * 60 * 60 * 24 * 7)).toLocaleDateString()}`}
               </Text>          
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
@@ -338,6 +360,19 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       borderColor: '#ccc',
       padding: theme.spacing.sm,
       marginTop: theme.spacing.sm,
+    },
+    copyButton: {
+      backgroundColor: theme.colors.primary,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 6,
+      minWidth: 50,
+      maxWidth: 70
+    },
+    copyButtonText: {
+      color: 'white',
+      fontSize: 12,
+      fontWeight: 'bold',
     },
     alarmRule: {
       marginVertical: theme.spacing.xs,

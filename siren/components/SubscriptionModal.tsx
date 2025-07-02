@@ -53,7 +53,6 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-
   };
 
   const handleVerify = async () => {
