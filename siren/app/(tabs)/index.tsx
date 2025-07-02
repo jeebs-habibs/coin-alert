@@ -128,45 +128,50 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      try {
-        const userJwt = await authedUser?.getIdToken();
-        const results = await Promise.all(
-          (sirenUser?.trackedTokens || []).map((token) =>
-            fetch(`https://www.sirennotify.com/api/getToken?mint=${token.mint}`, {
-              headers: {
-                Authorization: `Bearer ${userJwt}`,
-              },
-            }).then((res) => res.json())
-          )
-        );
-
-        const enriched: EnrichedToken[] = (sirenUser?.trackedTokens || []).map((tracked, i) => {
-          const token: Token = results[i];
-          const priceData = token.prices?.[0];
-          const metadata = token.tokenData?.tokenMetadata;
-
-          return {
-            mint: tracked.mint,
-            tokensOwned: tracked.tokensOwned,
-            isNotificationsOn: tracked.isNotificationsOn,
-            symbol: metadata?.symbol ?? 'Unknown',
-            image: metadata?.image ?? '',
-            price: priceData?.price,
-            marketCapSol: priceData?.marketCapSol,
-          };
-        });
-
-        setEnrichedTokens(enriched);
-      } catch (err) {
-        console.error('Error fetching token data:', err);
-      } finally {
+      if(!sirenUser?.trackedTokens || sirenUser.trackedTokens.length == 0){
+        setEnrichedTokens([])
         setLoading(false);
+      } else {
+        try {
+          const userJwt = await authedUser?.getIdToken();
+          const results = await Promise.all(
+            (sirenUser?.trackedTokens || []).map((token) =>
+              fetch(`https://www.sirennotify.com/api/getToken?mint=${token.mint}`, {
+                headers: {
+                  Authorization: `Bearer ${userJwt}`,
+                },
+              }).then((res) => res.json())
+            )
+          );
+  
+          const enriched: EnrichedToken[] = (sirenUser?.trackedTokens || []).map((tracked, i) => {
+            const token: Token = results[i];
+            const priceData = token.prices?.[0];
+            const metadata = token.tokenData?.tokenMetadata;
+  
+            return {
+              mint: tracked.mint,
+              tokensOwned: tracked.tokensOwned,
+              isNotificationsOn: tracked.isNotificationsOn,
+              symbol: metadata?.symbol ?? 'Unknown',
+              image: metadata?.image ?? '',
+              price: priceData?.price,
+              marketCapSol: priceData?.marketCapSol,
+            };
+          });
+  
+          setEnrichedTokens(enriched);
+        } catch (err) {
+          console.error('Error fetching token data:', err);
+        } finally {
+          setLoading(false);
+        }
       }
+
     };
 
-    if ((sirenUser?.trackedTokens || []).length > 0) {
-      fetchData();
-    }
+    fetchData();
+    
   }, [sirenUser?.trackedTokens, authedUser]);
 
   useEffect(() => {

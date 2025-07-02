@@ -73,4 +73,5 @@ export interface RecentNotification {
     userSirenWallet?: string;
     payments?: Payment[];
     subscriptionEndTimesampMs?: number;
+    createdAtTimestampMs?: number;
   }

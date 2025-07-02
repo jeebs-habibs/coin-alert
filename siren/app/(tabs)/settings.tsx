@@ -250,11 +250,6 @@ export default function SettingsScreen() {
                   titleStyle={{ color: theme.colors.danger, fontSize: 14 }}
                 />
               </View>
-              <Text style={styles.subscribedUntil}>
-                {wallet.subscriptionEndTimesampMs
-                  ? `Subscribed until: ${new Date(wallet.subscriptionEndTimesampMs).toLocaleDateString()}`
-                  : ""}
-              </Text>
             </View>
           ))}
           <Button
@@ -272,7 +267,12 @@ export default function SettingsScreen() {
           <Text style={styles.email}>
             <Text style={{ fontWeight: 'bold', color: theme.colors.text }}>Email:</Text> <Text style={{color: theme.colors.text}}>{authedUser?.email}</Text>
           </Text>
-          
+
+          <Text style={styles.subscribedUntil}>
+                {sirenUser?.subscriptionEndTimesampMs
+                  ? `Subscribed until: ${new Date(sirenUser.subscriptionEndTimesampMs).toLocaleDateString()}`
+                  : ""}
+              </Text>          
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>

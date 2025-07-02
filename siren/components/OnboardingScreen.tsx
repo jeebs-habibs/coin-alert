@@ -2,6 +2,7 @@ import { getTheme } from '@/constants/theme';
 import { useAuthRequest } from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -14,7 +15,7 @@ import {
   ViewToken,
 } from 'react-native';
 import { Button, Icon, Text } from 'react-native-elements';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -66,8 +67,23 @@ export default function OnboardingScreen() {
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
       signInWithCredential(auth, credential)
-        .then(() => console.log('User signed in'))
-        .catch((err) => console.error('Firebase sign-in error:', err));
+      .then(async (userCredential) => {
+        const user = userCredential.user;
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+  
+        if (!userSnap.exists()) {
+          await setDoc(userRef, {
+            email: user.email,
+            createdAt: Date.now(),
+            uid: user.uid
+          });
+          console.log('New user created with timestamp');
+        } else {
+          console.log('Existing user logged in');
+        }
+      })
+      .catch((err) => console.error('Firebase sign-in error:', err));
     }
   }, [response]);
 
