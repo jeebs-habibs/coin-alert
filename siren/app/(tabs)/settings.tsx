@@ -100,7 +100,7 @@ export default function SettingsScreen() {
     if (!trimmed) return;
     const updated = [...wallets, trimmed];
     setWallets(updated);
-    updateUserSetting('wallets', updated);
+    updateUserSetting('userWallets', updated);
     setNewWallet('');
     setModalVisible(false);
   };
