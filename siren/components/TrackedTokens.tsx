@@ -15,7 +15,6 @@ import {
   View
 } from 'react-native';
 import { Button } from 'react-native-elements';
-import Page from './Page';
 import SingleSelectModal from './SingleSelectModal';
 
 type Props = {
@@ -227,7 +226,7 @@ export default function TrackedTokenSection({
   }
 
   return (
-    <Page>
+    <View style={{margin: theme.spacing.sm}}>
       <View style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.headerRow}>
@@ -260,7 +259,7 @@ export default function TrackedTokenSection({
           scrollEnabled={false} // ← critical
         />
       </View>
-    </Page>
+    </View>
   );
 }
 
