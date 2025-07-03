@@ -5,6 +5,7 @@ import { getTokenPricesCached } from "@/app/lib/redis/prices";
 import { getTokenCached } from "@/app/lib/redis/tokens";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
+import { isUserActive } from "@/app/lib/utils/subscription";
 import chalk from "chalk";
 import { NextRequest } from "next/server";
 import { PriceData, Token } from "../../../../../shared/types/token";
@@ -96,11 +97,14 @@ export async function GET(request: NextRequest) {
     //console.log("🔄 Checking price alerts for users...");
 
     const usersSnapshot = await getAllUsers();
+    const usersToNotify = usersSnapshot.filter((sirenUser) => {
+      return isUserActive(sirenUser)
+    })
     const notificationsToSend: (NotificationReturn | null)[] = [];
     const redisClient = await getRedisClient()
 
     let solPriceUsd = undefined
-    if(usersSnapshot.length){
+    if(usersToNotify.length){
       const solPrice = await getCryptoPrice("SOL")
       if(solPrice){
         solPriceUsd = solPrice.priceUsd
@@ -108,7 +112,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 🔹 1️⃣ Process All Users in Parallel
-    const userPromises = usersSnapshot.map(async (user: SirenUser) => {
+    const userPromises = usersToNotify.map(async (user: SirenUser) => {
       totalNumberOfUsers++
 
       // Skip users with no wallets or with notis turned off

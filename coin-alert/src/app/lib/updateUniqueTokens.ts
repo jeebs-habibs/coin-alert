@@ -14,6 +14,7 @@ import { getTokenPrices } from "./redis/prices";
 import { getTokenCached, updateTokenInRedis } from './redis/tokens';
 import { calculateTokenPrice } from './utils/solanaServer';
 import { PoolData, TokenAccountData } from "./utils/solanaUtils";
+import { isUserActive } from "./utils/subscription";
 import { getTokenMetadataFromBlockchain } from './utils/tokenMetadata';
 //import { fetchMeteoraPoolAccountsFromToken } from './utils/meteoraUtils';
 
@@ -309,13 +310,7 @@ export async function updateUniqueTokens() {
     const usersSnapshot: QuerySnapshot<DocumentData> = await adminDB.collection("users").get();
     const usersToProcessSnapshot = usersSnapshot.docs.filter((user) => {
       const sirenUser = user.data() as SirenUser
-      if((sirenUser.tier == "free-trial" && (Date.now() - (sirenUser?.createdAtTimestampMs || 0)) < 1000*60*60*24*7)
-        || (sirenUser.tier == "pro" && (sirenUser?.subscriptionEndTimesampMs || 0) > Date.now())){
-          console.log("Tracking user " + sirenUser.uid + " with tier: " + sirenUser.tier + " created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
-          return true
-      }
-      console.warn("NOT tracking user " + sirenUser.uid + " with tier: " + sirenUser.tier + " created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
-      return false
+      return isUserActive(sirenUser)
     })
     const userTokenMap = new Map<string, Set<TrackedToken>>(); // Map<userId, Set<TrackedToken>>
     const uniqueWalletSet = new Set<string>();
