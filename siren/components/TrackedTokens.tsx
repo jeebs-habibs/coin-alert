@@ -6,6 +6,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   StyleSheet,
   Text,
@@ -14,12 +15,11 @@ import {
   View
 } from 'react-native';
 import { Button } from 'react-native-elements';
-import { TrackedToken } from '../../shared/types/user';
 import Page from './Page';
 import SingleSelectModal from './SingleSelectModal';
 
 type Props = {
-  trackedTokens: TrackedToken[];
+  trackedTokens: EnrichedToken[];
   currency: string;
   solPrice: number;
   loading: boolean;
@@ -154,10 +154,17 @@ export default function TrackedTokenSection({
     return [...trackedTokens]
       .filter((token) => (hideDisabled ? token.isNotificationsOn : true))
       .sort((a, b) => {
+        // Sort by notification status first
         const aOn = a.isNotificationsOn ? 0 : 1;
         const bOn = b.isNotificationsOn ? 0 : 1;
-        return aOn - bOn;
-      });
+        if (aOn !== bOn) return aOn - bOn;
+  
+        // Then sort by total value (tokensOwned * price)
+        const aValue = (a.tokensOwned || 0) * (a.price || 0);
+        const bValue = (b.tokensOwned || 0) * (b.price || 0);
+        return bValue - aValue; // descending
+      })
+      .slice(0, 30);
   }, [trackedTokens, hideDisabled]);
 
   const renderItem = ({ item }: { item: EnrichedToken }) => {
@@ -244,13 +251,14 @@ export default function TrackedTokenSection({
           titleStyle={styles.hideDisabledTitle}
           buttonStyle={styles.hideDisabledButton}
           />
-{/* 
+
         <FlatList
           data={sortedTokens}
           keyExtractor={(item) => item.mint}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 100 }}
-        /> */}
+          scrollEnabled={false} // ← critical
+        />
       </View>
     </Page>
   );
