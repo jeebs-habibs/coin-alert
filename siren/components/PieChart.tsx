@@ -15,29 +15,39 @@ interface EnrichedToken {
 
 interface Props {
   tokens: EnrichedToken[];
+  selectedCurrency: string;
+  solPrice?: number
+}
+
+function convertCurrency(valueSol: number, currency: string, solPrice?: number){
+  if(currency == "USD" && solPrice){
+    return valueSol * solPrice
+  }
+  return valueSol
 }
 
 const screenWidth = Dimensions.get('window').width;
 
-const PieChartComponent: React.FC<Props> = ({ tokens }) => {
+const PieChartComponent: React.FC<Props> = ({ tokens, selectedCurrency, solPrice }) => {
   const scheme = useColorScheme();
   const theme = getTheme(scheme);
+  const currency = solPrice ? selectedCurrency : "SOL"
   // Step 1: Compute total value for each token
   const enrichedTokensWithValue = tokens
     .map((token) => ({
       ...token,
-      value: ((token.tokensOwned ?? 0) * (token.price ?? 0)),
+      value: convertCurrency((token.tokensOwned ?? 0) * (token.price ?? 0), currency, solPrice),
     }))
     .filter((t) => t.value > 0);
 
   // Step 2: Sort by value and get top 10
   const topTokens = enrichedTokensWithValue
     .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
+    .slice(0, 7);
 
   // Step 3: Format for pie chart
   const pieData = topTokens.map((token, index) => ({
-    name: token.symbol || token.mint.slice(0, 4),
+    name: (token.symbol || token.mint.slice(0, 4)) + " " +  currency,
     value: Math.round(token.value * 100) / 100,
     color: getColor(index),
     legendFontColor: '#7F7F7F',

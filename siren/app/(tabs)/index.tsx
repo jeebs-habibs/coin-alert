@@ -245,7 +245,7 @@ export default function HomeScreen() {
         />
       </View>
 
-      <PieChart tokens={enrichedTokens}/>
+      <PieChart tokens={enrichedTokens} selectedCurrency={selectedCurrency} solPrice={solPrice}/>
       <View style={styles.separator} />
 
       <TrackedTokenSection trackedTokens={enrichedTokens} currency={selectedCurrency} solPrice={solPrice || 0} loading={loading}/>
