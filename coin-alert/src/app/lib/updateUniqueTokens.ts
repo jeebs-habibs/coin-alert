@@ -323,8 +323,8 @@ export async function updateUniqueTokens() {
       const userData = userDoc.data() as SirenUser
       // Add users wallets if they are still in free trial or are on pro tier with subscription end in the future.
       userTokenMap.set(userId, new Set<TrackedToken>());
-      if (Array.isArray(userData.wallets)) {
-        userData.wallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
+      if (Array.isArray(userData.userWallets)) {
+        userData.userWallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
       }
     });
 
@@ -336,7 +336,7 @@ export async function updateUniqueTokens() {
     const walletToUsers = new Map<string, Set<string>>();
     usersToProcessSnapshot.forEach((userDoc) => {
       const userId = userDoc.id;
-      const wallets = userDoc.data().wallets || [];
+      const wallets = userDoc.data().userWallets || [];
       wallets.forEach((wallet: string) => {
         if (!walletToUsers.has(wallet)) walletToUsers.set(wallet, new Set());
         (walletToUsers.get(wallet) || new Set()).add(userId);

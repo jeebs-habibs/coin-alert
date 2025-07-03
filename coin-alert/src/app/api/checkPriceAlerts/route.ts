@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       totalNumberOfUsers++
 
       // Skip users with no wallets or with notis turned off
-      if (!user.wallets || !Array.isArray(user.wallets) || !user.isNotificationsOn){
+      if (!user.userWallets || !Array.isArray(user.userWallets) || !user.isNotificationsOn){
         totalUsersSkipped++ 
         return
       }

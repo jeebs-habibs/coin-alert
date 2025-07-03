@@ -48,7 +48,7 @@ async function updateUserData(uid: string, newData: Partial<SirenUser>) {
         uid,
         email: newData.email || "unknown@example.com",
         tokens: newData.tokens || [],
-        wallets: newData.wallets || [],
+        userWallets: newData.userWallets || [],
         alarmPreset: newData.alarmPreset || "center",
         isNotificationsOn: newData.isNotificationsOn ?? true,
         recentNotifications: newData.recentNotifications || {},
@@ -102,8 +102,8 @@ export default function Settings() {
     useEffect(() => {
       if (userData) {
         // Fetch user data
-          if (userData?.wallets) {
-            setWallets(userData.wallets);
+          if (userData?.userWallets) {
+            setWallets(userData.userWallets);
           }
           if(userData?.alarmPreset){
             console.log("Set alarm preset to " + userData.alarmPreset)
@@ -220,7 +220,7 @@ export default function Settings() {
     // console.log("newAlarmPreset: " + newAlarmPreset)
     // console.log("userData.alarmPreset: " + userData.alarmPreset)
     // console.log("Did user data change? " + (!areStringListsEqual(userData.wallets, wallets) || newAlarmPreset != userData.alarmPreset))
-    return (!areStringListsEqual(userData.wallets || [], wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
+    return (!areStringListsEqual(userData.userWallets || [], wallets) || newAlarmPreset != userData.alarmPreset || isNotificationsOn != userData?.isNotificationsOn)  
   }
 
   if (loading) return <p>Loading...</p>;
@@ -299,7 +299,7 @@ export default function Settings() {
         <Button variant="grey" disabled={!didUserDataChange()} onClick={() => 
           {
             if(userData){
-              setWallets(userData.wallets || [])
+              setWallets(userData.userWallets || [])
               setNewAlarmPreset(userData.alarmPreset)
               setIsNotificationsOn(userData.isNotificationsOn === undefined ? true : userData.isNotificationsOn)
             }
