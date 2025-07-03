@@ -355,7 +355,10 @@ export async function updateUniqueTokens() {
           console.log(
             `Getting tokens owned by ${wallet} took ${
               (Date.now() - startTimeGettingTokenAccounts) / 1000
-            } seconds`
+            } seconds. Tokens owned: ${tokenAccountsForAddress.value.map((tok) => {
+             const token: TokenAccountData = tok.account.data.parsed
+             return token.info.mint
+            }).join(",")}`
           );
 
           // Get users for this wallet
