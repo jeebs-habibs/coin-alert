@@ -2,7 +2,7 @@ import { getTheme } from '@/constants/theme';
 import { useAuthRequest } from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -15,6 +15,7 @@ import {
   ViewToken,
 } from 'react-native';
 import { Button, Icon, Text } from 'react-native-elements';
+import { SirenUser } from '../../shared/types/user';
 import { auth, db } from '../lib/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -81,6 +82,13 @@ export default function OnboardingScreen() {
           });
           console.log('New user created with timestamp');
         } else {
+          const sirenUser = userSnap.data() as SirenUser
+          if(!sirenUser?.createdAtTimestampMs){
+            await updateDoc(userRef, {createdAtTimestampMs: Date.now()})
+          }
+          if(!sirenUser?.tier){
+            await updateDoc(userRef, {tier: "free-trial"})
+          }
           console.log('Existing user logged in');
         }
       })
