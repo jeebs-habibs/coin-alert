@@ -8,7 +8,7 @@ import { blockchainTaskQueue } from "./taskQueue";
 // import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "./utils/pumpUtils";
 // import { fetchRaydiumPoolAccountsFromToken } from "./utils/raydiumUtils";
 import { GetPriceResponse, PriceData, Token, TokenData } from "../../../../shared/types/token";
-import { TrackedToken } from "../../../../shared/types/user";
+import { SirenUser, TrackedToken } from "../../../../shared/types/user";
 import { getRedisClient, RedisClient } from "./redis";
 import { getTokenPrices } from "./redis/prices";
 import { getTokenCached, updateTokenInRedis } from './redis/tokens';
@@ -307,21 +307,29 @@ export async function updateUniqueTokens() {
 
     // 🔹 1️⃣ Fetch All Users' Wallets and Initialize Token Tracking
     const usersSnapshot: QuerySnapshot<DocumentData> = await adminDB.collection("users").get();
+    const usersToProcessSnapshot = usersSnapshot.docs.filter((user) => {
+      const sirenUser = user.data() as SirenUser
+      if((sirenUser.tier == "free-trial" && (Date.now() - (sirenUser?.createdAtTimestampMs || 0)) < 1000*60*60*24*7)
+        || (sirenUser.tier == "pro" && (sirenUser?.subscriptionEndTimesampMs || 0) > Date.now())){
+          console.log("Tracking user " + sirenUser.uid + " with tier: " + sirenUser.tier + " created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
+          return true
+      }
+      console.warn("NOT tracking user " + sirenUser.uid + " with tier: " + sirenUser.tier + " created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
+      return false
+    })
     const userTokenMap = new Map<string, Set<TrackedToken>>(); // Map<userId, Set<TrackedToken>>
     const uniqueWalletSet = new Set<string>();
     const uniqueTokensSet = new Set<string>();
     totalUsers = usersSnapshot.docs.length; // Assuming totalUsers is defined elsewhere
 
     // Initialize userTokenMap for each user
-    usersSnapshot.docs.forEach((userDoc) => {
+    usersToProcessSnapshot.forEach((userDoc) => {
       const userId = userDoc.id;
-      // TEMP FOR TESTING
-      if(userId == "7Phgw0InXPbqaE8Yf1qc8xzpnI13" || true){
-        const userData = userDoc.data();
-        userTokenMap.set(userId, new Set<TrackedToken>());
-        if (Array.isArray(userData.wallets)) {
-          userData.wallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
-        }
+      const userData = userDoc.data() as SirenUser
+      // Add users wallets if they are still in free trial or are on pro tier with subscription end in the future.
+      userTokenMap.set(userId, new Set<TrackedToken>());
+      if (Array.isArray(userData.wallets)) {
+        userData.wallets.forEach((wallet: string) => uniqueWalletSet.add(wallet));
       }
     });
 
@@ -331,7 +339,7 @@ export async function updateUniqueTokens() {
     const updateTrackedTokensStartTime = Date.now()
     // Precompute wallet-to-users map to avoid duplicate user lookups
     const walletToUsers = new Map<string, Set<string>>();
-    usersSnapshot.docs.forEach((userDoc) => {
+    usersToProcessSnapshot.forEach((userDoc) => {
       const userId = userDoc.id;
       const wallets = userDoc.data().wallets || [];
       wallets.forEach((wallet: string) => {
