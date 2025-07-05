@@ -243,7 +243,7 @@ export default function SettingsScreen() {
           {
             sirenUser?.userSirenWallet ? 
             <View>
-              <Text>To extend subscription, send .25 SOL for each month of access to address: {sirenUser.userSirenWallet}</Text>
+              <Text style={styles.subscriptionText}>To extend subscription, send .25 SOL for each month of access to address: {sirenUser.userSirenWallet}</Text>
               <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
                 <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
               </TouchableOpacity>
@@ -348,6 +348,10 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       marginBottom: theme.spacing.sm,
     },
     settingText: {
+      fontSize: 16,
+      color: theme.colors.text,
+    },
+    subscriptionText: {
       fontSize: 16,
       color: theme.colors.text,
     },
