@@ -6,6 +6,7 @@ import { retryOnServerError } from "@/app/lib/retry";
 import { blockchainTaskQueue } from "@/app/lib/taskQueue";
 import { fetchMeteoraPoolAccountsFromToken } from "@/app/lib/utils/meteoraUtils";
 import { fetchPumpSwapAMM, getPriceFromBondingCurve } from "@/app/lib/utils/pumpUtils";
+import { fetchRaydiumCpmmPoolAccountsFromToken } from "@/app/lib/utils/raydiumCpmmUtils";
 import { fetchRaydiumPoolAccountsFromToken } from "@/app/lib/utils/raydiumUtils";
 import { PoolData } from "@/app/lib/utils/solanaUtils";
 import { getTokenMetadataFromBlockchain } from "@/app/lib/utils/tokenMetadata";
@@ -308,6 +309,12 @@ async function findTokenPoolData(token: string): Promise<PoolData | undefined> {
           }
         }
 
+        if(token.endsWith("bonk")){
+          const raydiumCpmmPoolData: PoolData | undefined = await fetchRaydiumCpmmPoolAccountsFromToken(new PublicKey(token))
+          if(raydiumCpmmPoolData){
+            return raydiumCpmmPoolData
+          }
+        }
   
         // 3. If cant find pump or raydium check meteora
         const meteoraPoolData: PoolData | undefined = await fetchMeteoraPoolAccountsFromToken(new PublicKey(token))
@@ -319,6 +326,12 @@ async function findTokenPoolData(token: string): Promise<PoolData | undefined> {
         const raydiumPoolData: PoolData | undefined = await fetchRaydiumPoolAccountsFromToken(new PublicKey(token))
         if(raydiumPoolData){
           return raydiumPoolData
+        }
+
+        // 5. May be a case where a non-bonk coin is on raydium CPMM pool
+        const raydiumCpmmPoolData: PoolData | undefined = await fetchRaydiumCpmmPoolAccountsFromToken(new PublicKey(token))
+        if(raydiumCpmmPoolData){
+          return raydiumCpmmPoolData
         }
         
         return undefined

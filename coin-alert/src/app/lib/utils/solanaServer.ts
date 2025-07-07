@@ -71,4 +71,14 @@ export async function calculateTokenPrice(token: string, poolData: PoolData | un
     return getPriceFromBalances(baseBalance, quoteBalance, poolData.baseMint.toString(), token, poolType)
   }
 
+  if(poolType == "raydium-cpmm" && poolData){
+    if (!poolData?.baseVault || !poolData?.quoteVault || !poolData?.baseMint || !poolData?.quoteVault) {
+      //console.log(`ERROR: Insufficient token data for ${poolType} price calculation for token: ${token} on pump-swap`);
+      return undefined;
+    }
+    const baseBalance = await getTokenAccountBalance(new PublicKey(poolData.baseVault))
+    const quoteBalance = await getTokenAccountBalance(new PublicKey(poolData.quoteVault))
+    return getPriceFromBalances(baseBalance, quoteBalance, poolData.baseMint.toString(), token, poolType)
+  }
+
 }
