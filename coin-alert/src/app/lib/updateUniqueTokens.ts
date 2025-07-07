@@ -45,7 +45,7 @@ const PRICE_FETCH_THRESHOLD = 8
 
 
 export function isInvalidMint(mint: string): boolean {
-  const invalidEndings = ["bonk", "moon", "boop"];
+  const invalidEndings = ["moon", "boop"];
   return invalidEndings.some(ending => mint.endsWith(ending));
 }
 
