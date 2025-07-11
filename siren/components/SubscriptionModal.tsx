@@ -55,6 +55,14 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
     }
   };
 
+  const handleClose = () => {
+    setSubscriptionModal(false);
+    setWalletAddress('');
+    setMonths('12');
+    setError('');
+    setCopied(false);
+  };
+
   const handleVerify = async () => {
     if (!authedUser || !sirenUser?.userSirenWallet) return;
     try {
@@ -103,62 +111,71 @@ export default function SubscriptionModal({ visible, setSubscriptionModal, isSir
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={() => {}}
+      onRequestClose={handleClose}
       hardwareAccelerated
       presentationStyle="overFullScreen"
     >
       {
-        isSirenUserWalletAddressLoading ?       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View> : 
-      <View style={styles.overlay}>
-      <View style={styles.modal}>
-        <Text style={styles.title}>Activate Your Subscription</Text>
+        isSirenUserWalletAddressLoading ? 
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View> : 
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <View style={styles.headerRow}>
+              <Text style={styles.title}>Activate Your Subscription</Text>
+              <TouchableOpacity onPress={handleClose}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-        <Text style={styles.header}>PAY</Text>
-        <Text style={styles.label}>Send the following amount:</Text>
-        <View style={styles.monthRow}>
-          <Text style={[styles.step, styles.bold]}>{totalSOL} SOL</Text>
-          <Text style={styles.step}> for </Text>
-          <TextInput
-            style={styles.monthInput}
-            keyboardType="numeric"
-            value={months}
-            onChangeText={setMonths}
-          />
-          <Text style={styles.step}> month(s)</Text>
-        </View>
+            <Text style={styles.header}>PAY</Text>
+            <Text style={styles.label}>Send the following amount:</Text>
+            <View style={styles.monthRow}>
+              <Text style={[styles.step, styles.bold]}>{totalSOL} SOL</Text>
+              <Text style={styles.step}> for </Text>
+              <TextInput
+                style={styles.monthInput}
+                keyboardType="numeric"
+                value={months}
+                onChangeText={setMonths}
+              />
+              <Text style={styles.step}> month(s)</Text>
+            </View>
 
-        <Text style={styles.label}>To this wallet address:</Text>
-        <View style={styles.copyRow}>
-          <Text style={styles.wallet}>{sirenUser?.userSirenWallet}</Text>
-          <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
-            <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.label}>To this wallet address:</Text>
+            <View style={styles.copyRow}>
+              <Text style={styles.wallet}>{sirenUser?.userSirenWallet}</Text>
+              <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
+                <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
+              </TouchableOpacity>
+            </View>
 
-        <TouchableOpacity
-          style={[
-            styles.verifyButton
-          ]}
-          onPress={handleVerify}
-        >
-          {verifying ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text
-              style={
-                styles.verifyText
-              }
+            <TouchableOpacity
+              style={[
+                styles.verifyButton,
+                isVerifyButtonDisabled && styles.verifyButtonDisabled
+              ]}
+              onPress={handleVerify}
+              disabled={isVerifyButtonDisabled}
             >
-              Verify
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
+              {verifying ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text
+                  style={[
+                    styles.verifyText,
+                    isVerifyButtonDisabled && styles.verifyTextDisabled
+                  ]}
+                >
+                  Verify
+                </Text>
+              )}
+            </TouchableOpacity>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </View>
+        </View>
       }
-      
     </Modal>
   );
 }
@@ -181,12 +198,22 @@ const getStyles = (theme: ReturnType<typeof getTheme>) =>
       shadowOffset: { width: 0, height: 4 },
       shadowRadius: 8,
     },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
     title: {
       fontSize: 20,
       fontWeight: 'bold',
       color: theme.colors.text,
-      marginBottom: 16,
       textAlign: 'center',
+    },
+    closeButton: {
+      fontSize: 24,
+      color: theme.colors.text,
+      padding: 8,
     },
     header: {
       fontSize: 18,

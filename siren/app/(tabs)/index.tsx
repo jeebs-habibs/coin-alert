@@ -20,6 +20,7 @@ import {
   View
 } from 'react-native';
 import { Token } from '../../../shared/types/token';
+import { SirenUser } from '../../../shared/types/user';
 import OnboardingScreen from '../../components/OnboardingScreen';
 
 export interface EnrichedToken {
@@ -30,6 +31,21 @@ export interface EnrichedToken {
   image?: string;
   price?: number;
   marketCapSol?: number;
+}
+
+const SEVEN_DAYS_MS = 1000*60*60*24*7
+
+function isUserActive(sirenUser: SirenUser){
+  if((sirenUser.tier == "free-trial" && (Date.now() - (sirenUser?.createdAtTimestampMs || 0)) < SEVEN_DAYS_MS)){
+      console.log("Tracking user " + sirenUser.uid + " with free tier created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date((sirenUser?.createdAtTimestampMs || 0) + SEVEN_DAYS_MS).toLocaleDateString())
+      return true
+  }
+  if((sirenUser.tier == "pro" && (sirenUser?.subscriptionEndTimesampMs || 0) > Date.now())){
+      console.log("Tracking user " + sirenUser.uid + " with pro tier created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
+      return true
+  }
+  console.warn("NOT tracking user " + sirenUser.uid + " with tier: " + sirenUser.tier + " created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
+  return false
 }
 
 
@@ -64,7 +80,7 @@ export function getTotalValue(
 
 export default function HomeScreen() {
   const scheme = useColorScheme();
-  const [loading, setLoading] = useState(true);
+  const [tokensLoading, setTokensLoading] = useState(true);
   const [enrichedTokens, setEnrichedTokens] = useState<EnrichedToken[]>([]);
   const theme = getTheme(scheme ?? 'light');
   const [solPrice, setSolPrice] = useState<number | undefined>(undefined)
@@ -73,7 +89,7 @@ export default function HomeScreen() {
   const [isSirenUserWalletLoading, setIsSirenUserWalletLoading] = useState<boolean>(true)
   const [selectedCurrency, setSelectedCurrency] = useState<string>("USD"); // false = USD, true = SOL
   const [authenticated, setAuthenticated] = useState(false);
-  const { authedUser, sirenUser } = useUser();
+  const { authedUser, sirenUser, loading } = useUser();
 
   useEffect(() => {
     const setupFcm = async () => {
@@ -100,8 +116,7 @@ export default function HomeScreen() {
       // Show modal if either:
       //    - User is pro tier but subscription ended
       //    - User is free-trail but trial ended
-      if (sirenUser && ((sirenUser.tier == "pro" && (sirenUser.subscriptionEndTimesampMs || 0) < Date.now()) 
-        || (sirenUser.tier == "free-trial" && (((Date.now() - (sirenUser.createdAtTimestampMs || 0)) / 1000 / 60 / 60 / 24 / 7) > 7)))) {
+      if ((!sirenUser && !loading) || (sirenUser && !loading && !isUserActive(sirenUser))) {
         setShowSubscriptionModal(true);
         if(!sirenUser?.userSirenWallet){
           try {
@@ -131,10 +146,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setTokensLoading(true);
       if(!sirenUser?.trackedTokens || sirenUser.trackedTokens.length == 0){
         setEnrichedTokens([])
-        setLoading(false);
+        setTokensLoading(false);
       } else {
         try {
           const userJwt = await authedUser?.getIdToken();
@@ -168,7 +183,7 @@ export default function HomeScreen() {
         } catch (err) {
           console.error('Error fetching token data:', err);
         } finally {
-          setLoading(false);
+          setTokensLoading(false);
         }
       }
 
