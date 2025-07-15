@@ -7,6 +7,7 @@ import { getTheme } from '@/constants/theme';
 import { useUser } from '@/context/UserContext';
 import { auth } from '@/lib/firebase';
 import { requestAndStoreFcmToken } from '@/lib/firebaseNotifications';
+import { isUserActive } from '@/lib/subscriptionUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -20,7 +21,6 @@ import {
   View
 } from 'react-native';
 import { Token } from '../../../shared/types/token';
-import { SirenUser } from '../../../shared/types/user';
 import OnboardingScreen from '../../components/OnboardingScreen';
 
 export interface EnrichedToken {
@@ -32,22 +32,6 @@ export interface EnrichedToken {
   price?: number;
   marketCapSol?: number;
 }
-
-const SEVEN_DAYS_MS = 1000*60*60*24*7
-
-function isUserActive(sirenUser: SirenUser){
-  if((sirenUser.tier == "free-trial" && (Date.now() - (sirenUser?.createdAtTimestampMs || 0)) < SEVEN_DAYS_MS)){
-      console.log("Tracking user " + sirenUser.uid + " with free tier created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date((sirenUser?.createdAtTimestampMs || 0) + SEVEN_DAYS_MS).toLocaleDateString())
-      return true
-  }
-  if((sirenUser.tier == "pro" && (sirenUser?.subscriptionEndTimesampMs || 0) > Date.now())){
-      console.log("Tracking user " + sirenUser.uid + " with pro tier created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
-      return true
-  }
-  console.warn("NOT tracking user " + sirenUser.uid + " with tier: " + sirenUser.tier + " created on " + new Date(sirenUser?.createdAtTimestampMs || 0).toLocaleDateString() + " with subscription end of " + new Date(sirenUser?.subscriptionEndTimesampMs || 0).toLocaleDateString())
-  return false
-}
-
 
 /**
  * Calculates the total value of a list of EnrichedTokens.
