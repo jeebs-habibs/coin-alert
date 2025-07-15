@@ -1,31 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getRedisClient } from "@/app/lib/redis";
-import { Token, TokenData, PriceData, PoolType } from "../../../../../shared/types/token";
 import { getTokenPricesCached } from "@/app/lib/redis/prices"; // Adjust path as needed
-
-// Combined interface for response data
-export interface TokenPriceWithMetadata {
-  mint: string;
-  symbol: string;
-  percentChange: number;
-  currentPrice: number;
-  marketCapSol?: number;
-  pool?: PoolType;
-  name?: string;
-  image?: string;
-  uri?: string;
-  description?: string;
-}
-
-// Response interface for the API
-interface TrendingTokensResponse {
-  message?: string;
-  data?: {
-    winners: TokenPriceWithMetadata[];
-    losers: TokenPriceWithMetadata[];
-  };
-  error?: string
-}
+import { NextRequest, NextResponse } from "next/server";
+import { PriceData, Token, TokenData, TokenPriceWithMetadata, TrendingTokensResponse } from "../../../../../shared/types/token";
 
 // Metrics for logging
 let totalTokensProcessed: number = 0;
@@ -40,10 +16,10 @@ const MAX_TOKENS_TO_PROCESS: number = 200; // Limit processing to avoid timeout
 const TIMEFRAME_SECONDS: number = 3600; // 1 hour
 
 export async function GET(request: NextRequest): Promise<NextResponse<TrendingTokensResponse>> {
-  const authHeader: string | null = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    console.error("Unauthorized access attempt");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -195,10 +171,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
     `;
 
     console.log(message);
-    return NextResponse.json({
+    const dataResponse: TrendingTokensResponse = {
       message,
-      data: { winners, losers },
-    } as TrendingTokensResponse);
+      data: {winners, losers}
+    }
+    return NextResponse.json({
+      ...dataResponse
+    }, {status: 200});
   } catch (error) {
     console.error("❌ Error retrieving trending tokens:", error);
     return NextResponse.json({ error: "Failed to retrieve trending tokens" }, { status: 500 });

@@ -42,3 +42,27 @@ export interface Token {
     tokenData?: TokenData;
     isDead?: boolean;
 }
+
+// Combined interface for response data
+export interface TokenPriceWithMetadata {
+  mint: string;
+  symbol: string;
+  percentChange: number;
+  currentPrice: number;
+  marketCapSol?: number;
+  pool?: PoolType;
+  name?: string;
+  image?: string;
+  uri?: string;
+  description?: string;
+}
+
+// Response interface for the API
+export interface TrendingTokensResponse {
+  message?: string;
+  data?: {
+    winners: TokenPriceWithMetadata[];
+    losers: TokenPriceWithMetadata[];
+  };
+  error?: string
+}
