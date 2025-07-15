@@ -3,6 +3,7 @@ import { getAllUsers } from "@/app/lib/firebase/userUtils";
 import { getRedisClient } from "@/app/lib/redis";
 import { getTokenPricesCached } from "@/app/lib/redis/prices";
 import { getTokenCached } from "@/app/lib/redis/tokens";
+import { storeTokenPercentChange } from "@/app/lib/redis/trending";
 import { getCryptoPrice } from "@/app/lib/utils/cryptoPrice";
 import { calculatePriceChange, getAlarmConfig, NotificationReturn } from "@/app/lib/utils/priceAlertHelper";
 import { isUserActive } from "@/app/lib/utils/subscription";
@@ -214,6 +215,9 @@ export async function GET(request: NextRequest) {
           // console.log("Latest price: " + latestPrice)
 
           const priceChange = calculatePriceChange(oldPriceEntry.price, latestPrice);
+          if(config[0] == 60){
+            await storeTokenPercentChange(token, priceChange, redisClient)
+          }
           if(priceChange != 0){
             nonZeroPriceChanges++
             console.log(`📊 ${token} change over ${config[0]} mins: ${priceChange.toFixed(2)}%`);
