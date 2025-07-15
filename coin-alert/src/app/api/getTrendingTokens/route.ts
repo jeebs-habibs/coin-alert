@@ -119,7 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
           const percentChange: number = ((currentPrice - price1hAgo) / price1hAgo) * 100;
 
           // Use tokenMetadata.symbol or fallback to mint
-          const symbol: string = token.tokenData?.tokenMetadata?.symbol || mint.slice(0, 6);
+          const symbol: string = token.tokenData?.tokenMetadata?.symbol || (mint.slice(0, 6) + "...");
 
           priceChanges.push({
             mint,
