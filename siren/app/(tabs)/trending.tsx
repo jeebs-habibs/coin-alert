@@ -116,17 +116,15 @@ export default function TrendingScreen() {
           <Text style={styles.tokenName}>{item.name || item.mint.slice(0, 6)}</Text>
         </View>
         <View style={styles.tokenMetrics}>
-          <Text style={styles.tokenPrice}>
-            {currency === 'USD' ? '$' : ''}{formatNumber(price)}{currency === 'SOL' ? ' SOL' : ''}
-          </Text>
+          {marketCap && (
+            <Text style={styles.tokenPrice}>
+              MC: {currency === 'USD' ? '$' : ''}{formatNumber(marketCap)}{currency === 'SOL' ? ' SOL' : ''}
+            </Text>
+          )}          
           <Text style={[styles.tokenChange, { color: item.percentChange >= 0 ? theme.colors.primary : theme.colors.danger }]}>
             {item.percentChange >= 0 ? '+' : ''}{formatNumber(item.percentChange)}%
           </Text>
-          {marketCap && (
-            <Text style={styles.tokenMarketCap}>
-              MCap: {currency === 'USD' ? '$' : ''}{formatNumber(marketCap)}{currency === 'SOL' ? ' SOL' : ''}
-            </Text>
-          )}
+  
           {item.pool && <Text style={styles.tokenPool}>Pool: {item.pool}</Text>}
         </View>
       </View>
