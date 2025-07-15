@@ -1,5 +1,6 @@
 import { getRedisClient } from "@/app/lib/redis";
-import { getTokenPricesCached } from "@/app/lib/redis/prices"; // Adjust path as needed
+import { getTokenPricesCached } from "@/app/lib/redis/prices";
+import { getTokenCached } from "@/app/lib/redis/tokens"; // Import getTokenCached (adjust path as needed)
 import { NextRequest, NextResponse } from "next/server";
 import { PriceData, Token, TokenData, TokenPriceWithMetadata, TrendingTokensResponse } from "../../../../../shared/types/token";
 
@@ -11,21 +12,22 @@ let tokensWithRecentPrice: number = 0;
 let tokensWithoutRecentPrice: number = 0;
 let tokensWithHistoricalPrice: number = 0;
 let tokensWithoutHistoricalPrice: number = 0;
+let tokensWithMissingMetadata: number = 0; // Track tokens with no metadata
 
-const MAX_TOKENS_TO_PROCESS: number = 200; // Limit processing to avoid timeout
+const MAX_TOKENS_TO_PROCESS: number = 200;
 const TIMEFRAME_SECONDS: number = 3600; // 1 hour
 
 export async function GET(request: NextRequest): Promise<NextResponse<TrendingTokensResponse>> {
-  
   const authHeader = request.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const timeBeforeProcessing: number = Date.now();
     const redisClient = await getRedisClient();
     const pricesCache: Map<string, PriceData[]> = new Map<string, PriceData[]>();
+    const tokenCache: Map<string, Token> = new Map<string, Token>(); // Cache for token metadata
 
     const tokensToProcess: [string, Token][] = [];
 
@@ -42,15 +44,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
       for (const priceKey of keys) {
         const tokenMint: string = priceKey.split(":")[1];
         totalTokensProcessed++;
-        // Fetch token metadata
-        const token: Token = { tokenData: {} as TokenData, isDead: false };
+        // Fetch token metadata using getTokenCached
+        let token: Token = { tokenData: {} as TokenData, isDead: false };
         try {
-          const tokenData: string | null = await redisClient.get(`token:${tokenMint}`);
+          const [tokenData, source] = await getTokenCached(tokenMint, tokenCache, redisClient);
           if (tokenData) {
-            token.tokenData = JSON.parse(tokenData) as TokenData;
+            token = tokenData;
+            console.debug(`Fetched token ${tokenMint} from ${source}`);
+          } else {
+            tokensWithMissingMetadata++;
+            console.warn(`No metadata found for token ${tokenMint}`);
           }
         } catch (e) {
-          console.warn(`Failed to fetch metadata for token ${tokenMint}: ${e}`);
+          tokensWithMissingMetadata++;
+          console.error(`Failed to fetch metadata for token ${tokenMint}: ${e instanceof Error ? e.stack : e}`);
         }
         tokensToProcess.push([tokenMint, token]);
       }
@@ -65,11 +72,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
       `Processing ${tokensToProcessSubset.length} tokens: ${tokensToProcessSubset.map((a) => a[0]).join(",")}`
     );
 
-    const now: number = Math.floor(Date.now()); // Current timestamp in milliseconds
-    const oneHourAgo: number = now - TIMEFRAME_SECONDS * 1000; // 1 hour ago
+    const now: number = Math.floor(Date.now());
+    const oneHourAgo: number = now - TIMEFRAME_SECONDS * 1000;
 
     const priceChanges: TokenPriceWithMetadata[] = [];
-
     const priceFetchTimes: number[] = [];
 
     // Process tokens in parallel
@@ -78,7 +84,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
         try {
           const timeBeforeFetchPrice: number = Date.now();
 
-          // Fetch prices using getTokenPricesCached
           const prices: PriceData[] | undefined = await getTokenPricesCached(mint, pricesCache, redisClient);
           if (!prices || prices.length === 0) {
             tokensWithoutPriceData++;
@@ -86,21 +91,18 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
           }
           tokensWithPriceData++;
 
-          // Find the most recent price
           const latestPrice: PriceData = prices.reduce((latest: PriceData, current: PriceData) =>
             current.timestamp > latest.timestamp ? current : latest
           );
           const currentPrice: number = latestPrice.price;
           const latestTimestamp: number = latestPrice.timestamp;
 
-          // Skip if the latest price is too old
           if (latestTimestamp < oneHourAgo) {
             tokensWithoutRecentPrice++;
             return;
           }
           tokensWithRecentPrice++;
 
-          // Find the price closest to 1 hour ago
           const historicalPrice: PriceData = prices.reduce((closest: PriceData, current: PriceData) => {
             const currentDiff: number = Math.abs(current.timestamp - oneHourAgo);
             const closestDiff: number = Math.abs(closest.timestamp - oneHourAgo);
@@ -108,17 +110,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
           });
           const price1hAgo: number = historicalPrice.price;
 
-          // Skip if no historical price or prices are invalid
           if (!historicalPrice || currentPrice <= 0 || price1hAgo <= 0) {
             tokensWithoutHistoricalPrice++;
             return;
           }
           tokensWithHistoricalPrice++;
 
-          // Calculate percentage change
           const percentChange: number = ((currentPrice - price1hAgo) / price1hAgo) * 100;
 
-          // Use tokenMetadata.symbol or fallback to mint
           const symbol: string = token.tokenData?.tokenMetadata?.symbol || (mint.slice(0, 6) + "...");
 
           priceChanges.push({
@@ -144,13 +143,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
 
     const timeAfterProcessing: number = Date.now();
 
-    // Sort by percentage change
     priceChanges.sort((a: TokenPriceWithMetadata, b: TokenPriceWithMetadata) => b.percentChange - a.percentChange);
 
-    // Get top N winners and losers
     const topN: number = Math.min(parseInt(request.nextUrl.searchParams.get("topN") || "5"), 50);
     const winners: TokenPriceWithMetadata[] = priceChanges.slice(0, topN);
-    const losers: TokenPriceWithMetadata[] = priceChanges.slice(-topN).reverse(); // Largest negative changes first
+    const losers: TokenPriceWithMetadata[] = priceChanges.slice(-topN).reverse();
 
     await redisClient.quit();
 
@@ -166,6 +163,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
       Tokens without recent price: ${tokensWithoutRecentPrice},
       Tokens with historical price: ${tokensWithHistoricalPrice},
       Tokens without historical price: ${tokensWithoutHistoricalPrice},
+      Tokens with missing metadata: ${tokensWithMissingMetadata},
       Average price fetch time: ${avgPriceFetchTime.toFixed(2)} ms,
       Coverage percentage: ${totalTokensProcessed ? ((tokensWithHistoricalPrice / totalTokensProcessed) * 100).toFixed(2) : 0}%.
     `;
@@ -173,11 +171,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendingTo
     console.log(message);
     const dataResponse: TrendingTokensResponse = {
       message,
-      data: {winners, losers}
-    }
-    return NextResponse.json({
-      ...dataResponse
-    }, {status: 200});
+      data: { winners, losers },
+    };
+    return NextResponse.json(dataResponse, { status: 200 });
   } catch (error) {
     console.error("❌ Error retrieving trending tokens:", error);
     return NextResponse.json({ error: "Failed to retrieve trending tokens" }, { status: 500 });
